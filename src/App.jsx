@@ -1,131 +1,95 @@
 import { useState, useEffect } from 'react'
-import { supabase, getCustomer, getBooks, getProgress } from './lib/supabase.js'
-import ActivationScreen from './screens/ActivationScreen.jsx'
-import LibraryScreen    from './screens/LibraryScreen.jsx'
-import ReaderScreen     from './screens/ReaderScreen.jsx'
-import OwnerDashboard   from './screens/OwnerDashboard.jsx'
-import LoadingScreen    from './screens/LoadingScreen.jsx'
+import LicenseScreen from './screens/LicenseScreen'
+import LibraryScreen from './screens/LibraryScreen'
+import ReaderScreen from './screens/ReaderScreen'
+import SettingsScreen from './screens/SettingsScreen'
+import { usePrefs } from './hooks/usePrefs'
 
 export default function App() {
-  const [screen,   setScreen]   = useState('loading')
-  const [customer, setCustomer] = useState(null)
-  const [books,    setBooks]    = useState([])
-  const [progress, setProgress] = useState({})
-  const [openBook, setOpenBook] = useState(null)
-  const [prefs,    setPrefs]    = useState({ theme: 'dark', fontSize: 18 })
+  const [screen, setScreen] = useState('loading') // loading | license | library | reader | settings
+  const [user, setUser] = useState(null)
+  const [activeBook, setActiveBook] = useState(null)
+  const { prefs, savePrefs } = usePrefs()
 
-  useEffect(() => { init() }, [])
+  useEffect(() => {
+    checkLicense()
+  }, [])
 
-  async function init() {
-    // Check if owner dashboard route
-    if (window.location.pathname === '/owner') {
-      const ownerPass = sessionStorage.getItem('owner_auth')
-      setScreen(ownerPass ? 'owner' : 'owner_login')
-      return
+  // Apply theme to root element
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', prefs.theme || 'dark')
+  }, [prefs.theme])
+
+  async function checkLicense() {
+    const result = await window.api.license.check()
+    if (result.valid) {
+      setUser({ name: result.name })
+      setScreen('library')
+    } else {
+      setScreen('license')
     }
-
-    // Check local session
-    const savedSession = localStorage.getItem('rbs_session')
-    if (savedSession) {
-      try {
-        const session = JSON.parse(savedSession)
-        if (session.email && session.customerId) {
-          const { customer: cust } = await getCustomer(session.email)
-          if (cust && cust.is_active) {
-            setCustomer(cust)
-            await loadLibrary(cust.id)
-            setScreen('library')
-            return
-          }
-        }
-      } catch {}
-      localStorage.removeItem('rbs_session')
-    }
-
-    setScreen('activation')
   }
 
-  async function loadLibrary(customerId) {
-    const [{ books: bookList }, progressMap] = await Promise.all([
-      getBooks(),
-      getProgress(customerId),
-    ])
-    setBooks(bookList)
-    setProgress(progressMap)
-  }
-
-  async function handleActivated(activationResult) {
-    const { customerId, name, email } = activationResult
-    const cust = { id: customerId, name, email }
-    setCustomer(cust)
-
-    localStorage.setItem('rbs_session', JSON.stringify({ customerId, email }))
-
-    await loadLibrary(customerId)
+  async function onActivate(name) {
+    setUser({ name })
     setScreen('library')
   }
 
-  function handleOpenBook(book) {
-    setOpenBook(book)
+  function openBook(book) {
+    setActiveBook(book)
     setScreen('reader')
   }
 
-  function handleCloseBook() {
-    setOpenBook(null)
+  function closeReader() {
+    setActiveBook(null)
     setScreen('library')
-    // Refresh progress
-    if (customer) loadLibrary(customer.id)
   }
 
-  function handleProgressUpdate(bookId, progressData) {
-    setProgress(prev => ({ ...prev, [bookId]: progressData }))
-  }
-
-  function handleSignOut() {
-    localStorage.removeItem('rbs_session')
-    setCustomer(null)
-    setBooks([])
-    setProgress({})
-    setScreen('activation')
-  }
-
-  // Owner dashboard
-  if (screen === 'owner' || screen === 'owner_login') {
+  if (screen === 'loading') {
     return (
-      <OwnerDashboard
-        isLoggedIn={screen === 'owner'}
-        onLogin={() => setScreen('owner')}
+      <div style={{
+        height: '100vh', display: 'flex', alignItems: 'center',
+        justifyContent: 'center', background: 'var(--bg-base)'
+      }}>
+        <div style={{
+          width: 8, height: 8, borderRadius: '50%',
+          background: 'var(--accent)', animation: 'pulse 1.2s ease infinite'
+        }} />
+      </div>
+    )
+  }
+
+  if (screen === 'license') {
+    return <LicenseScreen onActivate={onActivate} />
+  }
+
+  if (screen === 'reader' && activeBook) {
+    return (
+      <ReaderScreen
+        book={activeBook}
+        prefs={prefs}
+        onClose={closeReader}
+        onOpenSettings={() => setScreen('settings')}
       />
     )
   }
 
-  if (screen === 'loading')     return <LoadingScreen/>
-  if (screen === 'activation')  return <ActivationScreen onActivated={handleActivated}/>
-
-  if (screen === 'reader' && openBook) {
+  if (screen === 'settings') {
     return (
-      <ReaderScreen
-        book={book => book}
-        bookData={openBook}
-        customer={customer}
+      <SettingsScreen
         prefs={prefs}
-        progress={progress[openBook.id]}
-        onClose={handleCloseBook}
-        onProgressUpdate={(p) => handleProgressUpdate(openBook.id, p)}
+        onSave={(p) => { savePrefs(p); setScreen('library') }}
+        onBack={() => setScreen('library')}
       />
     )
   }
 
   return (
     <LibraryScreen
-      customer={customer}
-      books={books}
-      progress={progress}
+      user={user}
       prefs={prefs}
-      onOpenBook={handleOpenBook}
-      onSignOut={handleSignOut}
-      onRefresh={() => loadLibrary(customer.id)}
-      onPrefsChange={setPrefs}
+      onOpenBook={openBook}
+      onOpenSettings={() => setScreen('settings')}
     />
   )
 }
