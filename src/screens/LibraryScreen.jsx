@@ -382,7 +382,7 @@ export default function LibraryScreen({ customer, books, progress, prefs, onOpen
     return books
       .filter(b => { const p = progress[b.id]; return p && p.percent > 0 && p.percent < 100 })
       .sort((a,b) => (progress[b.id]?.updated_at||'').localeCompare(progress[a.id]?.updated_at||''))
-      .slice(0, 4)
+      .slice(0, 2)
   }, [books, progress])
 
   useEffect(() => {

@@ -1,6 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { createClient } from '@supabase/supabase-js'
 
-const OWNER_PASSWORD = '' // Set via prompt on first use
+const SUPABASE_URL = 'https://tizegwvlksgqtvlkiwvb.supabase.co'
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRpemVnd3Zsa3NncXR2bGtpd3ZiIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDI0NTg3MCwiZXhwIjoyMDk1ODIxODcwfQ.Qn4rIczVEwa6Y_8ABlac6oByv3PioE1Q24Fc2ZTvnUA'
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 
 export default function OwnerDashboard({ isLoggedIn, onLogin }) {
   const [password,    setPassword]    = useState('')
@@ -22,6 +25,24 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
   const [updStatus,   setUpdStatus]   = useState('idle')
   const [updResult,   setUpdResult]   = useState(null)
 
+  // Add book state
+  const [bookTitle,   setBookTitle]   = useState('')
+  const [bookAuthor,  setBookAuthor]  = useState('')
+  const [bookCategory,setBookCategory]= useState('Self-Help')
+  const [bookTags,    setBookTags]    = useState('')
+  const [bookMode,    setBookMode]    = useState('text')
+  const [bookPages,   setBookPages]   = useState('')
+  const [bookDesc,    setBookDesc]    = useState('')
+  const [pdfFile,     setPdfFile]     = useState(null)
+  const [textFile,    setTextFile]    = useState(null)
+  const [coverFile,   setCoverFile]   = useState(null)
+  const [addStatus,   setAddStatus]   = useState('idle')
+  const [addError,    setAddError]    = useState('')
+  const [addProgress, setAddProgress] = useState('')
+  const pdfRef   = useRef(null)
+  const textRef  = useRef(null)
+  const coverRef = useRef(null)
+
   const savedPass = () => sessionStorage.getItem('owner_auth')
 
   useEffect(() => {
@@ -30,7 +51,6 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
 
   async function handleLogin() {
     if (!password) return setAuthError('Enter password')
-    // Verify against API
     const res  = await fetch('/api/generate-key', {
       method : 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -86,10 +106,83 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
     setUpdStatus(data.success ? 'success' : 'error')
   }
 
+  // ── Add Book ──────────────────────────────────────────────────────────────
+  async function handleAddBook() {
+    if (!bookTitle.trim() || !pdfFile) return
+    setAddStatus('uploading'); setAddError(''); setAddProgress('')
+
+    try {
+      const slug = bookTitle.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+      const cat  = bookCategory.toLowerCase().replace(/\s+/g, '-')
+
+      // 1. Upload PDF
+      setAddProgress('Uploading PDF…')
+      const pdfPath = `${cat}/${slug}.pdf`
+      const { error: pdfErr } = await supabase.storage.from('books').upload(pdfPath, pdfFile, { upsert: true, contentType: 'application/pdf' })
+      if (pdfErr) throw new Error('PDF upload failed: ' + pdfErr.message)
+
+      // 2. Upload text file (optional)
+      let textPath = null
+      if (textFile) {
+        setAddProgress('Uploading text file…')
+        textPath = `${cat}/${slug}.html`
+        const { error: txtErr } = await supabase.storage.from('books').upload(textPath, textFile, { upsert: true, contentType: 'text/html' })
+        if (txtErr) throw new Error('Text file upload failed: ' + txtErr.message)
+      }
+
+      // 3. Upload cover (optional)
+      let coverPath = null
+      if (coverFile) {
+        setAddProgress('Uploading cover…')
+        const ext = coverFile.name.split('.').pop()
+        coverPath = `${cat}/${slug}.${ext}`
+        const { error: covErr } = await supabase.storage.from('covers').upload(coverPath, coverFile, { upsert: true, contentType: coverFile.type })
+        if (covErr) throw new Error('Cover upload failed: ' + covErr.message)
+      }
+
+      // 4. Insert row into books table
+      setAddProgress('Saving to library…')
+      const tags = bookTags.split(',').map(t => t.trim()).filter(Boolean)
+      const preferred_mode = textPath ? 'text' : 'pdf'
+
+      const { error: dbErr } = await supabase.from('books').insert({
+        title          : bookTitle.trim(),
+        author         : bookAuthor.trim() || null,
+        category       : bookCategory,
+        tags,
+        file_path      : pdfPath,
+        text_path      : textPath,
+        cover_path     : coverPath,
+        preferred_mode,
+        pages          : bookPages ? parseInt(bookPages) : null,
+        description    : bookDesc.trim() || null,
+      })
+      if (dbErr) throw new Error('Database insert failed: ' + dbErr.message)
+
+      setAddStatus('success')
+      setAddProgress('')
+      // Reset form
+      setBookTitle(''); setBookAuthor(''); setBookTags(''); setBookPages(''); setBookDesc('')
+      setBookCategory('Self-Help'); setBookMode('text')
+      setPdfFile(null); setTextFile(null); setCoverFile(null)
+      if (pdfRef.current)   pdfRef.current.value   = ''
+      if (textRef.current)  textRef.current.value  = ''
+      if (coverRef.current) coverRef.current.value = ''
+
+    } catch (err) {
+      setAddStatus('error')
+      setAddError(err.message)
+      setAddProgress('')
+    }
+  }
+
   function copyEmails() {
     const emails = customers.map(c => c.email).filter(Boolean).join(', ')
     navigator.clipboard.writeText(emails)
   }
+
+  const categories = ['Self-Help','Finance','Business','Health','Fiction','Biography','Other']
+  const canAdd = bookTitle.trim() && pdfFile && addStatus !== 'uploading'
 
   // ── Login screen ──────────────────────────────────────────────────────────
   if (!isLoggedIn) {
@@ -97,7 +190,11 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
       <div style={s.root}>
         <div style={s.loginCard} className="animate-up">
           <div style={s.brand}>
-            <svg width="32" height="32" viewBox="0 0 36 36" fill="none"><rect width="36" height="36" rx="10" fill="var(--accent)" fillOpacity="0.15"/><path d="M10 27V10h10a7 7 0 0 1 0 14H10" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/><path d="M10 24h14" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round"/></svg>
+            <svg width="32" height="32" viewBox="0 0 36 36" fill="none">
+              <rect width="36" height="36" rx="10" fill="var(--accent)" fillOpacity="0.15"/>
+              <path d="M10 27V10h10a7 7 0 0 1 0 14H10" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M10 24h14" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round"/>
+            </svg>
             <div>
               <div style={s.brandName}>Readwise by Skai</div>
               <div style={s.brandBy}>Owner Dashboard</div>
@@ -105,7 +202,8 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
           </div>
           <div style={s.field}>
             <label style={s.label}>Owner password</label>
-            <input style={s.input} type="password" placeholder="Enter password" value={password} onChange={e => setPassword(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleLogin()} autoFocus/>
+            <input style={s.input} type="password" placeholder="Enter password" value={password}
+              onChange={e => setPassword(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleLogin()} autoFocus/>
           </div>
           {authError && <p style={s.error}>{authError}</p>}
           <button style={s.btn} onClick={handleLogin}>Enter Dashboard</button>
@@ -128,8 +226,15 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
 
       {/* Tabs */}
       <div style={s.tabs}>
-        {[['generate','Generate Key'],['customers','Customers'],['update','Send Update']].map(([id, label]) => (
-          <button key={id} style={{ ...s.tab, ...(tab === id ? s.tabActive : {}) }} onClick={() => setTab(id)}>{label}</button>
+        {[
+          ['generate','🔑 Generate Key'],
+          ['addbook', '📚 Add Book'],
+          ['customers','👥 Customers'],
+          ['update','📢 Send Update'],
+        ].map(([id, label]) => (
+          <button key={id} style={{ ...s.tab, ...(tab === id ? s.tabActive : {}) }} onClick={() => { setTab(id); setAddStatus('idle'); setAddError('') }}>
+            {label}
+          </button>
         ))}
       </div>
 
@@ -139,9 +244,17 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
         {tab === 'generate' && (
           <div style={s.section}>
             <p style={s.sectionDesc}>Generate a new access key and send it to the customer automatically.</p>
-            <div style={s.field}><label style={s.label}>Customer full name</label><input style={s.input} placeholder="Juan Dela Cruz" value={genName} onChange={e => setGenName(e.target.value)}/></div>
-            <div style={s.field}><label style={s.label}>Customer email</label><input style={s.input} type="email" placeholder="juan@gmail.com" value={genEmail} onChange={e => setGenEmail(e.target.value)}/></div>
-            <button style={{ ...s.btn, ...(!genName.trim() || !genEmail.trim() || genStatus === 'loading' ? s.btnDisabled : {}) }} onClick={handleGenerate} disabled={!genName.trim() || !genEmail.trim() || genStatus === 'loading'}>
+            <div style={s.field}><label style={s.label}>Customer full name</label>
+              <input style={s.input} placeholder="Juan Dela Cruz" value={genName} onChange={e => setGenName(e.target.value)}/>
+            </div>
+            <div style={s.field}><label style={s.label}>Customer email</label>
+              <input style={s.input} type="email" placeholder="juan@gmail.com" value={genEmail} onChange={e => setGenEmail(e.target.value)}/>
+            </div>
+            <button
+              style={{ ...s.btn, ...(!genName.trim() || !genEmail.trim() || genStatus === 'loading' ? s.btnDisabled : {}) }}
+              onClick={handleGenerate}
+              disabled={!genName.trim() || !genEmail.trim() || genStatus === 'loading'}
+            >
               {genStatus === 'loading' ? <><span style={s.spinner}/> Generating…</> : genStatus === 'success' ? '✓ Key Generated & Sent!' : 'Generate Key & Send Email'}
             </button>
 
@@ -153,8 +266,150 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
                 <p style={s.resultNote}>Expires: {genResult.expiresAt ? new Date(genResult.expiresAt).toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' }) : 'Never'}</p>
               </div>
             )}
-
             {genResult?.error && <p style={s.error}>{genResult.error}</p>}
+          </div>
+        )}
+
+        {/* ── Add Book ── */}
+        {tab === 'addbook' && (
+          <div style={s.section}>
+            <p style={s.sectionDesc}>Upload a new book to the shared library. It appears instantly for all customers.</p>
+
+            {/* PDF upload */}
+            <div style={s.field}>
+              <label style={s.label}>PDF File <span style={{ color:'#e05c5c' }}>*</span></label>
+              {pdfFile ? (
+                <div style={ab.fileChosen}>
+                  <span style={ab.tag}>PDF</span>
+                  <span style={ab.fileName}>{pdfFile.name}</span>
+                  <button style={ab.changeBtn} onClick={() => { setPdfFile(null); pdfRef.current.value = '' }}>✕</button>
+                </div>
+              ) : (
+                <button style={ab.pickBtn} onClick={() => pdfRef.current?.click()}>
+                  <span style={{ fontSize:22 }}>📄</span>
+                  <span>Tap to select PDF</span>
+                </button>
+              )}
+              <input ref={pdfRef} type="file" accept=".pdf" style={{ display:'none' }}
+                onChange={e => setPdfFile(e.target.files[0] || null)}/>
+            </div>
+
+            {/* Text/HTML upload */}
+            <div style={s.field}>
+              <label style={s.label}>Text File <span style={{ color:'var(--text-muted)', fontSize:11 }}>(optional — enables Text Mode)</span></label>
+              {textFile ? (
+                <div style={ab.fileChosen}>
+                  <span style={{ ...ab.tag, color:'#7ab87a' }}>HTML</span>
+                  <span style={ab.fileName}>{textFile.name}</span>
+                  <button style={ab.changeBtn} onClick={() => { setTextFile(null); textRef.current.value = '' }}>✕</button>
+                </div>
+              ) : (
+                <button style={{ ...ab.pickBtn, minHeight:52 }} onClick={() => textRef.current?.click()}>
+                  <span style={{ fontSize:18 }}>📝</span>
+                  <span>Tap to select .html text file</span>
+                </button>
+              )}
+              <input ref={textRef} type="file" accept=".html,.htm,.txt" style={{ display:'none' }}
+                onChange={e => setTextFile(e.target.files[0] || null)}/>
+            </div>
+
+            {/* Cover upload */}
+            <div style={s.field}>
+              <label style={s.label}>Cover Image <span style={{ color:'var(--text-muted)', fontSize:11 }}>(optional)</span></label>
+              {coverFile ? (
+                <div style={ab.fileChosen}>
+                  <span style={{ fontSize:14 }}>🖼️</span>
+                  <span style={ab.fileName}>{coverFile.name}</span>
+                  <button style={ab.changeBtn} onClick={() => { setCoverFile(null); coverRef.current.value = '' }}>✕</button>
+                </div>
+              ) : (
+                <button style={{ ...ab.pickBtn, minHeight:52 }} onClick={() => coverRef.current?.click()}>
+                  <span style={{ fontSize:18 }}>🖼️</span>
+                  <span>Tap to add cover image</span>
+                </button>
+              )}
+              <input ref={coverRef} type="file" accept="image/*" style={{ display:'none' }}
+                onChange={e => setCoverFile(e.target.files[0] || null)}/>
+            </div>
+
+            {/* Title */}
+            <div style={s.field}>
+              <label style={s.label}>Book Title <span style={{ color:'#e05c5c' }}>*</span></label>
+              <input style={s.input} placeholder="e.g. Atomic Habits" value={bookTitle} onChange={e => setBookTitle(e.target.value)}/>
+            </div>
+
+            {/* Author */}
+            <div style={s.field}>
+              <label style={s.label}>Author</label>
+              <input style={s.input} placeholder="e.g. James Clear" value={bookAuthor} onChange={e => setBookAuthor(e.target.value)}/>
+            </div>
+
+            {/* Category */}
+            <div style={s.field}>
+              <label style={s.label}>Category</label>
+              <select style={{ ...s.input, cursor:'pointer' }} value={bookCategory} onChange={e => setBookCategory(e.target.value)}>
+                {categories.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+
+            {/* Tags */}
+            <div style={s.field}>
+              <label style={s.label}>Tags <span style={{ color:'var(--text-muted)', fontSize:11 }}>(comma separated)</span></label>
+              <input style={s.input} placeholder="e.g. habits, productivity, mindset" value={bookTags} onChange={e => setBookTags(e.target.value)}/>
+            </div>
+
+            {/* Pages */}
+            <div style={s.field}>
+              <label style={s.label}>Page count <span style={{ color:'var(--text-muted)', fontSize:11 }}>(optional)</span></label>
+              <input style={s.input} type="number" placeholder="e.g. 256" value={bookPages} onChange={e => setBookPages(e.target.value)}/>
+            </div>
+
+            {/* Description */}
+            <div style={s.field}>
+              <label style={s.label}>Description <span style={{ color:'var(--text-muted)', fontSize:11 }}>(optional)</span></label>
+              <textarea style={{ ...s.input, resize:'vertical', minHeight:80, lineHeight:1.6 }}
+                placeholder="Short description shown on the book card…" value={bookDesc} onChange={e => setBookDesc(e.target.value)}/>
+            </div>
+
+            {/* Progress indicator */}
+            {addStatus === 'uploading' && addProgress && (
+              <div style={ab.progressRow}>
+                <span style={s.spinner}/>
+                <span style={{ fontSize:13, color:'var(--text-muted)' }}>{addProgress}</span>
+              </div>
+            )}
+
+            {addStatus === 'success' && (
+              <div style={ab.successBox} className="animate-in">
+                <span style={{ fontSize:22 }}>✅</span>
+                <div>
+                  <p style={{ fontSize:14, color:'#3a9a6a', fontWeight:500 }}>Book added successfully!</p>
+                  <p style={{ fontSize:12, color:'var(--text-muted)', marginTop:3 }}>It's now live in the library for all customers.</p>
+                </div>
+              </div>
+            )}
+
+            {addError && <p style={s.error}>{addError}</p>}
+
+            <button
+              style={{ ...s.btn, ...(!canAdd ? s.btnDisabled : {}), ...(addStatus === 'success' ? { background:'#3a9a6a' } : {}) }}
+              onClick={handleAddBook}
+              disabled={!canAdd}
+            >
+              {addStatus === 'uploading'
+                ? <><span style={{ ...s.spinner, borderTopColor:'#0d0d0d' }}/> Uploading…</>
+                : addStatus === 'success'
+                  ? '✓ Added to Library!'
+                  : '📚 Add Book to Library'
+              }
+            </button>
+
+            {addStatus === 'success' && (
+              <button style={{ ...s.btn, background:'transparent', border:'1px solid var(--border)', color:'var(--text-secondary)' }}
+                onClick={() => setAddStatus('idle')}>
+                Add Another Book
+              </button>
+            )}
           </div>
         )}
 
@@ -169,7 +424,7 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
             {loading ? (
               <div style={s.loading}><div style={s.spinner}/></div>
             ) : customers.length === 0 ? (
-              <p style={{ color: 'var(--text-muted)', fontSize: 13, textAlign: 'center', padding: '32px 0' }}>No customers yet.</p>
+              <p style={{ color:'var(--text-muted)', fontSize:13, textAlign:'center', padding:'32px 0' }}>No customers yet.</p>
             ) : (
               <div style={s.customerList}>
                 {customers.map((c, i) => (
@@ -191,57 +446,84 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
         {tab === 'update' && (
           <div style={s.section}>
             <p style={s.sectionDesc}>Send a library update email to all {customers.length} customers.</p>
-            <div style={s.field}><label style={s.label}>Email subject</label><input style={s.input} placeholder="New Books Added to Your Library 📚" value={updSubject} onChange={e => setUpdSubject(e.target.value)}/></div>
+            <div style={s.field}><label style={s.label}>Email subject</label>
+              <input style={s.input} placeholder="New Books Added to Your Library 📚" value={updSubject} onChange={e => setUpdSubject(e.target.value)}/>
+            </div>
             <div style={s.field}>
               <label style={s.label}>New book titles (one per line)</label>
-              <textarea style={{ ...s.input, resize:'vertical', minHeight:100, lineHeight:1.6 }} placeholder={"Atomic Habits\nDeep Work\nThe 48 Laws of Power"} value={updBooks} onChange={e => setUpdBooks(e.target.value)}/>
+              <textarea style={{ ...s.input, resize:'vertical', minHeight:100, lineHeight:1.6 }}
+                placeholder={"Atomic Habits\nDeep Work\nThe 48 Laws of Power"} value={updBooks} onChange={e => setUpdBooks(e.target.value)}/>
             </div>
-            <div style={s.field}><label style={s.label}>Extra message (optional)</label><input style={s.input} placeholder="Hope you enjoy the new additions!" value={updMessage} onChange={e => setUpdMessage(e.target.value)}/></div>
-            <button style={{ ...s.btn, ...(!updSubject.trim() || updStatus === 'loading' ? s.btnDisabled : {}) }} onClick={handleSendUpdate} disabled={!updSubject.trim() || updStatus === 'loading'}>
-              {updStatus === 'loading' ? <><span style={s.spinner}/> Sending…</> : updStatus === 'success' ? `✓ Sent to ${updResult?.sent} customers!` : `Send to ${customers.length} customers`}
+            <div style={s.field}><label style={s.label}>Extra message (optional)</label>
+              <input style={s.input} placeholder="Hope you enjoy the new additions!" value={updMessage} onChange={e => setUpdMessage(e.target.value)}/>
+            </div>
+            <button
+              style={{ ...s.btn, ...(!updSubject.trim() || updStatus === 'loading' ? s.btnDisabled : {}) }}
+              onClick={handleSendUpdate}
+              disabled={!updSubject.trim() || updStatus === 'loading'}
+            >
+              {updStatus === 'loading'
+                ? <><span style={s.spinner}/> Sending…</>
+                : updStatus === 'success'
+                  ? `✓ Sent to ${updResult?.sent} customers!`
+                  : `Send to ${customers.length} customers`
+              }
             </button>
             {updResult?.error && <p style={s.error}>{updResult.error}</p>}
           </div>
         )}
+
       </div>
     </div>
   )
 }
 
+// ── Add Book styles ───────────────────────────────────────────────────────────
+const ab = {
+  pickBtn    : { display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:6, width:'100%', padding:'18px 12px', background:'var(--bg-elevated)', border:'2px dashed var(--border)', borderRadius:'var(--radius-md)', color:'var(--text-muted)', fontSize:13, cursor:'pointer', minHeight:72 },
+  fileChosen : { display:'flex', alignItems:'center', gap:8, padding:'10px 12px', background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:'var(--radius-md)' },
+  fileName   : { flex:1, fontSize:12, color:'var(--text-primary)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' },
+  tag        : { fontSize:9, fontWeight:700, color:'var(--accent)', background:'var(--accent-dim)', padding:'2px 5px', borderRadius:3, flexShrink:0 },
+  changeBtn  : { padding:'3px 8px', background:'transparent', border:'1px solid var(--border)', borderRadius:4, color:'var(--text-secondary)', fontSize:11, cursor:'pointer', flexShrink:0 },
+  progressRow: { display:'flex', alignItems:'center', gap:10, padding:'10px 12px', background:'var(--bg-elevated)', borderRadius:'var(--radius-md)' },
+  successBox : { display:'flex', alignItems:'center', gap:12, padding:'14px', background:'rgba(58,154,106,0.08)', border:'1px solid rgba(58,154,106,0.25)', borderRadius:'var(--radius-md)' },
+}
+
+// ── Main styles ───────────────────────────────────────────────────────────────
 const s = {
-  root        : { minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'var(--bg-base)', padding:20 },
-  loginCard   : { width:'100%', maxWidth:380, background:'var(--bg-surface)', border:'1px solid var(--border)', borderRadius:'var(--radius-xl)', padding:'36px 28px', display:'flex', flexDirection:'column', gap:20 },
-  dashboard   : { minHeight:'100vh', background:'var(--bg-base)', display:'flex', flexDirection:'column' },
-  dashHeader  : { display:'flex', alignItems:'center', justifyContent:'space-between', padding:'20px 20px 0', flexShrink:0 },
-  brand       : { display:'flex', alignItems:'center', gap:10 },
-  brandName   : { fontFamily:'var(--font-display)', fontSize:17, color:'var(--text-primary)', letterSpacing:'-0.02em' },
-  brandBy     : { fontSize:10, color:'var(--accent)', letterSpacing:'0.06em', textTransform:'uppercase' },
-  statPill    : { fontSize:12, color:'var(--accent)', background:'var(--accent-dim)', padding:'4px 12px', borderRadius:99, border:'1px solid rgba(201,169,110,0.2)' },
-  tabs        : { display:'flex', gap:4, padding:'16px 20px 0', borderBottom:'1px solid var(--border)', flexShrink:0 },
-  tab         : { padding:'8px 16px', background:'transparent', border:'none', borderBottom:'2px solid transparent', color:'var(--text-muted)', fontSize:13, fontWeight:500, cursor:'pointer', transition:'all var(--transition)', marginBottom:-1 },
-  tabActive   : { color:'var(--accent)', borderBottomColor:'var(--accent)' },
-  tabContent  : { flex:1, overflowY:'auto' },
-  section     : { padding:'20px', display:'flex', flexDirection:'column', gap:16, maxWidth:500 },
-  sectionDesc : { fontSize:13, color:'var(--text-muted)', lineHeight:1.6 },
-  sectionRow  : { display:'flex', alignItems:'center', justifyContent:'space-between', gap:12 },
-  field       : { display:'flex', flexDirection:'column', gap:7 },
-  label       : { fontSize:11, fontWeight:500, color:'var(--text-secondary)', textTransform:'uppercase', letterSpacing:'0.07em' },
-  input       : { padding:'10px 12px', background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', color:'var(--text-primary)', fontSize:14, outline:'none', width:'100%' },
-  btn         : { display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:'12px', background:'var(--accent)', color:'#0d0d0d', border:'none', borderRadius:'var(--radius-md)', fontSize:14, fontWeight:500, cursor:'pointer', transition:'all var(--transition)' },
-  btnDisabled : { opacity:0.45, cursor:'not-allowed' },
-  smallBtn    : { padding:'6px 12px', background:'transparent', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', color:'var(--text-secondary)', fontSize:12, cursor:'pointer', flexShrink:0 },
-  error       : { fontSize:13, color:'#e05c5c', padding:'10px 12px', background:'rgba(224,92,92,0.08)', borderRadius:'var(--radius-sm)' },
-  spinner     : { width:14, height:14, border:'2px solid rgba(0,0,0,0.2)', borderTop:'2px solid #0d0d0d', borderRadius:'50%', animation:'spin 0.7s linear infinite', display:'inline-block' },
-  resultBox   : { padding:'16px', background:'rgba(58,154,106,0.08)', border:'1px solid rgba(58,154,106,0.25)', borderRadius:'var(--radius-md)', display:'flex', flexDirection:'column', gap:8 },
-  resultLabel : { fontSize:11, color:'#3a9a6a', textTransform:'uppercase', letterSpacing:'0.07em', fontWeight:500 },
-  keyDisplay  : { fontFamily:'monospace', fontSize:22, color:'var(--accent)', fontWeight:700, letterSpacing:'0.1em' },
-  resultNote  : { fontSize:12, color:'var(--text-muted)' },
-  loading     : { display:'flex', justifyContent:'center', padding:40 },
-  customerList: { display:'flex', flexDirection:'column', gap:2 },
-  customerRow : { display:'flex', alignItems:'center', gap:12, padding:'10px 12px', background:'var(--bg-elevated)', borderRadius:'var(--radius-md)', border:'1px solid var(--border)' },
+  root         : { minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'var(--bg-base)', padding:20 },
+  loginCard    : { width:'100%', maxWidth:380, background:'var(--bg-surface)', border:'1px solid var(--border)', borderRadius:'var(--radius-xl)', padding:'36px 28px', display:'flex', flexDirection:'column', gap:20 },
+  dashboard    : { minHeight:'100vh', background:'var(--bg-base)', display:'flex', flexDirection:'column' },
+  dashHeader   : { display:'flex', alignItems:'center', justifyContent:'space-between', padding:'20px 20px 0', flexShrink:0 },
+  brand        : { display:'flex', alignItems:'center', gap:10 },
+  brandName    : { fontFamily:'var(--font-display)', fontSize:17, color:'var(--text-primary)', letterSpacing:'-0.02em' },
+  brandBy      : { fontSize:10, color:'var(--accent)', letterSpacing:'0.06em', textTransform:'uppercase' },
+  statPill     : { fontSize:12, color:'var(--accent)', background:'var(--accent-dim)', padding:'4px 12px', borderRadius:99, border:'1px solid rgba(201,169,110,0.2)' },
+  tabs         : { display:'flex', gap:0, padding:'16px 20px 0', borderBottom:'1px solid var(--border)', flexShrink:0, overflowX:'auto' },
+  tab          : { padding:'8px 14px', background:'transparent', border:'none', borderBottom:'2px solid transparent', color:'var(--text-muted)', fontSize:12, fontWeight:500, cursor:'pointer', transition:'all var(--transition)', marginBottom:-1, whiteSpace:'nowrap' },
+  tabActive    : { color:'var(--accent)', borderBottomColor:'var(--accent)' },
+  tabContent   : { flex:1, overflowY:'auto' },
+  section      : { padding:'20px', display:'flex', flexDirection:'column', gap:16, maxWidth:500 },
+  sectionDesc  : { fontSize:13, color:'var(--text-muted)', lineHeight:1.6 },
+  sectionRow   : { display:'flex', alignItems:'center', justifyContent:'space-between', gap:12 },
+  field        : { display:'flex', flexDirection:'column', gap:7 },
+  label        : { fontSize:11, fontWeight:500, color:'var(--text-secondary)', textTransform:'uppercase', letterSpacing:'0.07em' },
+  input        : { padding:'10px 12px', background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', color:'var(--text-primary)', fontSize:14, outline:'none', width:'100%' },
+  btn          : { display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:'12px', background:'var(--accent)', color:'#0d0d0d', border:'none', borderRadius:'var(--radius-md)', fontSize:14, fontWeight:500, cursor:'pointer', transition:'all var(--transition)' },
+  btnDisabled  : { opacity:0.45, cursor:'not-allowed' },
+  smallBtn     : { padding:'6px 12px', background:'transparent', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', color:'var(--text-secondary)', fontSize:12, cursor:'pointer', flexShrink:0 },
+  error        : { fontSize:13, color:'#e05c5c', padding:'10px 12px', background:'rgba(224,92,92,0.08)', borderRadius:'var(--radius-sm)' },
+  spinner      : { width:14, height:14, border:'2px solid rgba(0,0,0,0.2)', borderTop:'2px solid #0d0d0d', borderRadius:'50%', animation:'spin 0.7s linear infinite', display:'inline-block' },
+  resultBox    : { padding:'16px', background:'rgba(58,154,106,0.08)', border:'1px solid rgba(58,154,106,0.25)', borderRadius:'var(--radius-md)', display:'flex', flexDirection:'column', gap:8 },
+  resultLabel  : { fontSize:11, color:'#3a9a6a', textTransform:'uppercase', letterSpacing:'0.07em', fontWeight:500 },
+  keyDisplay   : { fontFamily:'monospace', fontSize:22, color:'var(--accent)', fontWeight:700, letterSpacing:'0.1em' },
+  resultNote   : { fontSize:12, color:'var(--text-muted)' },
+  loading      : { display:'flex', justifyContent:'center', padding:40 },
+  customerList : { display:'flex', flexDirection:'column', gap:2 },
+  customerRow  : { display:'flex', alignItems:'center', gap:12, padding:'10px 12px', background:'var(--bg-elevated)', borderRadius:'var(--radius-md)', border:'1px solid var(--border)' },
   customerAvatar: { width:36, height:36, borderRadius:'50%', background:'var(--accent-dim)', color:'var(--accent)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:600, flexShrink:0 },
-  customerInfo: { flex:1, minWidth:0 },
-  customerName: { fontSize:13, color:'var(--text-primary)', fontWeight:500, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' },
+  customerInfo : { flex:1, minWidth:0 },
+  customerName : { fontSize:13, color:'var(--text-primary)', fontWeight:500, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' },
   customerEmail: { fontSize:12, color:'var(--text-muted)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' },
-  customerDate: { fontSize:11, color:'var(--text-muted)', flexShrink:0 },
+  customerDate : { fontSize:11, color:'var(--text-muted)', flexShrink:0 },
 }
