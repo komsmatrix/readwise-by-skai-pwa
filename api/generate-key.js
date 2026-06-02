@@ -8,9 +8,8 @@ const supabase = createClient(
 )
 
 const RESEND_API_KEY  = process.env.RESEND_API_KEY
-const OWNER_PASSWORD  = process.env.OWNER_PASSWORD  // set this in Vercel env vars
-const GDRIVE_LINK     = process.env.VITE_GDRIVE_LINK || ''
-const APP_URL         = process.env.VITE_APP_URL || 'https://readwise-by-skai.vercel.app'
+const OWNER_PASSWORD  = process.env.OWNER_PASSWORD
+const APP_URL         = process.env.VITE_APP_URL || 'https://readwise-by-skai-pwa.vercel.app'
 const EXPIRY_DAYS     = 7
 
 function generateKey() {
@@ -25,17 +24,194 @@ function addDays(days) {
   return d.toISOString()
 }
 
+function emailTemplate({ firstName, name, email, key, expiresAt, appUrl }) {
+  const expiryDate = expiresAt
+    ? new Date(expiresAt).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+    : null
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your Readwise by Skai Access</title>
+</head>
+<body style="margin:0;padding:0;background:#0d0d0d;font-family:'Helvetica Neue',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0d0d0d;padding:40px 20px;">
+    <tr>
+      <td align="center">
+        <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;">
+
+          <!-- Header -->
+          <tr>
+            <td style="padding:0 0 32px 0;">
+              <table cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="padding-right:12px;vertical-align:middle;">
+                    <div style="width:40px;height:40px;background:rgba(201,169,110,0.15);border-radius:10px;display:inline-block;text-align:center;line-height:40px;">
+                      <span style="color:#c9a96e;font-size:20px;">📖</span>
+                    </div>
+                  </td>
+                  <td style="vertical-align:middle;">
+                    <div style="font-size:18px;font-weight:600;color:#f0ede8;letter-spacing:-0.02em;">Readwise by Skai</div>
+                    <div style="font-size:11px;color:#c9a96e;letter-spacing:0.08em;text-transform:uppercase;margin-top:2px;">Your Personal Library</div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Main card -->
+          <tr>
+            <td style="background:#161616;border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:40px;">
+
+              <!-- Greeting -->
+              <p style="margin:0 0 8px;font-size:22px;font-weight:600;color:#f0ede8;letter-spacing:-0.02em;">Welcome, ${firstName}! 👋</p>
+              <p style="margin:0 0 32px;font-size:15px;color:#9a9690;line-height:1.7;">
+                Thank you for your purchase. Your lifetime access to Readwise by Skai is ready. Here's everything you need to get started.
+              </p>
+
+              <!-- Divider -->
+              <div style="height:1px;background:rgba(255,255,255,0.07);margin:0 0 28px;"></div>
+
+              <!-- Step 1 -->
+              <table cellpadding="0" cellspacing="0" style="width:100%;margin-bottom:20px;">
+                <tr>
+                  <td style="vertical-align:top;padding-right:14px;width:28px;">
+                    <div style="width:26px;height:26px;background:rgba(201,169,110,0.12);border:1px solid rgba(201,169,110,0.25);border-radius:50%;text-align:center;line-height:26px;font-size:12px;font-weight:700;color:#c9a96e;">1</div>
+                  </td>
+                  <td>
+                    <p style="margin:0 0 10px;font-size:11px;font-weight:600;color:#c9a96e;text-transform:uppercase;letter-spacing:0.08em;">Open the App</p>
+                    <a href="${appUrl}" style="display:inline-block;background:#c9a96e;color:#0d0d0d;text-decoration:none;padding:12px 24px;border-radius:8px;font-size:14px;font-weight:600;letter-spacing:0.01em;">
+                      Open Readwise by Skai →
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Step 2 -->
+              <table cellpadding="0" cellspacing="0" style="width:100%;margin-bottom:20px;">
+                <tr>
+                  <td style="vertical-align:top;padding-right:14px;width:28px;">
+                    <div style="width:26px;height:26px;background:rgba(201,169,110,0.12);border:1px solid rgba(201,169,110,0.25);border-radius:50%;text-align:center;line-height:26px;font-size:12px;font-weight:700;color:#c9a96e;">2</div>
+                  </td>
+                  <td>
+                    <p style="margin:0 0 10px;font-size:11px;font-weight:600;color:#c9a96e;text-transform:uppercase;letter-spacing:0.08em;">Your Access Key</p>
+                    <div style="background:#0d0d0d;border:1px solid rgba(201,169,110,0.3);border-radius:10px;padding:16px 20px;">
+                      <p style="margin:0 0 6px;font-family:'Courier New',monospace;font-size:26px;font-weight:700;color:#c9a96e;letter-spacing:0.12em;">${key}</p>
+                      ${expiryDate ? `<p style="margin:0;font-size:12px;color:#e05c5c;">⚠ Activate before ${expiryDate}</p>` : ''}
+                    </div>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Step 3 -->
+              <table cellpadding="0" cellspacing="0" style="width:100%;margin-bottom:28px;">
+                <tr>
+                  <td style="vertical-align:top;padding-right:14px;width:28px;">
+                    <div style="width:26px;height:26px;background:rgba(201,169,110,0.12);border:1px solid rgba(201,169,110,0.25);border-radius:50%;text-align:center;line-height:26px;font-size:12px;font-weight:700;color:#c9a96e;">3</div>
+                  </td>
+                  <td>
+                    <p style="margin:0 0 10px;font-size:11px;font-weight:600;color:#c9a96e;text-transform:uppercase;letter-spacing:0.08em;">Activate Your Account</p>
+                    <div style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:16px 20px;">
+                      <table cellpadding="0" cellspacing="0">
+                        <tr>
+                          <td style="padding:4px 0;font-size:13px;color:#9a9690;padding-right:8px;">①</td>
+                          <td style="padding:4px 0;font-size:13px;color:#9a9690;">Enter your name: <span style="color:#f0ede8;font-weight:500;">${name}</span></td>
+                        </tr>
+                        <tr>
+                          <td style="padding:4px 0;font-size:13px;color:#9a9690;padding-right:8px;">②</td>
+                          <td style="padding:4px 0;font-size:13px;color:#9a9690;">Enter your email: <span style="color:#f0ede8;font-weight:500;">${email}</span></td>
+                        </tr>
+                        <tr>
+                          <td style="padding:4px 0;font-size:13px;color:#9a9690;padding-right:8px;">③</td>
+                          <td style="padding:4px 0;font-size:13px;color:#9a9690;">Enter the access key above</td>
+                        </tr>
+                        <tr>
+                          <td style="padding:4px 0;font-size:13px;color:#9a9690;padding-right:8px;">④</td>
+                          <td style="padding:4px 0;font-size:13px;color:#9a9690;">Tap <span style="color:#c9a96e;font-weight:500;">"Unlock my library"</span></td>
+                        </tr>
+                      </table>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Divider -->
+              <div style="height:1px;background:rgba(255,255,255,0.07);margin:0 0 24px;"></div>
+
+              <!-- Quick guide -->
+              <p style="margin:0 0 14px;font-size:11px;font-weight:600;color:#c9a96e;text-transform:uppercase;letter-spacing:0.08em;">Quick Guide</p>
+              <table cellpadding="0" cellspacing="0" style="width:100%;margin-bottom:28px;">
+                <tr>
+                  <td style="width:50%;padding:0 8px 10px 0;vertical-align:top;">
+                    <div style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:14px;">
+                      <p style="margin:0 0 4px;font-size:16px;">📚</p>
+                      <p style="margin:0 0 4px;font-size:13px;font-weight:600;color:#f0ede8;">Library</p>
+                      <p style="margin:0;font-size:12px;color:#5a5753;line-height:1.5;">Browse and open any book from your collection</p>
+                    </div>
+                  </td>
+                  <td style="width:50%;padding:0 0 10px 8px;vertical-align:top;">
+                    <div style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:14px;">
+                      <p style="margin:0 0 4px;font-size:16px;">🔊</p>
+                      <p style="margin:0 0 4px;font-size:13px;font-weight:600;color:#f0ede8;">Text to Speech</p>
+                      <p style="margin:0;font-size:12px;color:#5a5753;line-height:1.5;">Let the app read to you while you relax</p>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="width:50%;padding:0 8px 0 0;vertical-align:top;">
+                    <div style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:14px;">
+                      <p style="margin:0 0 4px;font-size:16px;">🔖</p>
+                      <p style="margin:0 0 4px;font-size:13px;font-weight:600;color:#f0ede8;">Bookmarks</p>
+                      <p style="margin:0;font-size:12px;color:#5a5753;line-height:1.5;">Save your page and resume anytime</p>
+                    </div>
+                  </td>
+                  <td style="width:50%;padding:0 0 0 8px;vertical-align:top;">
+                    <div style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:14px;">
+                      <p style="margin:0 0 4px;font-size:16px;">📱</p>
+                      <p style="margin:0 0 4px;font-size:13px;font-weight:600;color:#f0ede8;">Install as App</p>
+                      <p style="margin:0;font-size:12px;color:#5a5753;line-height:1.5;">Add to home screen for quick access</p>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Footer note -->
+              <div style="background:rgba(201,169,110,0.06);border:1px solid rgba(201,169,110,0.15);border-radius:8px;padding:14px 16px;">
+                <p style="margin:0;font-size:13px;color:#9a9690;line-height:1.7;">
+                  Your access is <span style="color:#c9a96e;font-weight:600;">lifetime</span> once activated — works on any device, any browser. New books are added regularly and will appear in your library automatically.
+                </p>
+              </div>
+
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding:24px 0 0;text-align:center;">
+              <p style="margin:0 0 6px;font-size:12px;color:#5a5753;">Questions? Reply to this email — we're happy to help.</p>
+              <p style="margin:0;font-size:12px;color:#3a3835;">Happy reading! 📖 — Readwise by Skai</p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
   const { name, email, password, isOwnerKey } = req.body
 
-  // Verify owner password
   if (password !== OWNER_PASSWORD) return res.status(401).json({ error: 'Unauthorized' })
   if (!name || !email) return res.status(400).json({ error: 'Name and email required' })
 
   try {
-    // Generate unique key
     let key, exists
     do {
       key = generateKey()
@@ -45,7 +221,6 @@ export default async function handler(req, res) {
 
     const expiresAt = isOwnerKey ? null : addDays(EXPIRY_DAYS)
 
-    // Save key to database
     const { error: keyError } = await supabase.from('access_keys').insert({
       key,
       name        : name.trim(),
@@ -57,11 +232,7 @@ export default async function handler(req, res) {
 
     if (keyError) return res.status(500).json({ error: keyError.message })
 
-    // Send email to customer
-    const firstName   = name.trim().split(' ')[0]
-    const expiryDate  = expiresAt
-      ? new Date(expiresAt).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
-      : null
+    const firstName = name.trim().split(' ')[0]
 
     try {
       await fetch('https://api.resend.com/emails', {
@@ -74,68 +245,15 @@ export default async function handler(req, res) {
           from    : 'Readwise by Skai <onboarding@resend.dev>',
           reply_to: 'readwisebyskai@gmail.com',
           to      : [email.toLowerCase().trim()],
-          subject : 'Your Readwise by Skai Access Key 📚',
-          html    : `
-<!DOCTYPE html>
-<html>
-<head><meta charset="UTF-8"></head>
-<body style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 40px 20px; background: #f9f9f9; color: #1a1a1a;">
-  <div style="background: white; border-radius: 12px; padding: 40px; box-shadow: 0 2px 12px rgba(0,0,0,0.08);">
-    <h1 style="font-size: 28px; color: #8B6914; margin: 0 0 8px;">Readwise by Skai</h1>
-    <p style="color: #888; margin: 0 0 32px; font-size: 14px;">Your personal library app</p>
-
-    <p style="font-size: 16px; margin: 0 0 16px;">Hi ${firstName},</p>
-    <p style="font-size: 15px; color: #555; line-height: 1.7; margin: 0 0 24px;">
-      Thank you for your purchase! Here is everything you need to get started.
-    </p>
-
-    <div style="background: #f5f3ef; border-radius: 8px; padding: 20px; margin: 0 0 20px;">
-      <p style="margin: 0 0 8px; font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 0.06em;">Step 1 — Open the app</p>
-      <a href="${APP_URL}" style="display: inline-block; background: #8B6914; color: white; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-size: 15px; font-weight: 500;">
-        Open Readwise by Skai →
-      </a>
-    </div>
-
-    <div style="background: #f5f3ef; border-radius: 8px; padding: 20px; margin: 0 0 20px;">
-      <p style="margin: 0 0 8px; font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 0.06em;">Step 2 — Your access key</p>
-      <p style="font-size: 24px; font-weight: 700; color: #8B6914; letter-spacing: 0.1em; margin: 0; font-family: monospace;">${key}</p>
-      ${expiryDate ? `<p style="font-size: 12px; color: #e05c5c; margin: 8px 0 0;">⚠ Activate before ${expiryDate}</p>` : ''}
-    </div>
-
-    <div style="background: #f5f3ef; border-radius: 8px; padding: 20px; margin: 0 0 24px;">
-      <p style="margin: 0 0 8px; font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 0.06em;">Step 3 — Activate</p>
-      <p style="font-size: 14px; color: #555; margin: 0; line-height: 1.7;">
-        1. Enter your full name: <strong>${name.trim()}</strong><br>
-        2. Enter your email: <strong>${email.toLowerCase().trim()}</strong><br>
-        3. Enter your access key above<br>
-        4. Click "Unlock my library"
-      </p>
-    </div>
-
-    <p style="font-size: 13px; color: #888; line-height: 1.7; margin: 0 0 16px;">
-      Your access is <strong>lifetime</strong> once activated. Works on any device — phone, tablet, laptop.
-    </p>
-
-    <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;">
-    <p style="font-size: 13px; color: #aaa; margin: 0;">
-      Questions? Reply to this email.<br>Happy reading! 📖
-    </p>
-  </div>
-</body>
-</html>
-          `,
+          subject : '📖 Your Readwise by Skai Access is Ready',
+          html    : emailTemplate({ firstName, name: name.trim(), email: email.toLowerCase().trim(), key, expiresAt, appUrl: APP_URL }),
         }),
       })
     } catch (emailErr) {
       console.warn('Email failed:', emailErr.message)
     }
 
-    return res.status(200).json({
-      success  : true,
-      key,
-      expiresAt,
-      emailSent: true,
-    })
+    return res.status(200).json({ success: true, key, expiresAt, emailSent: true })
 
   } catch (err) {
     console.error('Generate key error:', err)

@@ -8,7 +8,112 @@ const supabase = createClient(
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY
 const OWNER_PASSWORD = process.env.OWNER_PASSWORD
-const APP_URL        = process.env.VITE_APP_URL || 'https://readwise-by-skai.vercel.app'
+const APP_URL        = process.env.VITE_APP_URL || 'https://readwise-by-skai-pwa.vercel.app'
+
+function updateEmailTemplate({ firstName, newBooks, message, appUrl }) {
+  const bookListHtml = newBooks?.length
+    ? newBooks.map(b => `
+        <tr>
+          <td style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+            <table cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="padding-right:10px;vertical-align:middle;">
+                  <div style="width:6px;height:6px;background:#c9a96e;border-radius:50%;"></div>
+                </td>
+                <td style="font-size:14px;color:#f0ede8;font-weight:500;">${b}</td>
+              </tr>
+            </table>
+          </td>
+        </tr>`).join('')
+    : ''
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New Books Added — Readwise by Skai</title>
+</head>
+<body style="margin:0;padding:0;background:#0d0d0d;font-family:'Helvetica Neue',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0d0d0d;padding:40px 20px;">
+    <tr>
+      <td align="center">
+        <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;">
+
+          <!-- Header -->
+          <tr>
+            <td style="padding:0 0 32px 0;">
+              <table cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="padding-right:12px;vertical-align:middle;">
+                    <div style="width:40px;height:40px;background:rgba(201,169,110,0.15);border-radius:10px;display:inline-block;text-align:center;line-height:40px;">
+                      <span style="color:#c9a96e;font-size:20px;">📖</span>
+                    </div>
+                  </td>
+                  <td style="vertical-align:middle;">
+                    <div style="font-size:18px;font-weight:600;color:#f0ede8;letter-spacing:-0.02em;">Readwise by Skai</div>
+                    <div style="font-size:11px;color:#c9a96e;letter-spacing:0.08em;text-transform:uppercase;margin-top:2px;">Your Personal Library</div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Main card -->
+          <tr>
+            <td style="background:#161616;border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:40px;">
+
+              <!-- Greeting -->
+              <p style="margin:0 0 8px;font-size:22px;font-weight:600;color:#f0ede8;letter-spacing:-0.02em;">New books just dropped 📚</p>
+              <p style="margin:0 0 28px;font-size:15px;color:#9a9690;line-height:1.7;">
+                Hi ${firstName}, your library just got bigger. We've added new books — open the app and they're already waiting for you.
+              </p>
+
+              ${newBooks?.length ? `
+              <!-- New books list -->
+              <div style="background:#0d0d0d;border:1px solid rgba(201,169,110,0.2);border-radius:10px;padding:20px;margin:0 0 24px;">
+                <p style="margin:0 0 14px;font-size:11px;font-weight:600;color:#c9a96e;text-transform:uppercase;letter-spacing:0.08em;">Added to your library</p>
+                <table cellpadding="0" cellspacing="0" style="width:100%;">
+                  ${bookListHtml}
+                </table>
+              </div>
+              ` : ''}
+
+              ${message ? `
+              <p style="margin:0 0 24px;font-size:14px;color:#9a9690;line-height:1.7;font-style:italic;">"${message}"</p>
+              ` : ''}
+
+              <!-- CTA -->
+              <a href="${appUrl}" style="display:block;background:#c9a96e;color:#0d0d0d;text-decoration:none;padding:14px 24px;border-radius:8px;font-size:15px;font-weight:600;text-align:center;letter-spacing:0.01em;margin:0 0 28px;">
+                Open Your Library →
+              </a>
+
+              <!-- Divider -->
+              <div style="height:1px;background:rgba(255,255,255,0.07);margin:0 0 24px;"></div>
+
+              <!-- Footer note -->
+              <p style="margin:0;font-size:13px;color:#5a5753;line-height:1.7;text-align:center;">
+                Books are added regularly. Your library grows — your price stays the same. 🙌
+              </p>
+
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding:24px 0 0;text-align:center;">
+              <p style="margin:0 0 6px;font-size:12px;color:#5a5753;">Questions? Reply to this email.</p>
+              <p style="margin:0;font-size:12px;color:#3a3835;">Happy reading! — Readwise by Skai</p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
@@ -17,7 +122,6 @@ export default async function handler(req, res) {
   if (password !== OWNER_PASSWORD) return res.status(401).json({ error: 'Unauthorized' })
 
   try {
-    // Get all active customers
     const { data: customers, error } = await supabase
       .from('customers')
       .select('name, email')
@@ -26,14 +130,9 @@ export default async function handler(req, res) {
     if (error) return res.status(500).json({ error: error.message })
     if (!customers?.length) return res.status(200).json({ success: true, sent: 0 })
 
-    const bookListHtml = newBooks?.length
-      ? `<ul style="padding-left: 20px; margin: 8px 0;">${newBooks.map(b => `<li style="margin: 4px 0; font-size: 14px; color: #555;">${b}</li>`).join('')}</ul>`
-      : ''
-
     let sent = 0
     const errors = []
 
-    // Send to each customer individually (personalized)
     for (const customer of customers) {
       const firstName = customer.name?.split(' ')[0] || 'there'
       try {
@@ -48,45 +147,10 @@ export default async function handler(req, res) {
             reply_to: 'readwisebyskai@gmail.com',
             to      : [customer.email],
             subject : subject || 'New Books Added to Your Library 📚',
-            html    : `
-<!DOCTYPE html>
-<html>
-<head><meta charset="UTF-8"></head>
-<body style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 40px 20px; background: #f9f9f9; color: #1a1a1a;">
-  <div style="background: white; border-radius: 12px; padding: 40px; box-shadow: 0 2px 12px rgba(0,0,0,0.08);">
-    <h1 style="font-size: 28px; color: #8B6914; margin: 0 0 8px;">Readwise by Skai</h1>
-    <p style="color: #888; margin: 0 0 32px; font-size: 14px;">New books added to your library</p>
-
-    <p style="font-size: 16px; margin: 0 0 16px;">Hi ${firstName},</p>
-    <p style="font-size: 15px; color: #555; line-height: 1.7; margin: 0 0 20px;">
-      Great news! We just added new books to your Readwise by Skai library.
-    </p>
-
-    ${newBooks?.length ? `
-    <div style="background: #f5f3ef; border-radius: 8px; padding: 20px; margin: 0 0 20px;">
-      <p style="margin: 0 0 8px; font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 0.06em;">New books this update</p>
-      ${bookListHtml}
-    </div>
-    ` : ''}
-
-    ${message ? `<p style="font-size: 14px; color: #555; line-height: 1.7; margin: 0 0 20px;">${message}</p>` : ''}
-
-    <a href="${APP_URL}" style="display: inline-block; background: #8B6914; color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-size: 15px; font-weight: 500; margin: 0 0 24px;">
-      Open Your Library →
-    </a>
-
-    <p style="font-size: 13px; color: #aaa; margin: 0; line-height: 1.7;">
-      The new books are already in your library — just open the app and they'll be there.<br>
-      Happy reading! 📖
-    </p>
-  </div>
-</body>
-</html>
-            `,
+            html    : updateEmailTemplate({ firstName, newBooks, message, appUrl: APP_URL }),
           }),
         })
         sent++
-        // Small delay to avoid rate limiting
         await new Promise(r => setTimeout(r, 100))
       } catch (err) {
         errors.push({ email: customer.email, error: err.message })
