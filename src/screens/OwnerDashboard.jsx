@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@supabase/supabase-js'
+import AgentsTab from './AgentsTab.jsx'
 
 const SUPABASE_URL = 'https://tizegwvlksgqtvlkiwvb.supabase.co'
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRpemVnd3Zsa3NncXR2bGtpd3ZiIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDI0NTg3MCwiZXhwIjoyMDk1ODIxODcwfQ.Qn4rIczVEwa6Y_8ABlac6oByv3PioE1Q24Fc2ZTvnUA'
@@ -229,6 +230,7 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
         {[
           ['generate','🔑 Generate Key'],
           ['addbook', '📚 Add Book'],
+          ['agents',  '🤝 Agents'],
           ['customers','👥 Customers'],
           ['update','📢 Send Update'],
         ].map(([id, label]) => (
@@ -412,6 +414,9 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
             )}
           </div>
         )}
+
+        {/* ── Agents ── */}
+        {tab === 'agents' && <AgentsTab savedPass={savedPass}/>}
 
         {/* ── Customers ── */}
         {tab === 'customers' && (
