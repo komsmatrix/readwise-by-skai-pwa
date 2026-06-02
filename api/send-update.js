@@ -143,7 +143,7 @@ export default async function handler(req, res) {
             'Content-Type' : 'application/json',
           },
           body: JSON.stringify({
-            from    : 'Readwise by Skai <onboarding@resend.dev>',
+            from    : 'Readwise by Skai <hello@readwisebyskai.com>',
             reply_to: 'readwisebyskai@gmail.com',
             to      : [customer.email],
             subject : subject || 'New Books Added to Your Library 📚',
