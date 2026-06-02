@@ -6,6 +6,7 @@ import ReaderScreen     from './screens/ReaderScreen.jsx'
 import OwnerDashboard   from './screens/OwnerDashboard.jsx'
 import FindBooksScreen  from './screens/FindBooksScreen.jsx'
 import LoadingScreen    from './screens/LoadingScreen.jsx'
+import BuyScreen        from './screens/BuyScreen.jsx'
 
 export default function App() {
   const [screen,   setScreen]   = useState('loading')
@@ -18,9 +19,16 @@ export default function App() {
   useEffect(() => { init() }, [])
 
   async function init() {
+    // Owner dashboard
     if (window.location.pathname === '/owner') {
       const ownerPass = sessionStorage.getItem('owner_auth')
       setScreen(ownerPass ? 'owner' : 'owner_login')
+      return
+    }
+
+    // Buy page
+    if (window.location.pathname === '/buy') {
+      setScreen('buy')
       return
     }
 
@@ -85,9 +93,15 @@ export default function App() {
     localStorage.setItem('rbs_prefs', JSON.stringify(newPrefs))
   }
 
+  // Apply theme
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', prefs.theme || 'dark')
+  }, [prefs.theme])
+
   if (screen === 'owner' || screen === 'owner_login') {
     return <OwnerDashboard isLoggedIn={screen === 'owner'} onLogin={() => setScreen('owner')}/>
   }
+  if (screen === 'buy')         return <BuyScreen/>
   if (screen === 'loading')     return <LoadingScreen/>
   if (screen === 'activation')  return <ActivationScreen onActivated={handleActivated}/>
   if (screen === 'find-books')  return <FindBooksScreen onBack={() => setScreen('library')}/>
