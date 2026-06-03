@@ -19,15 +19,12 @@ export default async function handler(req, res) {
   try {
     const { data, error } = await supabase
       .from('agents')
-      .select('id, name, referral_code, active')
+      .select('id, name, referral_code')
       .eq('referral_code', code.trim().toUpperCase())
       .single()
 
     if (error || !data) {
-      return res.status(200).json({ valid: false })
-    }
-
-    if (data.active === false) {
+      console.log('Agent not found:', code, error)
       return res.status(200).json({ valid: false })
     }
 
