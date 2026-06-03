@@ -500,6 +500,24 @@ export default function LibraryScreen({ customer, books, progress, prefs, onOpen
           ))}
         </nav>
 
+        {/* Recently Added — sidebar */}
+        {newlyAdded.length > 0 && (
+          <div style={s.sidebarRecent}>
+            <p style={s.navLabel}>Recently Added</p>
+            {newlyAdded.map((book, i) => (
+              <button key={book.id} style={s.sidebarRecentItem} onClick={() => { onOpenBook(book); setSidebarOpen(false) }}>
+                <div style={s.sidebarRecentLeft}>
+                  <span style={s.sidebarNewBadge}>NEW</span>
+                </div>
+                <div style={s.sidebarRecentInfo}>
+                  <span style={s.sidebarRecentTitle}>{book.title}</span>
+                  <span style={s.sidebarRecentMeta}>{book.author}</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+
         <div style={s.sidebarBottom}>
           <button style={s.sidebarBtn} onClick={() => { setActiveTab('mybooks'); setSidebarOpen(false) }}>
             <span>📚</span> My Books
@@ -535,9 +553,6 @@ export default function LibraryScreen({ customer, books, progress, prefs, onOpen
           <SidebarContent/>
         </aside>
       )}
-
-      {/* Main content + Right panel */}
-      <div style={{ display:'flex', flex:1, overflow:'hidden', minWidth:0 }}>
 
       {/* Main content */}
       <main style={s.main}>
@@ -655,24 +670,6 @@ export default function LibraryScreen({ customer, books, progress, prefs, onOpen
         </div>
       </main>
 
-      {/* Desktop right panel — Recently Added */}
-      {!isMobile && newlyAdded.length > 0 && (
-        <aside style={s.rightPanel}>
-          <div style={s.rightPanelHeader}>
-            <span style={s.rightPanelTitle}>Recently Added</span>
-            <span style={s.rightPanelBadge}>✨ New</span>
-          </div>
-          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-            {newlyAdded.map((book, i) => (
-              <NewlyAddedCard key={book.id} book={book} timeAgo={timeAgo(book.created_at)} onClick={() => onOpenBook(book)} animDelay={i * 50}/>
-            ))}
-          </div>
-          <p style={s.rightPanelNote}>New books appear here automatically</p>
-        </aside>
-      )}
-
-      </div>{/* end main+right wrapper */}
-
       {/* Mobile bottom navigation */}
       {isMobile && (
         <nav style={s.bottomNav}>
@@ -757,6 +754,13 @@ const s = {
   rightPanelTitle : { fontSize:11, fontWeight:600, color:'var(--text-secondary)', textTransform:'uppercase', letterSpacing:'0.07em' },
   rightPanelBadge : { fontSize:10, color:'var(--accent)', background:'var(--accent-dim)', padding:'2px 7px', borderRadius:99, border:'1px solid rgba(201,169,110,0.2)' },
   rightPanelNote  : { fontSize:10, color:'var(--text-muted)', marginTop:8, lineHeight:1.5, textAlign:'center' },
+  sidebarRecent      : { paddingTop:10, borderTop:'1px solid var(--border)', display:'flex', flexDirection:'column', gap:4 },
+  sidebarRecentItem  : { display:'flex', alignItems:'flex-start', gap:6, padding:'6px 8px', borderRadius:'var(--radius-md)', border:'none', background:'transparent', cursor:'pointer', textAlign:'left', width:'100%' },
+  sidebarRecentLeft  : { flexShrink:0, paddingTop:2 },
+  sidebarNewBadge    : { fontSize:7, fontWeight:700, color:'#c9a96e', background:'rgba(201,169,110,0.12)', border:'1px solid rgba(201,169,110,0.2)', padding:'1px 4px', borderRadius:99 },
+  sidebarRecentInfo  : { flex:1, minWidth:0, display:'flex', flexDirection:'column', gap:1 },
+  sidebarRecentTitle : { fontSize:12, color:'var(--text-secondary)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', lineHeight:1.3 },
+  sidebarRecentMeta  : { fontSize:10, color:'var(--text-muted)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' },
   bottomNav    : { position:'fixed', bottom:0, left:0, right:0, height:60, background:'var(--bg-surface)', borderTop:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'space-around', zIndex:30, paddingBottom:'env(safe-area-inset-bottom)' },
   bottomNavBtn : { display:'flex', flexDirection:'column', alignItems:'center', gap:3, background:'transparent', border:'none', color:'var(--text-muted)', cursor:'pointer', padding:'6px 12px', borderRadius:'var(--radius-md)', flex:1, transition:'all var(--transition)' },
   bottomNavBtnActive: { color:'var(--accent)' },
