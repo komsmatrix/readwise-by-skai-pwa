@@ -1,4 +1,9 @@
 import { useState, useEffect } from 'react'
+import { createClient } from '@supabase/supabase-js'
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 
 const INTRO_PRICE    = 249
 const REGULAR_PRICE  = 399
@@ -8,19 +13,32 @@ export default function BuyScreen() {
   const [name,         setName]         = useState('')
   const [email,        setEmail]        = useState('')
   const [referralCode, setReferralCode] = useState('')
-  const [codeStatus,   setCodeStatus]   = useState('idle') // idle | checking | valid | invalid
+  const [codeStatus,   setCodeStatus]   = useState('idle')
   const [agentName,    setAgentName]    = useState('')
-  const [status,       setStatus]       = useState('idle') // idle | loading | error
+  const [status,       setStatus]       = useState('idle')
   const [errorMsg,     setErrorMsg]     = useState('')
   const [cancelled,    setCancelled]    = useState(false)
   const [success,      setSuccess]      = useState(false)
+  const [bookCount,    setBookCount]    = useState(null)
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     if (params.get('success') === 'true') setSuccess(true)
     if (params.get('cancelled') === 'true') setCancelled(true)
+    loadBookCount()
   }, [])
 
+  async function loadBookCount() {
+    try {
+      const { count } = await supabase
+        .from('books')
+        .select('*', { count: 'exact', head: true })
+      if (count !== null) setBookCount(count)
+    } catch(e) {}
+  }
+
+  const bookLabel = bookCount !== null ? `${bookCount}+ curated books` : '18+ curated books'
+  const headlineBooks = bookCount !== null ? `${bookCount}+ Premium Books.` : '18+ Premium Books.'
   const finalPrice = codeStatus === 'valid' ? INTRO_PRICE - REFERRAL_DISC : INTRO_PRICE
 
   async function checkReferralCode(code) {
@@ -39,14 +57,12 @@ export default function BuyScreen() {
   async function handleBuy() {
     if (!name.trim() || !email.trim()) return
     setStatus('loading'); setErrorMsg('')
-
     const res  = await fetch('/api/create-checkout', {
       method : 'POST',
       headers: { 'Content-Type': 'application/json' },
       body   : JSON.stringify({ name: name.trim(), email: email.trim(), referralCode: codeStatus === 'valid' ? referralCode : '' }),
     })
     const data = await res.json()
-
     if (data.checkoutUrl) {
       window.location.href = data.checkoutUrl
     } else {
@@ -55,7 +71,6 @@ export default function BuyScreen() {
     }
   }
 
-  // ── Success screen ────────────────────────────────────────────────────────
   if (success) {
     return (
       <div style={s.root}>
@@ -71,14 +86,12 @@ export default function BuyScreen() {
 
   return (
     <div style={s.root}>
-      {/* Urgency banner */}
       <div style={s.urgencyBanner}>
         <span style={s.urgencyDot}/>
         <span style={s.urgencyText}>🔥 Introductory price of <strong>₱{INTRO_PRICE}</strong> — limited time only. Regular price will be ₱{REGULAR_PRICE}.</span>
       </div>
 
       <div style={s.wrap}>
-        {/* Left — product info */}
         <div style={s.left}>
           <div style={s.logo}>
             <div style={s.logoIcon}>📖</div>
@@ -88,12 +101,12 @@ export default function BuyScreen() {
             </div>
           </div>
 
-          <h1 style={s.headline}>18+ Premium Books.<br/>One Lifetime Payment.</h1>
+          <h1 style={s.headline}>{headlineBooks}<br/>One Lifetime Payment.</h1>
           <p style={s.subhead}>Self-help, finance, wellness — curated books for Filipinos who want to level up. Works on any phone, no installation needed.</p>
 
           <div style={s.featureList}>
             {[
-              ['📚', '18+ curated books', 'Self-help, finance, wellness'],
+              ['📚', bookLabel, 'Self-help, finance, wellness'],
               ['🔊', 'Text to Speech', 'Listen while commuting'],
               ['🔖', 'Bookmarks & Progress', 'Resume where you left off'],
               ['📱', 'Works on any device', 'Phone, tablet, laptop'],
@@ -117,7 +130,6 @@ export default function BuyScreen() {
           <p style={s.priceNote}>One-time payment. Lifetime access. No subscription.</p>
         </div>
 
-        {/* Right — checkout form */}
         <div style={s.right}>
           <div style={s.formCard} className="animate-up">
             {cancelled && (
@@ -159,7 +171,6 @@ export default function BuyScreen() {
               )}
             </div>
 
-            {/* Price summary */}
             <div style={s.priceSummary}>
               <div style={s.summaryRow}>
                 <span style={s.summaryLabel}>Readwise by Skai — Lifetime</span>
@@ -198,6 +209,12 @@ export default function BuyScreen() {
             </div>
 
             <p style={s.secureNote}>🔒 Secure payment via PayMongo · Key sent instantly after payment</p>
+
+            <div style={s.refundNote}>
+              <p style={{ margin:0, fontSize:11, color:'var(--text-muted)', lineHeight:1.6, textAlign:'center' }}>
+                🛡 <strong style={{ color:'var(--text-secondary)' }}>No refunds after key activation.</strong> Please make sure you want the product before purchasing. Questions? Email us at readwisebyskai@gmail.com
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -252,9 +269,11 @@ const s = {
   paymentLogos : { display:'flex', flexWrap:'wrap', gap:6, justifyContent:'center' },
   paymentBadge : { fontSize:11, color:'var(--text-muted)', background:'var(--bg-elevated)', border:'1px solid var(--border)', padding:'3px 8px', borderRadius:4 },
   secureNote   : { margin:0, fontSize:11, color:'var(--text-muted)', textAlign:'center', lineHeight:1.6 },
+  refundNote   : { background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:'var(--radius-sm)', padding:'10px 12px' },
   spinner      : { width:14, height:14, border:'2px solid rgba(0,0,0,0.2)', borderTop:'2px solid #0d0d0d', borderRadius:'50%', animation:'spin 0.7s linear infinite', display:'inline-block' },
   successIcon  : { fontSize:48, textAlign:'center' },
   successTitle : { margin:'0 0 12px', fontSize:24, fontWeight:600, color:'var(--text-primary)', textAlign:'center' },
   successDesc  : { margin:'0 0 24px', fontSize:14, color:'var(--text-muted)', lineHeight:1.7, textAlign:'center' },
   btn          : { display:'block', background:'#c9a96e', color:'#0d0d0d', textDecoration:'none', padding:'13px 24px', borderRadius:'var(--radius-md)', fontSize:15, fontWeight:600, textAlign:'center' },
+  card         : { width:'100%', maxWidth:480, background:'var(--bg-surface)', border:'1px solid var(--border)', borderRadius:'var(--radius-xl)', padding:'40px 32px', display:'flex', flexDirection:'column', gap:16, margin:'80px auto' },
 }

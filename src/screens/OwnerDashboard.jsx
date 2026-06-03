@@ -158,7 +158,7 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
       const tags = bookTags.split(',').map(t => t.trim()).filter(Boolean)
       const preferred_mode = textPath ? 'text' : 'pdf'
 
-      const { error: dbErr } = await supabase.from('books').insert({
+      const { data: insertedBook, error: dbErr } = await supabase.from('books').insert({
         title          : bookTitle.trim(),
         author         : bookAuthor.trim() || null,
         category       : bookCategory,
@@ -169,8 +169,32 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
         preferred_mode,
         pages          : bookPages ? parseInt(bookPages) : null,
         description    : bookDesc.trim() || null,
-      })
+      }).select('id').single()
       if (dbErr) throw new Error('Database insert failed: ' + dbErr.message)
+
+      const newBookId = insertedBook?.id
+
+      // 5. Auto-extract text from PDF if no text file was uploaded
+      if (!textFile && newBookId) {
+        setAddProgress('Extracting text from PDF…')
+        try {
+          const extractRes = await fetch('/api/extract-text', {
+            method : 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body   : JSON.stringify({
+              bookId  : newBookId,
+              pdfPath,
+              textPath: `${cat}/${slug}.html`,
+            }),
+          })
+          const extractData = await extractRes.json()
+          if (!extractData.success) {
+            console.warn('Text extraction failed (book still added):', extractData.error)
+          }
+        } catch(e) {
+          console.warn('Text extraction error (book still added):', e)
+        }
+      }
 
       setAddStatus('success')
       setAddProgress('')
