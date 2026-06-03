@@ -536,6 +536,9 @@ export default function LibraryScreen({ customer, books, progress, prefs, onOpen
         </aside>
       )}
 
+      {/* Main content + Right panel */}
+      <div style={{ display:'flex', flex:1, overflow:'hidden', minWidth:0 }}>
+
       {/* Main content */}
       <main style={s.main}>
 
@@ -581,8 +584,8 @@ export default function LibraryScreen({ customer, books, progress, prefs, onOpen
                 </section>
               )}
 
-              {/* Recently Added */}
-              {newlyAdded.length > 0 && !search && activeTab === 'library' && (
+              {/* Recently Added — mobile only (desktop shows in right panel) */}
+              {isMobile && newlyAdded.length > 0 && !search && activeTab === 'library' && (
                 <section style={{ ...s.section, marginBottom:20 }}>
                   <div style={{ ...s.sectionHeader, marginBottom:8 }}>
                     <h2 style={{ ...s.sectionTitle, fontSize:14 }}>Recently added</h2>
@@ -651,6 +654,24 @@ export default function LibraryScreen({ customer, books, progress, prefs, onOpen
           )}
         </div>
       </main>
+
+      {/* Desktop right panel — Recently Added */}
+      {!isMobile && newlyAdded.length > 0 && (
+        <aside style={s.rightPanel}>
+          <div style={s.rightPanelHeader}>
+            <span style={s.rightPanelTitle}>Recently Added</span>
+            <span style={s.rightPanelBadge}>✨ New</span>
+          </div>
+          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+            {newlyAdded.map((book, i) => (
+              <NewlyAddedCard key={book.id} book={book} timeAgo={timeAgo(book.created_at)} onClick={() => onOpenBook(book)} animDelay={i * 50}/>
+            ))}
+          </div>
+          <p style={s.rightPanelNote}>New books appear here automatically</p>
+        </aside>
+      )}
+
+      </div>{/* end main+right wrapper */}
 
       {/* Mobile bottom navigation */}
       {isMobile && (
@@ -731,7 +752,11 @@ const s = {
   emptyAddBtn  : { padding:'12px 24px', background:'var(--accent)', color:'#0d0d0d', border:'none', borderRadius:'var(--radius-md)', fontSize:14, fontWeight:500, cursor:'pointer', marginTop:8 },
   findBooksBtn : { background:'transparent', border:'none', color:'var(--accent)', fontSize:13, cursor:'pointer', textDecoration:'underline' },
   addMoreBtn   : { marginTop:16, padding:'10px 20px', background:'transparent', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', color:'var(--text-secondary)', fontSize:13, cursor:'pointer', width:'100%' },
-  // Bottom nav
+  rightPanel      : { width:220, flexShrink:0, background:'var(--bg-surface)', borderLeft:'1px solid var(--border)', padding:'20px 14px', overflowY:'auto', display:'flex', flexDirection:'column', gap:12 },
+  rightPanelHeader: { display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4 },
+  rightPanelTitle : { fontSize:11, fontWeight:600, color:'var(--text-secondary)', textTransform:'uppercase', letterSpacing:'0.07em' },
+  rightPanelBadge : { fontSize:10, color:'var(--accent)', background:'var(--accent-dim)', padding:'2px 7px', borderRadius:99, border:'1px solid rgba(201,169,110,0.2)' },
+  rightPanelNote  : { fontSize:10, color:'var(--text-muted)', marginTop:8, lineHeight:1.5, textAlign:'center' },
   bottomNav    : { position:'fixed', bottom:0, left:0, right:0, height:60, background:'var(--bg-surface)', borderTop:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'space-around', zIndex:30, paddingBottom:'env(safe-area-inset-bottom)' },
   bottomNavBtn : { display:'flex', flexDirection:'column', alignItems:'center', gap:3, background:'transparent', border:'none', color:'var(--text-muted)', cursor:'pointer', padding:'6px 12px', borderRadius:'var(--radius-md)', flex:1, transition:'all var(--transition)' },
   bottomNavBtnActive: { color:'var(--accent)' },
