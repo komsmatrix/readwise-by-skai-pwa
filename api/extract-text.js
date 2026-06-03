@@ -1,6 +1,5 @@
 // api/extract-text.js — Extracts text from a PDF stored in Supabase and saves as HTML
 import { createClient } from '@supabase/supabase-js'
-import fetch from 'node-fetch'
 
 const supabase = createClient(
   process.env.VITE_SUPABASE_URL,
