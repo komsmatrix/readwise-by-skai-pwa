@@ -246,11 +246,13 @@ function UploadBookModal({ customer, onClose, onSuccess }) {
 
 // ── Settings Modal ────────────────────────────────────────────────────────────
 function SettingsModal({ prefs, onSave, onClose }) {
-  const [theme,    setTheme]    = useState(prefs.theme    || 'dark')
-  const [fontSize, setFontSize] = useState(prefs.fontSize || 18)
-  const [ttsSpeed, setTtsSpeed] = useState(prefs.ttsSpeed || 1.0)
-  const [ttsVoice, setTtsVoice] = useState(prefs.ttsVoice || '')
-  const [voices,   setVoices]   = useState([])
+  const [theme,       setTheme]       = useState(prefs.theme    || 'dark')
+  const [fontSize,    setFontSize]    = useState(prefs.fontSize || 18)
+  const [ttsSpeed,    setTtsSpeed]    = useState(prefs.ttsSpeed || 1.0)
+  const [ttsVoice,    setTtsVoice]    = useState(prefs.ttsVoice || '')
+  const [voices,      setVoices]      = useState([])
+  const [previewingV, setPreviewingV] = useState('')
+  const [showTip,     setShowTip]     = useState(false)
 
   useEffect(() => {
     function loadVoices() {
@@ -261,23 +263,59 @@ function SettingsModal({ prefs, onSave, onClose }) {
         voice.name.toLowerCase().includes('google') ||
         voice.name.toLowerCase().includes('microsoft')
       )
-      setVoices(english.length > 0 ? english : v.slice(0, 10))
+      setVoices(english.length > 0 ? english : v.slice(0, 15))
     }
     loadVoices()
     window.speechSynthesis?.addEventListener('voiceschanged', loadVoices)
     return () => window.speechSynthesis?.removeEventListener('voiceschanged', loadVoices)
   }, [])
 
-  function testVoice() {
+  function getFriendlyName(voice) {
+    const n = voice.name
+    if (n.includes('Google UK English Female')) return '🇬🇧 Google Female (UK)'
+    if (n.includes('Google UK English Male'))   return '🇬🇧 Google Male (UK)'
+    if (n.includes('Google US English'))        return '🇺🇸 Google (US)'
+    if (n.includes('Microsoft Zira'))           return '🪟 Microsoft Zira (Female)'
+    if (n.includes('Microsoft David'))          return '🪟 Microsoft David (Male)'
+    if (n.includes('Microsoft Mark'))           return '🪟 Microsoft Mark (Male)'
+    if (n.includes('Samantha'))                 return '🍎 Samantha (iPhone)'
+    if (n.includes('Karen'))                    return '🍎 Karen (iPhone)'
+    if (n.includes('Daniel'))                   return '🍎 Daniel (iPhone)'
+    if (n.includes('Moira'))                    return '🍎 Moira (iPhone)'
+    if (n.toLowerCase().includes('female') || n.toLowerCase().includes('woman')) return '👩 ' + n
+    if (n.toLowerCase().includes('male') || n.toLowerCase().includes('man'))     return '👨 ' + n
+    return '🔊 ' + n
+  }
+
+  function getQualityBadge(voice) {
+    const n = voice.name.toLowerCase()
+    if (n.includes('google') || n.includes('samantha') || n.includes('karen') || n.includes('daniel')) {
+      return { label: '⭐ Best', color: '#3a9a6a', bg: 'rgba(58,154,106,0.1)' }
+    }
+    if (n.includes('microsoft zira') || n.includes('microsoft david')) {
+      return { label: '✓ Good', color: '#c9a96e', bg: 'rgba(201,169,110,0.1)' }
+    }
+    return null
+  }
+
+  function previewVoice(voice) {
     window.speechSynthesis?.cancel()
+    setPreviewingV(voice.name)
     const utt  = new SpeechSynthesisUtterance('Hello! This is how I sound when reading your books.')
     utt.rate   = ttsSpeed
-    if (ttsVoice) {
-      const found = voices.find(v => v.name === ttsVoice)
-      if (found) utt.voice = found
-    }
+    utt.voice  = voice
+    utt.onend  = () => setPreviewingV('')
+    utt.onerror= () => setPreviewingV('')
     window.speechSynthesis?.speak(utt)
   }
+
+  function stopPreview() {
+    window.speechSynthesis?.cancel()
+    setPreviewingV('')
+  }
+
+  const isAndroid = /android/i.test(navigator.userAgent)
+  const isIOS     = /iphone|ipad/i.test(navigator.userAgent)
 
   return (
     <div style={modal.backdrop} onClick={e => e.target === e.currentTarget && onClose()}>
@@ -304,23 +342,76 @@ function SettingsModal({ prefs, onSave, onClose }) {
         <div style={settS.field}>
           <label style={settS.label}>Reading Speed (TTS)</label>
           <input type="range" min={0.5} max={2} step={0.1} value={ttsSpeed} onChange={e => setTtsSpeed(+e.target.value)} style={{ width:'100%', accentColor:'var(--accent)', height:4 }}/>
-          <p style={settS.hint}>{ttsSpeed}x speed</p>
+          <div style={{ display:'flex', justifyContent:'space-between', marginTop:4 }}>
+            <span style={settS.hint}>0.5x slow</span>
+            <span style={{ ...settS.hint, color:'var(--accent)', fontWeight:600 }}>{ttsSpeed}x</span>
+            <span style={settS.hint}>2x fast</span>
+          </div>
         </div>
 
         {voices.length > 0 && (
           <div style={settS.field}>
-            <label style={settS.label}>TTS Voice</label>
-            <select style={settS.select} value={ttsVoice} onChange={e => setTtsVoice(e.target.value)}>
-              <option value="">Default voice</option>
-              {voices.map(v => <option key={v.name} value={v.name}>{v.name} ({v.lang})</option>)}
-            </select>
-            <button style={settS.testBtn} onClick={testVoice}>▶ Test voice</button>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
+              <label style={{ ...settS.label, margin:0 }}>TTS Voice</label>
+              <button style={{ background:'transparent', border:'none', color:'var(--accent)', fontSize:11, cursor:'pointer', textDecoration:'underline' }} onClick={() => setShowTip(v => !v)}>
+                💡 Get better voices
+              </button>
+            </div>
+
+            {/* Device tips */}
+            {showTip && (
+              <div style={settS.tipBox}>
+                <p style={settS.tipTitle}>How to get better voices on your device:</p>
+                <p style={settS.tipItem}>📱 <strong>Android:</strong> Settings → Accessibility → Text-to-Speech → install Google TTS Engine → download a voice</p>
+                <p style={settS.tipItem}>🍎 <strong>iPhone:</strong> Settings → Accessibility → Spoken Content → Voices → choose English → download a voice (Siri voices are excellent)</p>
+                <p style={settS.tipItem}>🪟 <strong>Windows:</strong> Settings → Time & Language → Speech → Add voices</p>
+                <p style={{ ...settS.tipItem, color:'var(--accent)', marginBottom:0 }}>After installing, restart the app and new voices will appear here. ✨</p>
+              </div>
+            )}
+
+            {/* Current selection */}
+            <div style={settS.voiceSelected}>
+              <span style={{ fontSize:12, color:'var(--text-muted)' }}>
+                {ttsVoice ? getFriendlyName(voices.find(v => v.name === ttsVoice) || { name: ttsVoice }) : '🔊 Default voice'}
+              </span>
+            </div>
+
+            {/* Voice list */}
+            <div style={settS.voiceList}>
+              <button
+                style={{ ...settS.voiceItem, ...(ttsVoice === '' ? settS.voiceItemActive : {}) }}
+                onClick={() => setTtsVoice('')}>
+                <span style={settS.voiceName}>🔊 Default voice</span>
+              </button>
+              {voices.map(voice => {
+                const badge    = getQualityBadge(voice)
+                const isActive = ttsVoice === voice.name
+                const isPrev   = previewingV === voice.name
+                return (
+                  <div key={voice.name} style={{ ...settS.voiceItem, ...(isActive ? settS.voiceItemActive : {}) }}>
+                    <button style={settS.voiceSelectBtn} onClick={() => setTtsVoice(voice.name)}>
+                      <span style={settS.voiceName}>{getFriendlyName(voice)}</span>
+                      {badge && (
+                        <span style={{ fontSize:9, fontWeight:700, color: badge.color, background: badge.bg, padding:'1px 6px', borderRadius:99, flexShrink:0 }}>
+                          {badge.label}
+                        </span>
+                      )}
+                      {isActive && <span style={{ fontSize:10, color:'var(--accent)', flexShrink:0 }}>✓</span>}
+                    </button>
+                    <button style={{ ...settS.previewBtn, ...(isPrev ? settS.previewBtnActive : {}) }}
+                      onClick={() => isPrev ? stopPreview() : previewVoice(voice)}>
+                      {isPrev ? '⏸' : '▶'}
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
           </div>
         )}
 
         <div style={modal.actions}>
-          <button style={modal.cancelBtn} onClick={onClose}>Cancel</button>
-          <button style={modal.acceptBtn} onClick={() => onSave({ theme, fontSize, ttsSpeed, ttsVoice })}>Save Settings</button>
+          <button style={modal.cancelBtn} onClick={() => { stopPreview(); onClose() }}>Cancel</button>
+          <button style={modal.acceptBtn} onClick={() => { stopPreview(); onSave({ theme, fontSize, ttsSpeed, ttsVoice }) }}>Save Settings</button>
         </div>
       </div>
     </div>
@@ -848,8 +939,19 @@ const settS = {
   themeBtnActive: { background:'var(--accent)', color:'#0d0d0d', borderColor:'var(--accent)' },
   preview: { fontSize:11, color:'var(--text-muted)', marginTop:6, lineHeight:1.8 },
   hint   : { fontSize:11, color:'var(--text-muted)', marginTop:4 },
-  select : { padding:'10px 12px', background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', color:'var(--text-primary)', fontSize:13, outline:'none', width:'100%', cursor:'pointer' },
-  testBtn: { padding:'8px 14px', background:'transparent', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', color:'var(--accent)', fontSize:13, cursor:'pointer', marginTop:6, alignSelf:'flex-start' },
+  select       : { padding:'10px 12px', background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', color:'var(--text-primary)', fontSize:13, outline:'none', width:'100%', cursor:'pointer' },
+  testBtn      : { padding:'8px 14px', background:'transparent', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', color:'var(--accent)', fontSize:13, cursor:'pointer', marginTop:6, alignSelf:'flex-start' },
+  tipBox       : { background:'rgba(201,169,110,0.06)', border:'1px solid rgba(201,169,110,0.15)', borderRadius:'var(--radius-md)', padding:'12px 14px', marginBottom:10, display:'flex', flexDirection:'column', gap:6 },
+  tipTitle     : { fontSize:11, fontWeight:600, color:'var(--accent)', margin:0, textTransform:'uppercase', letterSpacing:'0.06em' },
+  tipItem      : { fontSize:12, color:'var(--text-muted)', margin:0, lineHeight:1.6 },
+  voiceSelected: { padding:'8px 12px', background:'var(--bg-elevated)', border:'1px solid var(--accent)', borderRadius:'var(--radius-md)', marginBottom:6 },
+  voiceList    : { display:'flex', flexDirection:'column', gap:4, maxHeight:200, overflowY:'auto', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', padding:4 },
+  voiceItem    : { display:'flex', alignItems:'center', gap:4, borderRadius:'var(--radius-sm)', overflow:'hidden' },
+  voiceItemActive: { background:'var(--accent-dim)' },
+  voiceSelectBtn : { flex:1, display:'flex', alignItems:'center', gap:6, padding:'7px 8px', background:'transparent', border:'none', cursor:'pointer', textAlign:'left' },
+  voiceName    : { flex:1, fontSize:12, color:'var(--text-secondary)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' },
+  previewBtn   : { width:28, height:28, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', background:'transparent', border:'none', color:'var(--text-muted)', cursor:'pointer', fontSize:11, borderRadius:4 },
+  previewBtnActive: { background:'var(--accent)', color:'#0d0d0d' },
 }
 
 // ── Newly Added Card styles (compact) ────────────────────────────────────────
