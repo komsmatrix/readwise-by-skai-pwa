@@ -349,36 +349,20 @@ function DeleteConfirmModal({ book, onConfirm, onCancel }) {
   )
 }
 
-// ── Newly Added Card ──────────────────────────────────────────────────────────
+// ── Newly Added Card (compact text only) ─────────────────────────────────────
 function NewlyAddedCard({ book, timeAgo, onClick, animDelay = 0 }) {
-  const [coverUrl, setCoverUrl] = useState(null)
   const isTextMode = book.preferred_mode === 'text' || (!book.preferred_mode && book.text_path)
-  const colors = [
-    ['#1a1f3a','#c9a96e'],['#1e2d1e','#7ab87a'],['#2d1e1e','#b87a7a'],
-    ['#1e1e2d','#8a7ab8'],['#2d2a1a','#c4b06a'],['#1a2d2d','#6ab8b8'],
-  ]
-  const code = typeof book.id === 'string' ? (book.id.charCodeAt(0)||0) : parseInt(book.id)||0
-  const [bg, accent] = colors[code % colors.length]
-
-  useEffect(() => {
-    if (book.cover_path) { const url = getCoverUrl(book.cover_path); if (url) setCoverUrl(url) }
-  }, [book.cover_path])
-
   return (
-    <button style={{ ...na.card, animationDelay:`${animDelay}ms` }} className="animate-in" onClick={onClick}>
-      <div style={{ ...na.cover, background: coverUrl ? 'transparent' : bg }}>
-        {coverUrl
-          ? <img src={coverUrl} alt={book.title} style={na.coverImg} onError={() => setCoverUrl(null)}/>
-          : <div style={na.placeholder}><span style={{ ...na.placeholderTitle, color: accent }}>{book.title?.slice(0,16)}</span></div>
-        }
-        <div style={isTextMode ? na.textBadge : na.pdfBadge}>{isTextMode ? 'TEXT' : 'PDF'}</div>
+    <button style={{ ...na.row, animationDelay:`${animDelay}ms` }} className="animate-in" onClick={onClick}>
+      <div style={na.rowLeft}>
+        <span style={na.newBadge}>NEW</span>
+        <span style={isTextMode ? na.textBadge : na.pdfBadge}>{isTextMode ? 'TEXT' : 'PDF'}</span>
       </div>
-      <div style={na.info}>
-        <div style={na.newBadge}>NEW</div>
-        <h3 style={na.title}>{book.title}</h3>
-        <p style={na.author}>{book.author}</p>
-        <p style={na.time}>Added {timeAgo}</p>
+      <div style={na.rowInfo}>
+        <span style={na.title}>{book.title}</span>
+        <span style={na.author}>{book.author} · {book.category}</span>
       </div>
+      <span style={na.time}>{timeAgo}</span>
     </button>
   )
 }
@@ -599,12 +583,12 @@ export default function LibraryScreen({ customer, books, progress, prefs, onOpen
 
               {/* Recently Added */}
               {newlyAdded.length > 0 && !search && activeTab === 'library' && (
-                <section style={s.section}>
-                  <div style={s.sectionHeader}>
-                    <h2 style={s.sectionTitle}>Recently added</h2>
-                    <span style={{ fontSize:11, color:'var(--accent)', background:'var(--accent-dim)', padding:'2px 8px', borderRadius:99, border:'1px solid rgba(201,169,110,0.2)' }}>✨ New</span>
+                <section style={{ ...s.section, marginBottom:20 }}>
+                  <div style={{ ...s.sectionHeader, marginBottom:8 }}>
+                    <h2 style={{ ...s.sectionTitle, fontSize:14 }}>Recently added</h2>
+                    <span style={{ fontSize:10, color:'var(--accent)', background:'var(--accent-dim)', padding:'2px 8px', borderRadius:99, border:'1px solid rgba(201,169,110,0.2)' }}>✨ New</span>
                   </div>
-                  <div style={s.newlyAddedRow}>
+                  <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
                     {newlyAdded.map((book, i) => (
                       <NewlyAddedCard key={book.id} book={book} timeAgo={timeAgo(book.created_at)} onClick={() => onOpenBook(book)} animDelay={i * 50}/>
                     ))}
@@ -839,18 +823,15 @@ const settS = {
   testBtn: { padding:'8px 14px', background:'transparent', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', color:'var(--accent)', fontSize:13, cursor:'pointer', marginTop:6, alignSelf:'flex-start' },
 }
 
-// ── Newly Added Card styles ───────────────────────────────────────────────────
+// ── Newly Added Card styles (compact) ────────────────────────────────────────
 const na = {
-  card        : { display:'flex', alignItems:'center', gap:12, padding:12, background:'var(--bg-surface)', border:'1px solid var(--border)', borderRadius:'var(--radius-lg)', cursor:'pointer', textAlign:'left', width:'100%', position:'relative', overflow:'hidden' },
-  cover       : { width:52, height:70, borderRadius:'var(--radius-md)', overflow:'hidden', flexShrink:0, position:'relative' },
-  coverImg    : { width:'100%', height:'100%', objectFit:'cover' },
-  placeholder : { width:'100%', height:'100%', display:'flex', flexDirection:'column', justifyContent:'flex-end', padding:6 },
-  placeholderTitle: { fontFamily:'var(--font-display)', fontSize:8, lineHeight:1.3 },
-  textBadge   : { position:'absolute', top:3, left:3, fontSize:7, fontWeight:700, color:'#7ab87a', background:'rgba(13,13,13,0.85)', padding:'1px 3px', borderRadius:3 },
-  pdfBadge    : { position:'absolute', top:3, left:3, fontSize:7, fontWeight:700, color:'#c9a96e', background:'rgba(13,13,13,0.85)', padding:'1px 3px', borderRadius:3 },
-  info        : { flex:1, minWidth:0 },
-  newBadge    : { fontSize:8, fontWeight:700, color:'#c9a96e', background:'rgba(201,169,110,0.12)', border:'1px solid rgba(201,169,110,0.25)', padding:'1px 6px', borderRadius:99, display:'inline-block', marginBottom:4 },
-  title       : { fontFamily:'var(--font-display)', fontSize:14, fontWeight:400, color:'var(--text-primary)', lineHeight:1.3, marginBottom:2, display:'-webkit-box', WebkitLineClamp:1, WebkitBoxOrient:'vertical', overflow:'hidden' },
-  author      : { fontSize:11, color:'var(--text-muted)', marginBottom:3 },
-  time        : { fontSize:10, color:'var(--text-muted)', opacity:0.7 },
+  row      : { display:'flex', alignItems:'center', gap:8, padding:'10px 12px', background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', cursor:'pointer', textAlign:'left', width:'100%' },
+  rowLeft  : { display:'flex', flexDirection:'column', gap:3, flexShrink:0, alignItems:'center', width:32 },
+  rowInfo  : { flex:1, minWidth:0, display:'flex', flexDirection:'column', gap:2 },
+  newBadge : { fontSize:7, fontWeight:700, color:'#c9a96e', background:'rgba(201,169,110,0.12)', border:'1px solid rgba(201,169,110,0.2)', padding:'1px 4px', borderRadius:99 },
+  textBadge: { fontSize:7, fontWeight:700, color:'#7ab87a', background:'rgba(122,184,122,0.12)', padding:'1px 4px', borderRadius:3 },
+  pdfBadge : { fontSize:7, fontWeight:700, color:'#c9a96e', background:'var(--accent-dim)', padding:'1px 4px', borderRadius:3 },
+  title    : { fontSize:13, color:'var(--text-primary)', fontWeight:500, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' },
+  author   : { fontSize:11, color:'var(--text-muted)' },
+  time     : { fontSize:10, color:'var(--text-muted)', flexShrink:0, opacity:0.7 },
 }
