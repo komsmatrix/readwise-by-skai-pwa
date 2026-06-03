@@ -9,7 +9,7 @@ const supabase = createClient(
 )
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY
-const APP_URL        = process.env.VITE_APP_URL || 'https://readwise-by-skai.vercel.app'
+const APP_URL        = process.env.VITE_APP_URL || 'https://readwisebyskai.com'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
@@ -78,7 +78,7 @@ export default async function handler(req, res) {
           'Content-Type' : 'application/json',
         },
         body: JSON.stringify({
-          from   : 'Readwise by Skai <onboarding@resend.dev>',
+          from   : 'Readwise by Skai <hello@readwisebyskai.com>',
           reply_to: 'readwisebyskai@gmail.com',
           to     : [email.toLowerCase().trim()],
           subject: 'Welcome to Readwise by Skai! 📚',

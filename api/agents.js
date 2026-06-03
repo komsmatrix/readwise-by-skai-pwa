@@ -172,7 +172,7 @@ export default async function handler(req, res) {
           method : 'POST',
           headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            from    : 'Readwise by Skai <onboarding@resend.dev>',
+            from    : 'Readwise by Skai <hello@readwisebyskai.com>',
             reply_to: 'readwisebyskai@gmail.com',
             to      : [agent.email],
             subject : `✅ Your Readwise by Skai Payout of ₱${totalAmount.toFixed(2)} has been sent!`,
