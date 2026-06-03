@@ -23,7 +23,6 @@ function useTTS(prefs) {
       const found = voices.find(v => v.name === prefName)
       if (found) utt.voice = found
     } else {
-      // Auto-pick best available voice
       const preferred = voices.find(v =>
         v.name.includes('Google UK English Female') ||
         v.name.includes('Google US English') ||
@@ -215,7 +214,7 @@ function TextReader({ book, customer, prefs, initialProgress, onClose, onSwitchT
 // ══════════════════════════════════════════════════════════════════════════════
 // PDF READER
 // ══════════════════════════════════════════════════════════════════════════════
-function PdfReader({ book, customer, prefs, initialProgress, onClose, onSwitchToText, hasTextMode, onProgressUpdate }) {
+function PdfReader({ book, customer, prefs, initialProgress, onClose, onSwitchToText, hasTextMode, onProgressUpdate, onTextConverted }) {
   const [loading,      setLoading]      = useState(true)
   const [loadError,    setLoadError]    = useState(false)
   const [pdfDoc,       setPdfDoc]       = useState(null)
@@ -228,8 +227,13 @@ function PdfReader({ book, customer, prefs, initialProgress, onClose, onSwitchTo
   const [jumpValue,    setJumpValue]    = useState('')
   const [mountedPages, setMountedPages] = useState(new Set([1,2,3]))
   const [ttsText,      setTtsText]      = useState('')
-  const tts           = useTTS(prefs)
 
+  // Convert to text state
+  const [converting,   setConverting]   = useState(false)
+  const [convertError, setConvertError] = useState('')
+  const [convertDone,  setConvertDone]  = useState(false)
+
+  const tts           = useTTS(prefs)
   const containerRef   = useRef(null)
   const canvasRefs     = useRef({})
   const pageHeights    = useRef({})
@@ -248,29 +252,51 @@ function PdfReader({ book, customer, prefs, initialProgress, onClose, onSwitchTo
   async function loadPDF() {
     try {
       setLoading(true); setLoadError(false)
-
-      // Support both shared books and personal books
       let fileUrl
       if (book._personal_file) {
-        // Personal book — needs auth header
         fileUrl = `${supabaseUrl}/storage/v1/object/personal/${book._personal_file}`
       } else {
         fileUrl = getBookFileUrl(book.file_path)
       }
-
       const pdfjsLib = await import('pdfjs-dist')
       pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()
-
       const loadOptions = book._personal_file
         ? { url: fileUrl, httpHeaders: { 'apikey': supabaseAnon, 'Authorization': `Bearer ${supabaseAnon}` } }
         : { url: fileUrl }
-
       const doc = await pdfjsLib.getDocument(loadOptions).promise
       pdfDocRef.current = doc; setPdfDoc(doc); setTotalPages(doc.numPages)
       try { const outline = await doc.getOutline(); if (outline?.length) setToc(flattenOutline(outline)) } catch {}
       try { const fp = await doc.getPage(1); const vp = fp.getViewport({scale:1}); const con = containerRef.current; if (con) { const f=(con.clientWidth-32)/vp.width; scaleRef.current=f; setScale(f) } } catch {}
       setLoading(false)
     } catch (err) { console.error(err); setLoadError(true); setLoading(false) }
+  }
+
+  // ── Convert to Text Mode ───────────────────────────────────────────────────
+  async function handleConvertToText() {
+    if (!book.id || !book.file_path || book._personal_file) return
+    setConverting(true); setConvertError('')
+    const slug = book.file_path.replace('.pdf', '')
+    const textPath = `${slug}.html`
+    try {
+      const res = await fetch('/api/extract-text', {
+        method : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body   : JSON.stringify({ bookId: book.id, pdfPath: book.file_path, textPath }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setConvertDone(true)
+        setConverting(false)
+        // Notify parent to refresh book data and switch to text mode
+        if (onTextConverted) onTextConverted(textPath)
+      } else {
+        setConvertError(data.error || 'Conversion failed. This may be a scanned PDF.')
+        setConverting(false)
+      }
+    } catch(e) {
+      setConvertError('Network error. Please try again.')
+      setConverting(false)
+    }
   }
 
   function flattenOutline(items, depth=0) {
@@ -375,6 +401,9 @@ function PdfReader({ book, customer, prefs, initialProgress, onClose, onSwitchTo
   const percent=totalPages?Math.round((currentPage/totalPages)*100):0
   const estH=n=>{const known=Object.values(pageHeights.current);return pageHeights.current[n]||(known.length?known.reduce((a,b)=>a+b,0)/known.length:900)}
 
+  // Show convert button only for shared books (not personal) with no text mode yet
+  const showConvertBtn = !hasTextMode && !book._personal_file && !convertDone
+
   if (loadError) return (
     <div style={{...rs.root,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:16}}>
       <p style={{color:'var(--text-muted)',fontSize:14}}>Could not open this book.</p>
@@ -416,6 +445,24 @@ function PdfReader({ book, customer, prefs, initialProgress, onClose, onSwitchTo
           )}
         </div>
       </header>
+
+      {/* Convert to Text Mode banner */}
+      {showConvertBtn && (
+        <div style={rs.convertBanner}>
+          <span style={rs.convertText}>✨ Better reading experience available</span>
+          {convertError && <span style={rs.convertErr}>{convertError}</span>}
+          <button style={{ ...rs.convertBtn, ...(converting ? rs.convertBtnBusy : {}) }} onClick={handleConvertToText} disabled={converting}>
+            {converting ? <><span style={rs.convertSpinner}/>Converting…</> : 'Convert to Text Mode'}
+          </button>
+        </div>
+      )}
+
+      {/* Convert done banner */}
+      {convertDone && (
+        <div style={{ ...rs.convertBanner, background:'rgba(58,154,106,0.1)', borderColor:'rgba(58,154,106,0.25)' }}>
+          <span style={{ ...rs.convertText, color:'#3a9a6a' }}>✅ Converted! Tap Text in the mode toggle above to switch.</span>
+        </div>
+      )}
 
       {activePanel==='toc'&&(
         <div style={rs.panel} className="animate-in">
@@ -473,54 +520,66 @@ function PdfReader({ book, customer, prefs, initialProgress, onClose, onSwitchTo
 
 // ── Root ──────────────────────────────────────────────────────────────────────
 export default function ReaderScreen({ bookData, customer, prefs, progress, onClose, onProgressUpdate }) {
-  const hasTextMode = !!bookData.text_path && !bookData._personal_file
-  const defaultMode = hasTextMode ? (bookData.preferred_mode || 'text') : 'pdf'
+  const [currentBook, setCurrentBook] = useState(bookData)
+  const hasTextMode = !!currentBook.text_path && !currentBook._personal_file
+  const defaultMode = hasTextMode ? (currentBook.preferred_mode || 'text') : 'pdf'
   const [mode, setMode] = useState(defaultMode)
 
-  if (mode==='text'&&hasTextMode) {
-    return <TextReader book={bookData} customer={customer} prefs={prefs} initialProgress={progress} onClose={onClose} onSwitchToPdf={()=>setMode('pdf')} onProgressUpdate={onProgressUpdate}/>
+  function handleTextConverted(textPath) {
+    setCurrentBook(b => ({ ...b, text_path: textPath, preferred_mode: 'text' }))
+    setMode('text')
   }
-  return <PdfReader book={bookData} customer={customer} prefs={prefs} initialProgress={progress} onClose={onClose} hasTextMode={hasTextMode} onSwitchToText={()=>setMode('text')} onProgressUpdate={onProgressUpdate}/>
+
+  if (mode==='text'&&hasTextMode) {
+    return <TextReader book={currentBook} customer={customer} prefs={prefs} initialProgress={progress} onClose={onClose} onSwitchToPdf={()=>setMode('pdf')} onProgressUpdate={onProgressUpdate}/>
+  }
+  return <PdfReader book={currentBook} customer={customer} prefs={prefs} initialProgress={progress} onClose={onClose} hasTextMode={hasTextMode} onSwitchToText={()=>setMode('text')} onProgressUpdate={onProgressUpdate} onTextConverted={handleTextConverted}/>
 }
 
 const rs = {
-  root       :{height:'100vh',display:'flex',flexDirection:'column',background:'var(--reader-bg)',overflow:'hidden',position:'relative'},
-  topBar     :{display:'flex',alignItems:'center',gap:6,padding:'10px 12px',borderBottom:'1px solid var(--border)',flexShrink:0,background:'var(--bg-surface)',zIndex:10},
-  bookInfo   :{flex:1,display:'flex',alignItems:'center',gap:6,minWidth:0},
-  bookTitle  :{fontFamily:'var(--font-display)',fontSize:13,color:'var(--text-primary)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'},
-  pageBadge  :{fontSize:10,color:'var(--text-muted)',background:'var(--bg-elevated)',padding:'2px 6px',borderRadius:99,flexShrink:0},
-  textBadge  :{fontSize:9,fontWeight:600,color:'#7ab87a',background:'rgba(122,184,122,0.12)',border:'1px solid rgba(122,184,122,0.25)',padding:'2px 5px',borderRadius:4,flexShrink:0},
-  pdfBadge   :{fontSize:9,fontWeight:600,color:'var(--accent)',background:'var(--accent-dim)',border:'1px solid rgba(201,169,110,0.25)',padding:'2px 5px',borderRadius:4,flexShrink:0},
-  topActions :{display:'flex',alignItems:'center',gap:1,flexShrink:0},
-  divider    :{width:1,height:14,background:'var(--border)',margin:'0 3px'},
-  iconBtn    :{width:28,height:28,display:'flex',alignItems:'center',justifyContent:'center',background:'transparent',border:'none',borderRadius:6,color:'var(--text-secondary)',cursor:'pointer',fontSize:11,flexShrink:0},
-  zoomLabel  :{fontSize:10,color:'var(--text-muted)',minWidth:28,textAlign:'center'},
-  modeToggle :{display:'flex',background:'var(--bg-elevated)',borderRadius:5,border:'1px solid var(--border)',overflow:'hidden'},
-  modeBtn    :{padding:'3px 8px',background:'transparent',border:'none',color:'var(--text-muted)',fontSize:10,fontWeight:500,cursor:'pointer'},
-  modeBtnActive:{background:'var(--accent)',color:'#0d0d0d'},
-  switchBtn  :{padding:'10px 24px',background:'var(--accent)',color:'#0d0d0d',border:'none',borderRadius:'var(--radius-md)',fontSize:14,fontWeight:500,cursor:'pointer'},
-  panel      :{position:'absolute',top:48,right:10,width:240,background:'var(--bg-elevated)',border:'1px solid var(--border)',borderRadius:10,padding:'8px 4px',zIndex:200,boxShadow:'0 8px 32px rgba(0,0,0,0.5)',maxHeight:300,overflowY:'auto'},
-  panelTitle :{fontSize:9,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.08em',padding:'0 8px',marginBottom:4},
-  panelItem  :{display:'flex',alignItems:'center',gap:4,width:'100%',padding:'6px 8px',borderRadius:5,border:'none',background:'transparent',color:'var(--text-secondary)',fontSize:12,cursor:'pointer',textAlign:'left',lineHeight:1.4},
-  textArea   :{flex:1,overflowY:'auto',overflowX:'hidden'},
-  scrollArea :{flex:1,overflowY:'scroll',overflowX:'hidden',display:'flex',justifyContent:'center',background:'var(--reader-bg)'},
-  pagesWrap  :{display:'flex',flexDirection:'column',alignItems:'center',padding:'16px 12px 48px',gap:16,width:'100%'},
-  pageWrap   :{position:'relative',display:'flex',flexDirection:'column',alignItems:'center',width:'100%'},
-  pageNumLabel:{fontSize:10,color:'var(--text-muted)',marginBottom:4},
-  canvas     :{display:'block',borderRadius:4,boxShadow:'0 2px 20px rgba(0,0,0,0.4)',maxWidth:'100%'},
-  placeholder:{display:'flex',alignItems:'center',justifyContent:'center',background:'var(--bg-elevated)',borderRadius:4,maxWidth:'100%',width:'100%'},
+  root          : {height:'100vh',display:'flex',flexDirection:'column',background:'var(--reader-bg)',overflow:'hidden',position:'relative'},
+  topBar        : {display:'flex',alignItems:'center',gap:6,padding:'10px 12px',borderBottom:'1px solid var(--border)',flexShrink:0,background:'var(--bg-surface)',zIndex:10},
+  bookInfo      : {flex:1,display:'flex',alignItems:'center',gap:6,minWidth:0},
+  bookTitle     : {fontFamily:'var(--font-display)',fontSize:13,color:'var(--text-primary)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'},
+  pageBadge     : {fontSize:10,color:'var(--text-muted)',background:'var(--bg-elevated)',padding:'2px 6px',borderRadius:99,flexShrink:0},
+  textBadge     : {fontSize:9,fontWeight:600,color:'#7ab87a',background:'rgba(122,184,122,0.12)',border:'1px solid rgba(122,184,122,0.25)',padding:'2px 5px',borderRadius:4,flexShrink:0},
+  pdfBadge      : {fontSize:9,fontWeight:600,color:'var(--accent)',background:'var(--accent-dim)',border:'1px solid rgba(201,169,110,0.25)',padding:'2px 5px',borderRadius:4,flexShrink:0},
+  topActions    : {display:'flex',alignItems:'center',gap:1,flexShrink:0},
+  divider       : {width:1,height:14,background:'var(--border)',margin:'0 3px'},
+  iconBtn       : {width:28,height:28,display:'flex',alignItems:'center',justifyContent:'center',background:'transparent',border:'none',borderRadius:6,color:'var(--text-secondary)',cursor:'pointer',fontSize:11,flexShrink:0},
+  zoomLabel     : {fontSize:10,color:'var(--text-muted)',minWidth:28,textAlign:'center'},
+  modeToggle    : {display:'flex',background:'var(--bg-elevated)',borderRadius:5,border:'1px solid var(--border)',overflow:'hidden'},
+  modeBtn       : {padding:'3px 8px',background:'transparent',border:'none',color:'var(--text-muted)',fontSize:10,fontWeight:500,cursor:'pointer'},
+  modeBtnActive : {background:'var(--accent)',color:'#0d0d0d'},
+  switchBtn     : {padding:'10px 24px',background:'var(--accent)',color:'#0d0d0d',border:'none',borderRadius:'var(--radius-md)',fontSize:14,fontWeight:500,cursor:'pointer'},
+  convertBanner : {display:'flex',alignItems:'center',gap:8,padding:'8px 14px',background:'rgba(201,169,110,0.08)',borderBottom:'1px solid rgba(201,169,110,0.2)',flexShrink:0,flexWrap:'wrap'},
+  convertText   : {fontSize:12,color:'var(--accent)',flex:1},
+  convertErr    : {fontSize:11,color:'#e05c5c'},
+  convertBtn    : {padding:'5px 12px',background:'var(--accent)',color:'#0d0d0d',border:'none',borderRadius:6,fontSize:11,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:6,flexShrink:0},
+  convertBtnBusy: {opacity:0.7,cursor:'not-allowed'},
+  convertSpinner: {width:10,height:10,border:'2px solid rgba(0,0,0,0.2)',borderTop:'2px solid #0d0d0d',borderRadius:'50%',animation:'spin 0.7s linear infinite',display:'inline-block'},
+  panel         : {position:'absolute',top:48,right:10,width:240,background:'var(--bg-elevated)',border:'1px solid var(--border)',borderRadius:10,padding:'8px 4px',zIndex:200,boxShadow:'0 8px 32px rgba(0,0,0,0.5)',maxHeight:300,overflowY:'auto'},
+  panelTitle    : {fontSize:9,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.08em',padding:'0 8px',marginBottom:4},
+  panelItem     : {display:'flex',alignItems:'center',gap:4,width:'100%',padding:'6px 8px',borderRadius:5,border:'none',background:'transparent',color:'var(--text-secondary)',fontSize:12,cursor:'pointer',textAlign:'left',lineHeight:1.4},
+  textArea      : {flex:1,overflowY:'auto',overflowX:'hidden'},
+  scrollArea    : {flex:1,overflowY:'scroll',overflowX:'hidden',display:'flex',justifyContent:'center',background:'var(--reader-bg)'},
+  pagesWrap     : {display:'flex',flexDirection:'column',alignItems:'center',padding:'16px 12px 48px',gap:16,width:'100%'},
+  pageWrap      : {position:'relative',display:'flex',flexDirection:'column',alignItems:'center',width:'100%'},
+  pageNumLabel  : {fontSize:10,color:'var(--text-muted)',marginBottom:4},
+  canvas        : {display:'block',borderRadius:4,boxShadow:'0 2px 20px rgba(0,0,0,0.4)',maxWidth:'100%'},
+  placeholder   : {display:'flex',alignItems:'center',justifyContent:'center',background:'var(--bg-elevated)',borderRadius:4,maxWidth:'100%',width:'100%'},
   placeholderSpinner:{width:16,height:16,border:'2px solid var(--border)',borderTop:'2px solid var(--accent)',borderRadius:'50%',animation:'spin 1s linear infinite'},
-  loading    :{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:12,height:'100%'},
-  loadingDot :{width:10,height:10,borderRadius:'50%',background:'var(--accent)',animation:'pulse 1.2s ease infinite'},
-  loadingText:{fontSize:13,color:'var(--text-muted)'},
-  footer     :{padding:'10px 12px 14px',borderTop:'1px solid var(--border)',background:'var(--bg-surface)',flexShrink:0,zIndex:10},
-  progressRow:{display:'flex',alignItems:'center',gap:6},
-  navBtn     :{width:26,height:26,display:'flex',alignItems:'center',justifyContent:'center',background:'var(--bg-elevated)',border:'1px solid var(--border)',borderRadius:5,color:'var(--text-secondary)',cursor:'pointer',fontSize:14,flexShrink:0},
-  progressTrack:{flex:1,height:4,background:'var(--border)',borderRadius:99,cursor:'pointer',position:'relative'},
-  progressFill:{height:'100%',background:'var(--accent)',borderRadius:99},
-  progressThumb:{position:'absolute',top:'50%',transform:'translate(-50%,-50%)',width:12,height:12,borderRadius:'50%',background:'var(--accent)',border:'2px solid var(--reader-bg)',pointerEvents:'none'},
-  percentLabel:{fontSize:11,color:'var(--accent)',flexShrink:0,width:30,textAlign:'right'},
-  jumpInput  :{width:44,padding:'3px 4px',background:'var(--bg-elevated)',border:'1px solid var(--border)',borderRadius:5,color:'var(--text-primary)',fontSize:11,outline:'none',textAlign:'center'},
-  ttsBtn     :{width:30,height:26,display:'flex',alignItems:'center',justifyContent:'center',background:'var(--bg-elevated)',border:'1px solid var(--border)',borderRadius:5,color:'var(--text-secondary)',cursor:'pointer',fontSize:12,flexShrink:0,transition:'all var(--transition)'},
-  ttsBtnActive:{background:'var(--accent)',color:'#0d0d0d',borderColor:'var(--accent)'},
+  loading       : {display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:12,height:'100%'},
+  loadingDot    : {width:10,height:10,borderRadius:'50%',background:'var(--accent)',animation:'pulse 1.2s ease infinite'},
+  loadingText   : {fontSize:13,color:'var(--text-muted)'},
+  footer        : {padding:'10px 12px 14px',borderTop:'1px solid var(--border)',background:'var(--bg-surface)',flexShrink:0,zIndex:10},
+  progressRow   : {display:'flex',alignItems:'center',gap:6},
+  navBtn        : {width:26,height:26,display:'flex',alignItems:'center',justifyContent:'center',background:'var(--bg-elevated)',border:'1px solid var(--border)',borderRadius:5,color:'var(--text-secondary)',cursor:'pointer',fontSize:14,flexShrink:0},
+  progressTrack : {flex:1,height:4,background:'var(--border)',borderRadius:99,cursor:'pointer',position:'relative'},
+  progressFill  : {height:'100%',background:'var(--accent)',borderRadius:99},
+  progressThumb : {position:'absolute',top:'50%',transform:'translate(-50%,-50%)',width:12,height:12,borderRadius:'50%',background:'var(--accent)',border:'2px solid var(--reader-bg)',pointerEvents:'none'},
+  percentLabel  : {fontSize:11,color:'var(--accent)',flexShrink:0,width:30,textAlign:'right'},
+  jumpInput     : {width:44,padding:'3px 4px',background:'var(--bg-elevated)',border:'1px solid var(--border)',borderRadius:5,color:'var(--text-primary)',fontSize:11,outline:'none',textAlign:'center'},
+  ttsBtn        : {width:30,height:26,display:'flex',alignItems:'center',justifyContent:'center',background:'var(--bg-elevated)',border:'1px solid var(--border)',borderRadius:5,color:'var(--text-secondary)',cursor:'pointer',fontSize:12,flexShrink:0,transition:'all var(--transition)'},
+  ttsBtnActive  : {background:'var(--accent)',color:'#0d0d0d',borderColor:'var(--accent)'},
 }
