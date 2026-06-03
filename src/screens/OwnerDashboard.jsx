@@ -44,10 +44,14 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
   const textRef  = useRef(null)
   const coverRef = useRef(null)
 
+  // Sales state
+  const [sales,       setSales]       = useState([])
+  const [salesLoading,setSalesLoading]= useState(false)
+
   const savedPass = () => sessionStorage.getItem('owner_auth')
 
   useEffect(() => {
-    if (isLoggedIn) loadCustomers()
+    if (isLoggedIn) { loadCustomers(); loadSales() }
   }, [isLoggedIn])
 
   async function handleLogin() {
@@ -75,6 +79,18 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
     setLoading(false)
   }
 
+  async function loadSales() {
+    setSalesLoading(true)
+    try {
+      const { data, error } = await supabase
+        .from('customers')
+        .select('name, email, activated_at, amount_paid, referral_code')
+        .order('activated_at', { ascending: false })
+      if (!error && data) setSales(data)
+    } catch(e) {}
+    setSalesLoading(false)
+  }
+
   async function handleGenerate() {
     if (!genName.trim() || !genEmail.trim()) return
     setGenStatus('loading'); setGenResult(null)
@@ -87,7 +103,7 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
     if (data.success) {
       setGenResult(data); setGenStatus('success')
       setGenName(''); setGenEmail('')
-      loadCustomers()
+      loadCustomers(); loadSales()
     } else {
       setGenStatus('error'); setGenResult({ error: data.error || 'Failed' })
     }
@@ -116,13 +132,11 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
       const slug = bookTitle.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
       const cat  = bookCategory.toLowerCase().replace(/\s+/g, '-')
 
-      // 1. Upload PDF
       setAddProgress('Uploading PDF…')
       const pdfPath = `${cat}/${slug}.pdf`
       const { error: pdfErr } = await supabase.storage.from('books').upload(pdfPath, pdfFile, { upsert: true, contentType: 'application/pdf' })
       if (pdfErr) throw new Error('PDF upload failed: ' + pdfErr.message)
 
-      // 2. Upload text file (optional)
       let textPath = null
       if (textFile) {
         setAddProgress('Uploading text file…')
@@ -131,7 +145,6 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
         if (txtErr) throw new Error('Text file upload failed: ' + txtErr.message)
       }
 
-      // 3. Upload cover (optional)
       let coverPath = null
       if (coverFile) {
         setAddProgress('Uploading cover…')
@@ -141,7 +154,6 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
         if (covErr) throw new Error('Cover upload failed: ' + covErr.message)
       }
 
-      // 4. Insert row into books table
       setAddProgress('Saving to library…')
       const tags = bookTags.split(',').map(t => t.trim()).filter(Boolean)
       const preferred_mode = textPath ? 'text' : 'pdf'
@@ -162,7 +174,6 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
 
       setAddStatus('success')
       setAddProgress('')
-      // Reset form
       setBookTitle(''); setBookAuthor(''); setBookTags(''); setBookPages(''); setBookDesc('')
       setBookCategory('Self-Help'); setBookMode('text')
       setPdfFile(null); setTextFile(null); setCoverFile(null)
@@ -181,6 +192,13 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
     const emails = customers.map(c => c.email).filter(Boolean).join(', ')
     navigator.clipboard.writeText(emails)
   }
+
+  // ── Sales calculations ────────────────────────────────────────────────────
+  const totalRevenue    = sales.reduce((sum, s) => sum + (s.amount_paid || 249), 0)
+  const salesWithRef    = sales.filter(s => s.referral_code)
+  const salesWithoutRef = sales.filter(s => !s.referral_code)
+  const today           = new Date().toDateString()
+  const salesToday      = sales.filter(s => new Date(s.activated_at).toDateString() === today).length
 
   const categories = ['Self-Help','Finance','Business','Health','Fiction','Biography','Other']
   const canAdd = bookTitle.trim() && pdfFile && addStatus !== 'uploading'
@@ -222,19 +240,21 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
           <div style={s.brandName}>Readwise by Skai</div>
           <div style={s.brandBy}>Owner Dashboard</div>
         </div>
-        <div style={s.statPill}>{customers.length} customers</div>
+        <div style={s.statPill}>{customers.length} customers · ₱{totalRevenue.toLocaleString()}</div>
       </div>
 
       {/* Tabs */}
       <div style={s.tabs}>
         {[
-          ['generate','🔑 Generate Key'],
-          ['addbook', '📚 Add Book'],
-          ['agents',  '🤝 Agents'],
+          ['generate', '🔑 Generate Key'],
+          ['addbook',  '📚 Add Book'],
+          ['sales',    '💰 Sales'],
+          ['agents',   '🤝 Agents'],
           ['customers','👥 Customers'],
-          ['update','📢 Send Update'],
+          ['update',   '📢 Send Update'],
         ].map(([id, label]) => (
-          <button key={id} style={{ ...s.tab, ...(tab === id ? s.tabActive : {}) }} onClick={() => { setTab(id); setAddStatus('idle'); setAddError('') }}>
+          <button key={id} style={{ ...s.tab, ...(tab === id ? s.tabActive : {}) }}
+            onClick={() => { setTab(id); setAddStatus('idle'); setAddError('') }}>
             {label}
           </button>
         ))}
@@ -259,7 +279,6 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
             >
               {genStatus === 'loading' ? <><span style={s.spinner}/> Generating…</> : genStatus === 'success' ? '✓ Key Generated & Sent!' : 'Generate Key & Send Email'}
             </button>
-
             {genResult?.success && (
               <div style={s.resultBox} className="animate-in">
                 <p style={s.resultLabel}>Key generated</p>
@@ -276,8 +295,6 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
         {tab === 'addbook' && (
           <div style={s.section}>
             <p style={s.sectionDesc}>Upload a new book to the shared library. It appears instantly for all customers.</p>
-
-            {/* PDF upload */}
             <div style={s.field}>
               <label style={s.label}>PDF File <span style={{ color:'#e05c5c' }}>*</span></label>
               {pdfFile ? (
@@ -288,15 +305,11 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
                 </div>
               ) : (
                 <button style={ab.pickBtn} onClick={() => pdfRef.current?.click()}>
-                  <span style={{ fontSize:22 }}>📄</span>
-                  <span>Tap to select PDF</span>
+                  <span style={{ fontSize:22 }}>📄</span><span>Tap to select PDF</span>
                 </button>
               )}
-              <input ref={pdfRef} type="file" accept=".pdf" style={{ display:'none' }}
-                onChange={e => setPdfFile(e.target.files[0] || null)}/>
+              <input ref={pdfRef} type="file" accept=".pdf" style={{ display:'none' }} onChange={e => setPdfFile(e.target.files[0] || null)}/>
             </div>
-
-            {/* Text/HTML upload */}
             <div style={s.field}>
               <label style={s.label}>Text File <span style={{ color:'var(--text-muted)', fontSize:11 }}>(optional — enables Text Mode)</span></label>
               {textFile ? (
@@ -307,15 +320,11 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
                 </div>
               ) : (
                 <button style={{ ...ab.pickBtn, minHeight:52 }} onClick={() => textRef.current?.click()}>
-                  <span style={{ fontSize:18 }}>📝</span>
-                  <span>Tap to select .html text file</span>
+                  <span style={{ fontSize:18 }}>📝</span><span>Tap to select .html text file</span>
                 </button>
               )}
-              <input ref={textRef} type="file" accept=".html,.htm,.txt" style={{ display:'none' }}
-                onChange={e => setTextFile(e.target.files[0] || null)}/>
+              <input ref={textRef} type="file" accept=".html,.htm,.txt" style={{ display:'none' }} onChange={e => setTextFile(e.target.files[0] || null)}/>
             </div>
-
-            {/* Cover upload */}
             <div style={s.field}>
               <label style={s.label}>Cover Image <span style={{ color:'var(--text-muted)', fontSize:11 }}>(optional)</span></label>
               {coverFile ? (
@@ -326,61 +335,35 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
                 </div>
               ) : (
                 <button style={{ ...ab.pickBtn, minHeight:52 }} onClick={() => coverRef.current?.click()}>
-                  <span style={{ fontSize:18 }}>🖼️</span>
-                  <span>Tap to add cover image</span>
+                  <span style={{ fontSize:18 }}>🖼️</span><span>Tap to add cover image</span>
                 </button>
               )}
-              <input ref={coverRef} type="file" accept="image/*" style={{ display:'none' }}
-                onChange={e => setCoverFile(e.target.files[0] || null)}/>
+              <input ref={coverRef} type="file" accept="image/*" style={{ display:'none' }} onChange={e => setCoverFile(e.target.files[0] || null)}/>
             </div>
-
-            {/* Title */}
-            <div style={s.field}>
-              <label style={s.label}>Book Title <span style={{ color:'#e05c5c' }}>*</span></label>
+            <div style={s.field}><label style={s.label}>Book Title <span style={{ color:'#e05c5c' }}>*</span></label>
               <input style={s.input} placeholder="e.g. Atomic Habits" value={bookTitle} onChange={e => setBookTitle(e.target.value)}/>
             </div>
-
-            {/* Author */}
-            <div style={s.field}>
-              <label style={s.label}>Author</label>
+            <div style={s.field}><label style={s.label}>Author</label>
               <input style={s.input} placeholder="e.g. James Clear" value={bookAuthor} onChange={e => setBookAuthor(e.target.value)}/>
             </div>
-
-            {/* Category */}
-            <div style={s.field}>
-              <label style={s.label}>Category</label>
+            <div style={s.field}><label style={s.label}>Category</label>
               <select style={{ ...s.input, cursor:'pointer' }} value={bookCategory} onChange={e => setBookCategory(e.target.value)}>
                 {categories.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
-
-            {/* Tags */}
-            <div style={s.field}>
-              <label style={s.label}>Tags <span style={{ color:'var(--text-muted)', fontSize:11 }}>(comma separated)</span></label>
+            <div style={s.field}><label style={s.label}>Tags <span style={{ color:'var(--text-muted)', fontSize:11 }}>(comma separated)</span></label>
               <input style={s.input} placeholder="e.g. habits, productivity, mindset" value={bookTags} onChange={e => setBookTags(e.target.value)}/>
             </div>
-
-            {/* Pages */}
-            <div style={s.field}>
-              <label style={s.label}>Page count <span style={{ color:'var(--text-muted)', fontSize:11 }}>(optional)</span></label>
+            <div style={s.field}><label style={s.label}>Page count <span style={{ color:'var(--text-muted)', fontSize:11 }}>(optional)</span></label>
               <input style={s.input} type="number" placeholder="e.g. 256" value={bookPages} onChange={e => setBookPages(e.target.value)}/>
             </div>
-
-            {/* Description */}
-            <div style={s.field}>
-              <label style={s.label}>Description <span style={{ color:'var(--text-muted)', fontSize:11 }}>(optional)</span></label>
+            <div style={s.field}><label style={s.label}>Description <span style={{ color:'var(--text-muted)', fontSize:11 }}>(optional)</span></label>
               <textarea style={{ ...s.input, resize:'vertical', minHeight:80, lineHeight:1.6 }}
                 placeholder="Short description shown on the book card…" value={bookDesc} onChange={e => setBookDesc(e.target.value)}/>
             </div>
-
-            {/* Progress indicator */}
             {addStatus === 'uploading' && addProgress && (
-              <div style={ab.progressRow}>
-                <span style={s.spinner}/>
-                <span style={{ fontSize:13, color:'var(--text-muted)' }}>{addProgress}</span>
-              </div>
+              <div style={ab.progressRow}><span style={s.spinner}/><span style={{ fontSize:13, color:'var(--text-muted)' }}>{addProgress}</span></div>
             )}
-
             {addStatus === 'success' && (
               <div style={ab.successBox} className="animate-in">
                 <span style={{ fontSize:22 }}>✅</span>
@@ -390,27 +373,75 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
                 </div>
               </div>
             )}
-
             {addError && <p style={s.error}>{addError}</p>}
-
             <button
               style={{ ...s.btn, ...(!canAdd ? s.btnDisabled : {}), ...(addStatus === 'success' ? { background:'#3a9a6a' } : {}) }}
-              onClick={handleAddBook}
-              disabled={!canAdd}
-            >
-              {addStatus === 'uploading'
-                ? <><span style={{ ...s.spinner, borderTopColor:'#0d0d0d' }}/> Uploading…</>
-                : addStatus === 'success'
-                  ? '✓ Added to Library!'
-                  : '📚 Add Book to Library'
-              }
+              onClick={handleAddBook} disabled={!canAdd}>
+              {addStatus === 'uploading' ? <><span style={{ ...s.spinner, borderTopColor:'#0d0d0d' }}/> Uploading…</>
+                : addStatus === 'success' ? '✓ Added to Library!' : '📚 Add Book to Library'}
             </button>
-
             {addStatus === 'success' && (
               <button style={{ ...s.btn, background:'transparent', border:'1px solid var(--border)', color:'var(--text-secondary)' }}
-                onClick={() => setAddStatus('idle')}>
-                Add Another Book
-              </button>
+                onClick={() => setAddStatus('idle')}>Add Another Book</button>
+            )}
+          </div>
+        )}
+
+        {/* ── Sales ── */}
+        {tab === 'sales' && (
+          <div style={{ ...s.section, maxWidth:640 }}>
+
+            {/* KPI cards */}
+            <div style={st.kpiRow}>
+              <div style={st.kpiCard}>
+                <p style={st.kpiLabel}>Total Revenue</p>
+                <p style={st.kpiValue}>₱{totalRevenue.toLocaleString()}</p>
+              </div>
+              <div style={st.kpiCard}>
+                <p style={st.kpiLabel}>Total Sales</p>
+                <p style={st.kpiValue}>{sales.length}</p>
+              </div>
+              <div style={st.kpiCard}>
+                <p style={st.kpiLabel}>Sales Today</p>
+                <p style={st.kpiValue}>{salesToday}</p>
+              </div>
+              <div style={st.kpiCard}>
+                <p style={st.kpiLabel}>With Referral</p>
+                <p style={st.kpiValue}>{salesWithRef.length}</p>
+              </div>
+            </div>
+
+            <div style={s.sectionRow}>
+              <p style={s.sectionDesc}>{sales.length} total sales — all channels</p>
+              <button style={s.smallBtn} onClick={loadSales}>↻ Refresh</button>
+            </div>
+
+            {salesLoading ? (
+              <div style={s.loading}><div style={s.spinner}/></div>
+            ) : sales.length === 0 ? (
+              <p style={{ color:'var(--text-muted)', fontSize:13, textAlign:'center', padding:'32px 0' }}>No sales yet. First sale incoming! 🚀</p>
+            ) : (
+              <div style={s.customerList}>
+                {sales.map((sale, i) => (
+                  <div key={i} style={st.saleRow}>
+                    <div style={s.customerAvatar}>{sale.name?.[0]?.toUpperCase() || '?'}</div>
+                    <div style={s.customerInfo}>
+                      <p style={s.customerName}>{sale.name}</p>
+                      <p style={s.customerEmail}>{sale.email}</p>
+                    </div>
+                    <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4, flexShrink:0 }}>
+                      <span style={st.amount}>₱{sale.amount_paid || 249}</span>
+                      {sale.referral_code
+                        ? <span style={st.refBadge}>🤝 {sale.referral_code}</span>
+                        : <span style={st.directBadge}>Direct</span>
+                      }
+                      <span style={s.customerDate}>
+                        {new Date(sale.activated_at).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' })}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         )}
@@ -425,7 +456,6 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
               <p style={s.sectionDesc}>{customers.length} total customers</p>
               <button style={s.smallBtn} onClick={copyEmails}>Copy all emails</button>
             </div>
-
             {loading ? (
               <div style={s.loading}><div style={s.spinner}/></div>
             ) : customers.length === 0 ? (
@@ -464,15 +494,10 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
             </div>
             <button
               style={{ ...s.btn, ...(!updSubject.trim() || updStatus === 'loading' ? s.btnDisabled : {}) }}
-              onClick={handleSendUpdate}
-              disabled={!updSubject.trim() || updStatus === 'loading'}
-            >
-              {updStatus === 'loading'
-                ? <><span style={s.spinner}/> Sending…</>
-                : updStatus === 'success'
-                  ? `✓ Sent to ${updResult?.sent} customers!`
-                  : `Send to ${customers.length} customers`
-              }
+              onClick={handleSendUpdate} disabled={!updSubject.trim() || updStatus === 'loading'}>
+              {updStatus === 'loading' ? <><span style={s.spinner}/> Sending…</>
+                : updStatus === 'success' ? `✓ Sent to ${updResult?.sent} customers!`
+                : `Send to ${customers.length} customers`}
             </button>
             {updResult?.error && <p style={s.error}>{updResult.error}</p>}
           </div>
@@ -481,6 +506,18 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
       </div>
     </div>
   )
+}
+
+// ── Sales tab styles ──────────────────────────────────────────────────────────
+const st = {
+  kpiRow    : { display:'grid', gridTemplateColumns:'repeat(2, 1fr)', gap:10, marginBottom:4 },
+  kpiCard   : { background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', padding:'14px 16px' },
+  kpiLabel  : { margin:'0 0 6px', fontSize:11, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.07em' },
+  kpiValue  : { margin:0, fontSize:22, fontWeight:700, color:'var(--accent)' },
+  saleRow   : { display:'flex', alignItems:'center', gap:12, padding:'12px', background:'var(--bg-elevated)', borderRadius:'var(--radius-md)', border:'1px solid var(--border)' },
+  amount    : { fontSize:14, fontWeight:700, color:'#3a9a6a' },
+  refBadge  : { fontSize:10, color:'#c9a96e', background:'rgba(201,169,110,0.1)', border:'1px solid rgba(201,169,110,0.2)', padding:'2px 6px', borderRadius:99 },
+  directBadge:{ fontSize:10, color:'var(--text-muted)', background:'var(--bg-overlay)', padding:'2px 6px', borderRadius:99 },
 }
 
 // ── Add Book styles ───────────────────────────────────────────────────────────
