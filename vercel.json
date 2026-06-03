@@ -1,16 +1,7 @@
 {
   "rewrites": [
-    { "source": "/api/create-checkout",   "destination": "/api/create-checkout" },
-    { "source": "/api/paymongo-webhook",  "destination": "/api/paymongo-webhook" },
-    { "source": "/api/agents",            "destination": "/api/agents" },
-    { "source": "/api/validate-referral", "destination": "/api/validate-referral" },
-    { "source": "/api/generate-key",      "destination": "/api/generate-key" },
-    { "source": "/api/validate-key",      "destination": "/api/validate-key" },
-    { "source": "/api/activate-key",      "destination": "/api/activate-key" },
-    { "source": "/api/get-customers",     "destination": "/api/get-customers" },
-    { "source": "/api/send-update",       "destination": "/api/send-update" },
-    { "source": "/owner",                 "destination": "/index.html" },
-    { "source": "/buy",                   "destination": "/index.html" },
-    { "source": "/(.*)",                  "destination": "/index.html" }
+    { "source": "/owner", "destination": "/index.html" },
+    { "source": "/buy",   "destination": "/index.html" },
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }
