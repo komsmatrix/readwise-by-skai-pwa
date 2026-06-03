@@ -55,7 +55,6 @@ function welcomeEmail({ firstName, name, email, key, expiresAt, appUrl }) {
           <p style="margin:0 0 28px;font-size:15px;color:#9a9690;line-height:1.7;">Thank you for your purchase! Your lifetime access to Readwise by Skai is ready.</p>
           <div style="height:1px;background:rgba(255,255,255,0.07);margin:0 0 28px;"></div>
 
-          <!-- Step 1 -->
           <table cellpadding="0" cellspacing="0" style="width:100%;margin-bottom:20px;"><tr>
             <td style="vertical-align:top;padding-right:14px;width:28px;">
               <div style="width:26px;height:26px;background:rgba(201,169,110,0.12);border:1px solid rgba(201,169,110,0.25);border-radius:50%;text-align:center;line-height:26px;font-size:12px;font-weight:700;color:#c9a96e;">1</div>
@@ -66,7 +65,6 @@ function welcomeEmail({ firstName, name, email, key, expiresAt, appUrl }) {
             </td>
           </tr></table>
 
-          <!-- Step 2 -->
           <table cellpadding="0" cellspacing="0" style="width:100%;margin-bottom:20px;"><tr>
             <td style="vertical-align:top;padding-right:14px;width:28px;">
               <div style="width:26px;height:26px;background:rgba(201,169,110,0.12);border:1px solid rgba(201,169,110,0.25);border-radius:50%;text-align:center;line-height:26px;font-size:12px;font-weight:700;color:#c9a96e;">2</div>
@@ -80,7 +78,6 @@ function welcomeEmail({ firstName, name, email, key, expiresAt, appUrl }) {
             </td>
           </tr></table>
 
-          <!-- Step 3 -->
           <table cellpadding="0" cellspacing="0" style="width:100%;margin-bottom:28px;"><tr>
             <td style="vertical-align:top;padding-right:14px;width:28px;">
               <div style="width:26px;height:26px;background:rgba(201,169,110,0.12);border:1px solid rgba(201,169,110,0.25);border-radius:50%;text-align:center;line-height:26px;font-size:12px;font-weight:700;color:#c9a96e;">3</div>
@@ -99,8 +96,6 @@ function welcomeEmail({ firstName, name, email, key, expiresAt, appUrl }) {
           </tr></table>
 
           <div style="height:1px;background:rgba(255,255,255,0.07);margin:0 0 24px;"></div>
-
-          <!-- Quick Guide -->
           <p style="margin:0 0 14px;font-size:11px;font-weight:600;color:#c9a96e;text-transform:uppercase;letter-spacing:0.08em;">Quick Guide</p>
           <table cellpadding="0" cellspacing="0" style="width:100%;margin-bottom:24px;">
             <tr>
@@ -170,20 +165,19 @@ export default async function handler(req, res) {
     const event = req.body?.data?.attributes
     const type  = event?.type
 
-    // Only handle successful payments
     if (type !== 'checkout_session.payment.paid') {
       return res.status(200).json({ received: true })
     }
 
     const session  = event?.data?.attributes
     const metadata = session?.metadata || {}
-    const billing  = session?.billing || {}
+    const billing  = session?.billing  || {}
 
-    const name  = metadata.customer_name  || billing.name  || 'Customer'
-    const email = metadata.customer_email || billing.email || ''
-    const agentId      = metadata.agent_id      || null
-    const referralCode = metadata.referral_code || null
-    const amountPaid   = metadata.final_price   || 24900
+    const name         = metadata.customer_name  || billing.name  || 'Customer'
+    const email        = metadata.customer_email || billing.email || ''
+    const agentId      = metadata.agent_id       || null
+    const referralCode = metadata.referral_code  || null
+    const amountPaid   = metadata.final_price    || 24900  // centavos
 
     if (!email) return res.status(400).json({ error: 'No email in payment data' })
 
@@ -207,26 +201,28 @@ export default async function handler(req, res) {
       created_at: new Date().toISOString(),
     })
 
-    // Save customer
+    // Save customer — now includes amount_paid and referral_code
     await supabase.from('customers').insert({
-      name      : name.trim(),
-      email     : email.toLowerCase().trim(),
-      key_used  : key,
-      is_active : true,
-      activated_at: new Date().toISOString(),
+      name         : name.trim(),
+      email        : email.toLowerCase().trim(),
+      key_used     : key,
+      is_active    : true,
+      activated_at : new Date().toISOString(),
+      amount_paid  : Math.round(amountPaid / 100),
+      referral_code: referralCode || null,
     }).onConflict('email').merge()
 
     // Record agent sale if applicable
     if (agentId) {
       await supabase.from('agent_sales').insert({
-        agent_id     : agentId,
-        customer_name: name.trim(),
+        agent_id      : agentId,
+        customer_name : name.trim(),
         customer_email: email.toLowerCase().trim(),
-        amount_paid  : amountPaid / 100,
-        commission   : AGENT_COMMISSION / 100,
-        referral_code: referralCode,
-        created_at   : new Date().toISOString(),
-        is_paid      : false,
+        amount_paid   : Math.round(amountPaid / 100),
+        commission    : AGENT_COMMISSION / 100,
+        referral_code : referralCode,
+        created_at    : new Date().toISOString(),
+        is_paid       : false,
       })
     }
 
