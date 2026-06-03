@@ -19,8 +19,8 @@ export default async function handler(req, res) {
   try {
     const { data, error } = await supabase
       .from('agents')
-      .select('id, name, referral_code')
-      .eq('referral_code', code.trim().toUpperCase())
+      .select('id, name, code')
+      .eq('code', code.trim().toUpperCase())
       .single()
 
     if (error || !data) {
