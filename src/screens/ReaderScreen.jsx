@@ -4,47 +4,89 @@ import { getBookFileUrl, getTextContent, saveProgress } from '../lib/supabase.js
 const supabaseUrl  = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnon = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-// ── TTS Hook ──────────────────────────────────────────────────────────────────
+// ── Continuous TTS Hook ───────────────────────────────────────────────────────
 function useTTS(prefs) {
-  const [playing, setPlaying] = useState(false)
-  const uttRef = useRef(null)
+  const [playing, setPlaying]   = useState(false)
+  const chunksRef               = useRef([])
+  const indexRef                = useRef(0)
+  const containerRef            = useRef(null)
+  const activeRef               = useRef(false)
 
-  function stop() { window.speechSynthesis?.cancel(); setPlaying(false) }
+  function stop() {
+    activeRef.current = false
+    window.speechSynthesis?.cancel()
+    setPlaying(false)
+  }
 
-  function speak(text) {
-    if (!text || !window.speechSynthesis) return
-    stop()
-    const utt   = new SpeechSynthesisUtterance(text)
-    utt.rate    = prefs?.ttsSpeed || 1.0
-
-    const voices  = window.speechSynthesis.getVoices()
+  function getVoice() {
+    const voices   = window.speechSynthesis.getVoices()
     const prefName = prefs?.ttsVoice
     if (prefName) {
       const found = voices.find(v => v.name === prefName)
-      if (found) utt.voice = found
-    } else {
-      const preferred = voices.find(v =>
-        v.name.includes('Google UK English Female') ||
-        v.name.includes('Google US English') ||
-        v.name.includes('Microsoft Zira') ||
-        v.name.includes('Microsoft Mark') ||
-        (v.lang.startsWith('en') && v.localService)
-      ) || voices.find(v => v.lang.startsWith('en')) || voices[0]
-      if (preferred) utt.voice = preferred
+      if (found) return found
     }
-
-    utt.onend   = () => setPlaying(false)
-    utt.onerror = () => setPlaying(false)
-    uttRef.current = utt
-    window.speechSynthesis.speak(utt)
-    setPlaying(true)
+    return voices.find(v =>
+      v.name.includes('Google UK English Female') ||
+      v.name.includes('Google US English') ||
+      v.name.includes('Microsoft Zira') ||
+      v.name.includes('Microsoft Mark') ||
+      (v.lang.startsWith('en') && v.localService)
+    ) || voices.find(v => v.lang.startsWith('en')) || voices[0]
   }
 
-  function toggle(text) { if (playing) stop(); else speak(text) }
+  function speakChunk(index) {
+    if (!activeRef.current) return
+    if (index >= chunksRef.current.length) { stop(); return }
+
+    const text = chunksRef.current[index]
+    if (!text?.trim()) { speakChunk(index + 1); return }
+
+    const utt    = new SpeechSynthesisUtterance(text)
+    utt.rate     = prefs?.ttsSpeed || 1.0
+    const voice  = getVoice()
+    if (voice) utt.voice = voice
+
+    utt.onend = () => {
+      if (!activeRef.current) return
+      indexRef.current = index + 1
+      // Scroll to next paragraph
+      if (containerRef.current) {
+        const elems = containerRef.current.querySelectorAll('p, h2')
+        const next  = elems[Math.min(index + 1, elems.length - 1)]
+        if (next) next.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+      speakChunk(index + 1)
+    }
+    utt.onerror = (e) => {
+      if (e.error === 'interrupted') return
+      speakChunk(index + 1)
+    }
+
+    window.speechSynthesis.speak(utt)
+  }
+
+  function startFrom(container, fromIndex = 0) {
+    if (!window.speechSynthesis) return
+    window.speechSynthesis.cancel()
+
+    // Extract all text chunks from DOM
+    const elems  = container.querySelectorAll('p, h2')
+    chunksRef.current  = Array.from(elems).map(el => el.textContent.trim()).filter(Boolean)
+    containerRef.current = container
+    indexRef.current   = fromIndex
+    activeRef.current  = true
+    setPlaying(true)
+    speakChunk(fromIndex)
+  }
+
+  function toggle(container, fromIndex = 0) {
+    if (playing) { stop() }
+    else { startFrom(container, fromIndex) }
+  }
 
   useEffect(() => () => stop(), [])
 
-  return { playing, speak, stop, toggle }
+  return { playing, stop, toggle, startFrom }
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -59,8 +101,7 @@ function TextReader({ book, customer, prefs, initialProgress, onClose, onSwitchT
   const [percent,     setPercent]     = useState(initialProgress?.percent   || 0)
   const [chapters,    setChapters]    = useState([])
   const [activePanel, setActivePanel] = useState(null)
-  const [ttsText,     setTtsText]     = useState('')
-  const tts         = useTTS(prefs)
+  const tts          = useTTS(prefs)
   const containerRef = useRef(null)
   const bookmarksRef = useRef(initialProgress?.bookmarks || [])
   const saveTimerRef = useRef(null)
@@ -93,7 +134,6 @@ function TextReader({ book, customer, prefs, initialProgress, onClose, onSwitchT
     const el = containerRef.current; if (!el) return
     const pct = el.scrollHeight > el.clientHeight ? Math.round((el.scrollTop / (el.scrollHeight - el.clientHeight)) * 100) : 0
     setPercent(pct)
-    const vis = getVisibleText(); if (vis) setTtsText(vis)
     clearTimeout(saveTimerRef.current)
     saveTimerRef.current = setTimeout(() => {
       const p = { scroll_position: el.scrollTop, percent: pct, bookmarks: bookmarksRef.current, updated_at: new Date().toISOString() }
@@ -101,15 +141,17 @@ function TextReader({ book, customer, prefs, initialProgress, onClose, onSwitchT
     }, 1000)
   }
 
-  function getVisibleText() {
-    if (!containerRef.current) return ''
-    const el = containerRef.current, rect = el.getBoundingClientRect()
-    const vis = []
-    for (const e of el.querySelectorAll('p, h2')) {
-      const r = e.getBoundingClientRect()
-      if (r.top >= rect.top && r.bottom <= rect.bottom) vis.push(e.textContent)
+  function handleTTSToggle() {
+    if (tts.playing) { tts.stop(); return }
+    const el = containerRef.current; if (!el) return
+    // Find which paragraph is currently visible to start from there
+    const elems = el.querySelectorAll('p, h2')
+    let startIndex = 0
+    for (let i = 0; i < elems.length; i++) {
+      const r = elems[i].getBoundingClientRect()
+      if (r.top >= 0) { startIndex = i; break }
     }
-    return vis.join(' ').slice(0, 3000)
+    tts.startFrom(el, startIndex)
   }
 
   function toggleBookmark() {
@@ -130,13 +172,13 @@ function TextReader({ book, customer, prefs, initialProgress, onClose, onSwitchT
   useEffect(() => {
     function onKey(e) {
       if (e.target.tagName === 'INPUT') return
-      if (e.key === ' ' || e.key === 'k')               { e.preventDefault(); tts.toggle(ttsText || getVisibleText()) }
-      if (e.key === 'b' || e.key === 'B')               { e.preventDefault(); toggleBookmark() }
-      if (e.key === 'Escape' && activePanel)            { e.preventDefault(); setActivePanel(null) }
+      if (e.key === ' ' || e.key === 'k') { e.preventDefault(); handleTTSToggle() }
+      if (e.key === 'b' || e.key === 'B') { e.preventDefault(); toggleBookmark() }
+      if (e.key === 'Escape' && activePanel) { e.preventDefault(); setActivePanel(null) }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [activePanel, ttsText, percent])
+  }, [activePanel, tts.playing, percent])
 
   const theme = { dark:{ bg:'#111', text:'#e8e4dd', heading:'#c9a96e', border:'#2a2a2a' }, sepia:{ bg:'#1e1810', text:'#e4d0a8', heading:'#d4a85a', border:'#2d2418' }, light:{ bg:'#fefcf8', text:'#1a1916', heading:'#8a6a2e', border:'#e5e0d8' } }[prefs?.theme || 'dark']
   const css = `body{margin:0;padding:0;background:${theme.bg}}.book-header{text-align:center;padding:40px 20px 28px;border-bottom:1px solid ${theme.border};margin-bottom:28px}.book-title{font-family:Georgia,serif;font-size:24px;font-weight:400;color:${theme.heading};margin:0 0 6px;letter-spacing:-0.02em}.book-author{font-size:14px;color:${theme.text};opacity:0.6;margin:0}.book-content{max-width:660px;margin:0 auto;padding:0 18px 80px}p{font-family:Georgia,serif;font-size:${fontSize}px;line-height:1.85;color:${theme.text};margin:0 0 1.1em;text-align:justify}h2.chapter-heading{font-family:Georgia,serif;font-size:${Math.round(fontSize*1.25)}px;font-weight:600;color:${theme.heading};margin:2.5em 0 1em;padding-top:1em;border-top:1px solid ${theme.border}}`
@@ -202,7 +244,7 @@ function TextReader({ book, customer, prefs, initialProgress, onClose, onSwitchT
             <div style={{ ...rs.progressThumb, left:`${Math.min(percent,98)}%` }}/>
           </div>
           <span style={rs.percentLabel}>{percent}%</span>
-          <button style={{ ...rs.ttsBtn, ...(tts.playing ? rs.ttsBtnActive : {}) }} onClick={() => tts.toggle(ttsText || getVisibleText())}>
+          <button style={{ ...rs.ttsBtn, ...(tts.playing ? rs.ttsBtnActive : {}) }} onClick={handleTTSToggle}>
             {tts.playing ? '⏸' : '▶'}
           </button>
         </div>
@@ -227,8 +269,6 @@ function PdfReader({ book, customer, prefs, initialProgress, onClose, onSwitchTo
   const [jumpValue,    setJumpValue]    = useState('')
   const [mountedPages, setMountedPages] = useState(new Set([1,2,3]))
   const [ttsText,      setTtsText]      = useState('')
-
-  // Convert to text state
   const [converting,   setConverting]   = useState(false)
   const [convertError, setConvertError] = useState('')
   const [convertDone,  setConvertDone]  = useState(false)
@@ -271,7 +311,6 @@ function PdfReader({ book, customer, prefs, initialProgress, onClose, onSwitchTo
     } catch (err) { console.error(err); setLoadError(true); setLoading(false) }
   }
 
-  // ── Convert to Text Mode ───────────────────────────────────────────────────
   async function handleConvertToText() {
     if (!book.id || !book.file_path || book._personal_file) return
     setConverting(true); setConvertError('')
@@ -285,9 +324,7 @@ function PdfReader({ book, customer, prefs, initialProgress, onClose, onSwitchTo
       })
       const data = await res.json()
       if (data.success) {
-        setConvertDone(true)
-        setConverting(false)
-        // Notify parent to refresh book data and switch to text mode
+        setConvertDone(true); setConverting(false)
         if (onTextConverted) onTextConverted(textPath)
       } else {
         setConvertError(data.error || 'Conversion failed. This may be a scanned PDF.')
@@ -387,7 +424,7 @@ function PdfReader({ book, customer, prefs, initialProgress, onClose, onSwitchTo
   useEffect(() => {
     function onKey(e) {
       if(e.target.tagName==='INPUT') return
-      if(e.key===' '||e.key==='k')                   {e.preventDefault();tts.toggle(ttsText)}
+      if(e.key===' '||e.key==='k')                   {e.preventDefault(); if(tts.playing){tts.stop()}else{const utt=new SpeechSynthesisUtterance(ttsText);utt.rate=prefs?.ttsSpeed||1;window.speechSynthesis.speak(utt)}}
       if(e.key==='ArrowLeft'||e.key==='ArrowUp')      {e.preventDefault();if(currentPage>1)scrollToPage(currentPage-1)}
       if(e.key==='ArrowRight'||e.key==='ArrowDown')    {e.preventDefault();if(currentPage<totalPages)scrollToPage(currentPage+1)}
       if(e.key==='f'||e.key==='F')                     {e.preventDefault();fitToWidth()}
@@ -395,13 +432,11 @@ function PdfReader({ book, customer, prefs, initialProgress, onClose, onSwitchTo
       if(e.key==='Escape'&&activePanel)                {e.preventDefault();setActivePanel(null)}
     }
     window.addEventListener('keydown',onKey); return()=>window.removeEventListener('keydown',onKey)
-  }, [currentPage,totalPages,activePanel,ttsText])
+  }, [currentPage,totalPages,activePanel,ttsText,tts.playing])
 
   const isBookmarked=bookmarks.includes(currentPage)
   const percent=totalPages?Math.round((currentPage/totalPages)*100):0
   const estH=n=>{const known=Object.values(pageHeights.current);return pageHeights.current[n]||(known.length?known.reduce((a,b)=>a+b,0)/known.length:900)}
-
-  // Show convert button only for shared books (not personal) with no text mode yet
   const showConvertBtn = !hasTextMode && !book._personal_file && !convertDone
 
   if (loadError) return (
@@ -446,7 +481,6 @@ function PdfReader({ book, customer, prefs, initialProgress, onClose, onSwitchTo
         </div>
       </header>
 
-      {/* Convert to Text Mode banner */}
       {showConvertBtn && (
         <div style={rs.convertBanner}>
           <span style={rs.convertText}>✨ Better reading experience available</span>
@@ -456,8 +490,6 @@ function PdfReader({ book, customer, prefs, initialProgress, onClose, onSwitchTo
           </button>
         </div>
       )}
-
-      {/* Convert done banner */}
       {convertDone && (
         <div style={{ ...rs.convertBanner, background:'rgba(58,154,106,0.1)', borderColor:'rgba(58,154,106,0.25)' }}>
           <span style={{ ...rs.convertText, color:'#3a9a6a' }}>✅ Converted! Tap Text in the mode toggle above to switch.</span>
@@ -509,7 +541,7 @@ function PdfReader({ book, customer, prefs, initialProgress, onClose, onSwitchTo
             onKeyDown={e=>{if(e.key==='Enter'){const v=parseInt(jumpValue);if(v>=1&&v<=totalPages){scrollToPage(v);setJumpValue('');e.target.blur()}}if(e.key==='Escape'){setJumpValue('');e.target.blur()}}}
             onBlur={()=>setJumpValue('')}
           />
-          <button style={{...rs.ttsBtn,...(tts.playing?rs.ttsBtnActive:{})}} onClick={()=>tts.toggle(ttsText)}>
+          <button style={{...rs.ttsBtn,...(tts.playing?rs.ttsBtnActive:{})}} onClick={()=>{if(tts.playing){tts.stop()}else{const utt=new SpeechSynthesisUtterance(ttsText);utt.rate=prefs?.ttsSpeed||1;const voices=window.speechSynthesis.getVoices();const v=voices.find(v=>v.lang.startsWith('en'))||voices[0];if(v)utt.voice=v;window.speechSynthesis.speak(utt);}}}>
             {tts.playing?'⏸':'▶'}
           </button>
         </div>
