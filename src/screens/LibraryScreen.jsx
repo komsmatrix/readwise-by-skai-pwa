@@ -440,8 +440,11 @@ function SettingsModal({ prefs, onSave, onClose, customer }) {
         <div style={settS.feedbackSection}>
           <button style={settS.feedbackToggle} onClick={() => { setFbOpen(o => !o); setFbStatus('idle') }}>
             <span>💬</span>
-            <span style={{ flex:1, textAlign:'left' }}>Send Feedback to Kyle</span>
-            <span style={{ fontSize:11, color:'var(--text-muted)' }}>{fbOpen ? '▲' : '▼'}</span>
+            <div style={{ flex:1, textAlign:'left' }}>
+              <div style={{ fontSize:13, fontWeight:600, color:'var(--text-primary)' }}>Send Feedback to Kyle</div>
+              <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:2 }}>Found a bug? Have an idea? Tell us — we read every message.</div>
+            </div>
+            <span style={{ fontSize:11, color:'var(--text-muted)', flexShrink:0 }}>{fbOpen ? '▲' : '▼'}</span>
           </button>
           {fbOpen && (
             <div style={settS.feedbackBody} className="animate-in">
@@ -450,31 +453,31 @@ function SettingsModal({ prefs, onSave, onClose, customer }) {
                   <span style={{ fontSize:24 }}>🙏</span>
                   <div>
                     <p style={{ fontWeight:600, color:'#3a9a6a', margin:'0 0 2px' }}>Thank you!</p>
-                    <p style={{ fontSize:12, color:'var(--text-muted)', margin:0 }}>Your feedback has been sent to Kyle directly.</p>
+                    <p style={{ fontSize:12, color:'var(--text-muted)', margin:0 }}>Kyle will personally read your message. We appreciate you helping improve the app!</p>
                   </div>
                 </div>
               ) : (
                 <>
-                  <p style={settS.feedbackLabel}>How is your experience?</p>
+                  <p style={settS.feedbackLabel}>How is your overall experience?</p>
                   <div style={settS.moodRow}>
-                    {['😍','😊','😐','😕','😤'].map(m => (
-                      <button key={m} style={{ ...settS.moodBtn, ...(fbMood === m ? settS.moodBtnActive : {}) }}
+                    {[['😍','Loving it'],['😊','Good'],['😐','Okay'],['😕','Not great'],['😤','Frustrated']].map(([m, label]) => (
+                      <button key={m} title={label} style={{ ...settS.moodBtn, ...(fbMood === m ? settS.moodBtnActive : {}) }}
                         onClick={() => setFbMood(m)}>{m}</button>
                     ))}
                   </div>
                   <textarea
                     style={settS.feedbackInput}
-                    placeholder="Tell Kyle what you think — bugs, ideas, anything..."
+                    placeholder="Share a bug, a feature idea, or anything on your mind. Your feedback directly shapes the future of this app. 🙌"
                     value={fbMsg}
                     onChange={e => { setFbMsg(e.target.value); setFbStatus('idle') }}
-                    rows={3}
+                    rows={4}
                   />
-                  {fbStatus === 'error' && <p style={{ fontSize:12, color:'#e05c5c', margin:'4px 0 0' }}>Something went wrong. Try again.</p>}
+                  {fbStatus === 'error' && <p style={{ fontSize:12, color:'#e05c5c', margin:'4px 0 0' }}>Something went wrong. Please try again.</p>}
                   <button
                     style={{ ...settS.feedbackSend, ...(!fbMsg.trim() || fbStatus === 'loading' ? { opacity:0.5, cursor:'not-allowed' } : {}) }}
                     onClick={handleSendFeedback}
                     disabled={!fbMsg.trim() || fbStatus === 'loading'}>
-                    {fbStatus === 'loading' ? 'Sending…' : 'Send Feedback'}
+                    {fbStatus === 'loading' ? 'Sending…' : '📨 Send to Kyle'}
                   </button>
                 </>
               )}
@@ -976,7 +979,7 @@ const wc = {
 // ── Modal styles ──────────────────────────────────────────────────────────────
 const modal = {
   backdrop      : { position:'fixed', inset:0, background:'rgba(0,0,0,0.75)', display:'flex', alignItems:'flex-end', justifyContent:'center', zIndex:1000, padding:'0 0 0 0', backdropFilter:'blur(4px)' },
-  box           : { width:'100%', maxWidth:480, background:'var(--bg-surface)', border:'1px solid var(--border)', borderRadius:'20px 20px 0 0', padding:'28px 24px 40px', display:'flex', flexDirection:'column', gap:0 },
+  box           : { width:'100%', maxWidth:480, background:'var(--bg-surface)', border:'1px solid var(--border)', borderRadius:'20px 20px 0 0', padding:'28px 24px 40px', display:'flex', flexDirection:'column', gap:0, maxHeight:'90vh', overflowY:'auto' },
   icon          : { fontSize:36, marginBottom:12, textAlign:'center' },
   title         : { fontFamily:'var(--font-display)', fontSize:22, fontWeight:400, color:'var(--text-primary)', marginBottom:8, letterSpacing:'-0.02em' },
   body          : { fontSize:14, color:'var(--text-secondary)', lineHeight:1.7 },
