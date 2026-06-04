@@ -245,8 +245,35 @@ function UploadBookModal({ customer, onClose, onSuccess }) {
 }
 
 // ── Settings Modal ────────────────────────────────────────────────────────────
-function SettingsModal({ prefs, onSave, onClose }) {
+function SettingsModal({ prefs, onSave, onClose, customer }) {
   const [theme,       setTheme]       = useState(prefs.theme    || 'dark')
+  const [fbOpen,      setFbOpen]      = useState(false)
+  const [fbMood,      setFbMood]      = useState('😊')
+  const [fbMsg,       setFbMsg]       = useState('')
+  const [fbStatus,    setFbStatus]    = useState('idle') // idle | loading | done | error
+
+  async function handleSendFeedback() {
+    if (!fbMsg.trim()) return
+    setFbStatus('loading')
+    try {
+      const res  = await fetch('/api/send-feedback', {
+        method : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body   : JSON.stringify({
+          customerId : customer?.id   || null,
+          name       : customer?.name || 'Anonymous',
+          email      : customer?.email || null,
+          mood       : fbMood,
+          message    : fbMsg.trim(),
+        })
+      })
+      const data = await res.json()
+      setFbStatus(data.success ? 'done' : 'error')
+      if (data.success) { setFbMsg(''); setFbMood('😊') }
+    } catch {
+      setFbStatus('error')
+    }
+  }
   const [fontSize,    setFontSize]    = useState(prefs.fontSize || 18)
   const [ttsSpeed,    setTtsSpeed]    = useState(prefs.ttsSpeed || 1.0)
   const [ttsVoice,    setTtsVoice]    = useState(prefs.ttsVoice || '')
@@ -408,6 +435,52 @@ function SettingsModal({ prefs, onSave, onClose }) {
             </div>
           </div>
         )}
+
+        {/* ── Feedback Section ── */}
+        <div style={settS.feedbackSection}>
+          <button style={settS.feedbackToggle} onClick={() => { setFbOpen(o => !o); setFbStatus('idle') }}>
+            <span>💬</span>
+            <span style={{ flex:1, textAlign:'left' }}>Send Feedback to Kyle</span>
+            <span style={{ fontSize:11, color:'var(--text-muted)' }}>{fbOpen ? '▲' : '▼'}</span>
+          </button>
+          {fbOpen && (
+            <div style={settS.feedbackBody} className="animate-in">
+              {fbStatus === 'done' ? (
+                <div style={settS.feedbackThanks}>
+                  <span style={{ fontSize:24 }}>🙏</span>
+                  <div>
+                    <p style={{ fontWeight:600, color:'#3a9a6a', margin:'0 0 2px' }}>Thank you!</p>
+                    <p style={{ fontSize:12, color:'var(--text-muted)', margin:0 }}>Your feedback has been sent to Kyle directly.</p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <p style={settS.feedbackLabel}>How is your experience?</p>
+                  <div style={settS.moodRow}>
+                    {['😍','😊','😐','😕','😤'].map(m => (
+                      <button key={m} style={{ ...settS.moodBtn, ...(fbMood === m ? settS.moodBtnActive : {}) }}
+                        onClick={() => setFbMood(m)}>{m}</button>
+                    ))}
+                  </div>
+                  <textarea
+                    style={settS.feedbackInput}
+                    placeholder="Tell Kyle what you think — bugs, ideas, anything..."
+                    value={fbMsg}
+                    onChange={e => { setFbMsg(e.target.value); setFbStatus('idle') }}
+                    rows={3}
+                  />
+                  {fbStatus === 'error' && <p style={{ fontSize:12, color:'#e05c5c', margin:'4px 0 0' }}>Something went wrong. Try again.</p>}
+                  <button
+                    style={{ ...settS.feedbackSend, ...(!fbMsg.trim() || fbStatus === 'loading' ? { opacity:0.5, cursor:'not-allowed' } : {}) }}
+                    onClick={handleSendFeedback}
+                    disabled={!fbMsg.trim() || fbStatus === 'loading'}>
+                    {fbStatus === 'loading' ? 'Sending…' : 'Send Feedback'}
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
 
         <div style={modal.actions}>
           <button style={modal.cancelBtn} onClick={() => { stopPreview(); onClose() }}>Cancel</button>
@@ -786,7 +859,7 @@ export default function LibraryScreen({ customer, books, progress, prefs, onOpen
       {/* Modals */}
       {showDisclaimer && <DisclaimerModal onAccept={handleDisclaimerAccept} onCancel={() => setShowDisclaimer(false)}/>}
       {showUpload     && <UploadBookModal customer={customer} onClose={() => setShowUpload(false)} onSuccess={handleUploadSuccess}/>}
-      {showSettings   && <SettingsModal prefs={prefs} onSave={p => { onPrefsChange(p); setShowSettings(false) }} onClose={() => setShowSettings(false)}/>}
+      {showSettings   && <SettingsModal prefs={prefs} onSave={p => { onPrefsChange(p); setShowSettings(false) }} onClose={() => setShowSettings(false)} customer={customer}/>}
       {deleteTarget   && <DeleteConfirmModal book={deleteTarget} onConfirm={() => handleDeletePersonal(deleteTarget)} onCancel={() => setDeleteTarget(null)}/>}
     </div>
   )
@@ -940,6 +1013,16 @@ const settS = {
   preview: { fontSize:11, color:'var(--text-muted)', marginTop:6, lineHeight:1.8 },
   hint   : { fontSize:11, color:'var(--text-muted)', marginTop:4 },
   select       : { padding:'10px 12px', background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', color:'var(--text-primary)', fontSize:13, outline:'none', width:'100%', cursor:'pointer' },
+  feedbackSection : { borderTop:'1px solid var(--border)', marginTop:8, paddingTop:16 },
+  feedbackToggle  : { width:'100%', display:'flex', alignItems:'center', gap:10, padding:'10px 0', background:'transparent', border:'none', color:'var(--text-secondary)', fontSize:13, cursor:'pointer', fontFamily:'inherit' },
+  feedbackBody    : { display:'flex', flexDirection:'column', gap:12, paddingTop:8 },
+  feedbackLabel   : { fontSize:12, color:'var(--text-muted)', margin:0 },
+  moodRow         : { display:'flex', gap:8 },
+  moodBtn         : { flex:1, fontSize:22, padding:'8px 4px', background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', cursor:'pointer', transition:'all var(--transition)' },
+  moodBtnActive   : { background:'var(--accent-dim)', borderColor:'rgba(201,169,110,0.5)', transform:'scale(1.1)' },
+  feedbackInput   : { width:'100%', padding:'10px 12px', background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', color:'var(--text-primary)', fontSize:13, fontFamily:'inherit', resize:'vertical', outline:'none', boxSizing:'border-box', lineHeight:1.6 },
+  feedbackSend    : { padding:'10px 16px', background:'var(--accent)', color:'#0d0d0d', border:'none', borderRadius:'var(--radius-md)', fontWeight:700, fontSize:13, cursor:'pointer', fontFamily:'inherit', transition:'all var(--transition)' },
+  feedbackThanks  : { display:'flex', alignItems:'center', gap:12, padding:'14px', background:'rgba(58,154,106,0.08)', border:'1px solid rgba(58,154,106,0.25)', borderRadius:'var(--radius-md)' },
   testBtn      : { padding:'8px 14px', background:'transparent', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', color:'var(--accent)', fontSize:13, cursor:'pointer', marginTop:6, alignSelf:'flex-start' },
   tipBox       : { background:'rgba(201,169,110,0.06)', border:'1px solid rgba(201,169,110,0.15)', borderRadius:'var(--radius-md)', padding:'12px 14px', marginBottom:10, display:'flex', flexDirection:'column', gap:6 },
   tipTitle     : { fontSize:11, fontWeight:600, color:'var(--accent)', margin:0, textTransform:'uppercase', letterSpacing:'0.06em' },

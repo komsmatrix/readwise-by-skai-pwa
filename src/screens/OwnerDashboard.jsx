@@ -28,6 +28,10 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
   const [updPreview,  setUpdPreview]  = useState(false)
   const [lastSent,    setLastSent]    = useState(() => localStorage.getItem('rws_last_update_sent') || null)
 
+  // Feedback state
+  const [feedbackList, setFeedbackList] = useState([])
+  const [fbLoading,    setFbLoading]   = useState(false)
+
   // Add book state
   const [bookTitle,   setBookTitle]   = useState('')
   const [bookAuthor,  setBookAuthor]  = useState('')
@@ -271,6 +275,18 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
     navigator.clipboard.writeText(emails)
   }
 
+  async function loadFeedback() {
+    setFbLoading(true)
+    try {
+      const res  = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/feedback?select=*&order=created_at.desc&limit=50`, {
+        headers: { 'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY, 'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}` }
+      })
+      const data = await res.json()
+      setFeedbackList(Array.isArray(data) ? data : [])
+    } catch { setFeedbackList([]) }
+    setFbLoading(false)
+  }
+
   // ── Sales calculations ────────────────────────────────────────────────────
   const totalRevenue    = sales.reduce((sum, s) => sum + (s.amount_paid || 249), 0)
   const salesWithRef    = sales.filter(s => s.referral_code)
@@ -330,6 +346,7 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
           ['agents',   '🤝 Agents'],
           ['customers','👥 Customers'],
           ['update',   '📢 Send Update'],
+          ['feedback', '💬 Feedback'],
         ].map(([id, label]) => (
           <button key={id} style={{ ...s.tab, ...(tab === id ? s.tabActive : {}) }}
             onClick={() => { setTab(id); setAddStatus('idle'); setAddError('') }}>
@@ -739,6 +756,33 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
           </div>
         )}
 
+        {/* ── Feedback Tab ── */}
+        {tab === 'feedback' && (
+          <div style={s.section}>
+            <p style={s.sectionDesc}>Customer feedback submitted from inside the app.</p>
+            <button style={{ ...s.btn, marginBottom:16 }} onClick={loadFeedback} disabled={fbLoading}>
+              {fbLoading ? <><span style={s.spinner}/> Loading…</> : '🔄 Load Feedback'}
+            </button>
+            {feedbackList.length === 0 && !fbLoading && (
+              <p style={{ fontSize:13, color:'var(--text-muted)', textAlign:'center', padding:'24px 0' }}>
+                No feedback yet. Tap Load Feedback to check.
+              </p>
+            )}
+            {feedbackList.map((fb, i) => (
+              <div key={fb.id || i} style={fbS.card}>
+                <div style={fbS.cardHeader}>
+                  <span style={{ fontSize:20 }}>{fb.mood || '💬'}</span>
+                  <div style={{ flex:1 }}>
+                    <p style={fbS.cardName}>{fb.name || 'Anonymous'}{fb.email ? ` · ${fb.email}` : ''}</p>
+                    <p style={fbS.cardMeta}>{fb.mood_label || ''} · {fb.created_at ? new Date(fb.created_at).toLocaleDateString('en-PH', { month:'short', day:'numeric', year:'numeric' }) : ''}</p>
+                  </div>
+                </div>
+                <p style={fbS.cardMsg}>{fb.message}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
       </div>
     </div>
   )
@@ -833,4 +877,13 @@ const s = {
   customerName : { fontSize:13, color:'var(--text-primary)', fontWeight:500, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' },
   customerEmail: { fontSize:12, color:'var(--text-muted)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' },
   customerDate : { fontSize:11, color:'var(--text-muted)', flexShrink:0 },
+}
+
+// ── Feedback tab styles ───────────────────────────────────────────────────────
+const fbS = {
+  card       : { background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', padding:'14px 16px', marginBottom:10 },
+  cardHeader : { display:'flex', gap:10, alignItems:'flex-start', marginBottom:8 },
+  cardName   : { fontSize:13, fontWeight:600, color:'var(--text-primary)', margin:0 },
+  cardMeta   : { fontSize:11, color:'var(--text-muted)', margin:'2px 0 0' },
+  cardMsg    : { fontSize:14, color:'var(--text-secondary)', margin:0, lineHeight:1.6, whiteSpace:'pre-wrap' },
 }
