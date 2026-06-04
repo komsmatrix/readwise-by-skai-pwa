@@ -41,7 +41,10 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
   const [coverFile,   setCoverFile]   = useState(null)
   const [addStatus,   setAddStatus]   = useState('idle')
   const [addError,    setAddError]    = useState('')
-  const [addProgress, setAddProgress] = useState('')
+  const [addProgress,      setAddProgress]      = useState('')
+  const [reextractStatus,  setReextractStatus]  = useState('idle')  // idle | loading | done | error
+  const [reextractLog,     setReextractLog]     = useState([])
+  const [reextractCount,   setReextractCount]   = useState({ done:0, total:0 })
   const pdfRef   = useRef(null)
   const textRef  = useRef(null)
   const coverRef = useRef(null)
@@ -219,6 +222,47 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
       setAddStatus('error')
       setAddError(err.message)
       setAddProgress('')
+    }
+  }
+
+  // ── Re-extract All Books ───────────────────────────────────────────────────
+  async function handleReextractAll() {
+    setReextractStatus('loading')
+    setReextractLog([])
+    setReextractCount({ done:0, total:0 })
+    try {
+      const res      = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/books?select=id,title,author,file_path&is_active=eq.true&order=created_at.asc`, {
+        headers: {
+          'apikey'       : import.meta.env.VITE_SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        }
+      })
+      const allBooks    = await res.json()
+      const booksWithPdf = allBooks.filter(b => b.file_path)
+      setReextractCount({ done:0, total: booksWithPdf.length })
+      const log = []; let done = 0
+      for (const book of booksWithPdf) {
+        const slug     = book.file_path.replace(/\.pdf$/i, '')
+        const textPath = slug + '.html'
+        try {
+          const r    = await fetch('/api/extract-text', {
+            method : 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body   : JSON.stringify({ bookId: book.id, pdfPath: book.file_path, textPath, title: book.title || '', author: book.author || '' }),
+          })
+          const data = await r.json()
+          done++; setReextractCount({ done, total: booksWithPdf.length })
+          log.push({ title: book.title, ok: data.success, msg: data.success ? '✓ Done' : (data.error || 'Failed') })
+        } catch(e) {
+          done++; setReextractCount({ done, total: booksWithPdf.length })
+          log.push({ title: book.title, ok: false, msg: 'Network error' })
+        }
+        setReextractLog([...log])
+      }
+      setReextractStatus('done')
+    } catch(e) {
+      setReextractStatus('error')
+      setReextractLog([{ title:'—', ok:false, msg: e.message }])
     }
   }
 
@@ -418,6 +462,40 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
               <button style={{ ...s.btn, background:'transparent', border:'1px solid var(--border)', color:'var(--text-secondary)' }}
                 onClick={() => setAddStatus('idle')}>Add Another Book</button>
             )}
+
+            {/* ── Re-extract All Books ── */}
+            <div style={ab.reextractBox}>
+              <p style={ab.reextractTitle}>🔄 Re-extract All Books</p>
+              <p style={ab.reextractDesc}>Regenerates the Text Mode HTML for all existing books using the improved formatter. Fixes formatting on books already in the library.</p>
+              {reextractStatus === 'loading' && (
+                <div style={ab.reextractProgress} className="animate-in">
+                  <span style={s.spinner}/>
+                  <span style={{ fontSize:13, color:'var(--text-muted)' }}>Processing {reextractCount.done} of {reextractCount.total} books…</span>
+                </div>
+              )}
+              {reextractLog.length > 0 && (
+                <div style={ab.reextractLog}>
+                  {reextractLog.map((entry, i) => (
+                    <div key={i} style={ab.reextractLogRow}>
+                      <span style={{ color: entry.ok ? '#3a9a6a' : '#e05c5c', fontSize:12 }}>{entry.ok ? '✓' : '✗'}</span>
+                      <span style={{ fontSize:12, color:'var(--text-secondary)', flex:1 }}>{entry.title}</span>
+                      <span style={{ fontSize:11, color: entry.ok ? 'var(--text-muted)' : '#e05c5c' }}>{entry.msg}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {reextractStatus === 'done' && (
+                <p style={{ fontSize:13, color:'#3a9a6a', margin:'4px 0 0' }}>✅ All done! {reextractCount.done} books re-extracted.</p>
+              )}
+              <button
+                style={{ ...s.btn, background:'transparent', border:'1px solid var(--border)', color:'var(--text-secondary)', marginTop:4, ...(reextractStatus === 'loading' ? s.btnDisabled : {}) }}
+                onClick={handleReextractAll}
+                disabled={reextractStatus === 'loading'}>
+                {reextractStatus === 'loading'
+                  ? <><span style={s.spinner}/> Re-extracting {reextractCount.done}/{reextractCount.total}…</>
+                  : reextractStatus === 'done' ? '🔄 Re-extract Again' : '🔄 Re-extract All Books'}
+              </button>
+            </div>
           </div>
         )}
 
@@ -680,13 +758,20 @@ const st = {
 
 // ── Add Book styles ───────────────────────────────────────────────────────────
 const ab = {
-  pickBtn    : { display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:6, width:'100%', padding:'18px 12px', background:'var(--bg-elevated)', border:'2px dashed var(--border)', borderRadius:'var(--radius-md)', color:'var(--text-muted)', fontSize:13, cursor:'pointer', minHeight:72 },
-  fileChosen : { display:'flex', alignItems:'center', gap:8, padding:'10px 12px', background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:'var(--radius-md)' },
-  fileName   : { flex:1, fontSize:12, color:'var(--text-primary)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' },
-  tag        : { fontSize:9, fontWeight:700, color:'var(--accent)', background:'var(--accent-dim)', padding:'2px 5px', borderRadius:3, flexShrink:0 },
-  changeBtn  : { padding:'3px 8px', background:'transparent', border:'1px solid var(--border)', borderRadius:4, color:'var(--text-secondary)', fontSize:11, cursor:'pointer', flexShrink:0 },
-  progressRow: { display:'flex', alignItems:'center', gap:10, padding:'10px 12px', background:'var(--bg-elevated)', borderRadius:'var(--radius-md)' },
-  successBox : { display:'flex', alignItems:'center', gap:12, padding:'14px', background:'rgba(58,154,106,0.08)', border:'1px solid rgba(58,154,106,0.25)', borderRadius:'var(--radius-md)' },
+  pickBtn        : { display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:6, width:'100%', padding:'18px 12px', background:'var(--bg-elevated)', border:'2px dashed var(--border)', borderRadius:'var(--radius-md)', color:'var(--text-muted)', fontSize:13, cursor:'pointer', minHeight:72 },
+  fileChosen     : { display:'flex', alignItems:'center', gap:8, padding:'10px 12px', background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:'var(--radius-md)' },
+  fileName       : { flex:1, fontSize:12, color:'var(--text-primary)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' },
+  tag            : { fontSize:9, fontWeight:700, color:'var(--accent)', background:'var(--accent-dim)', padding:'2px 5px', borderRadius:3, flexShrink:0 },
+  changeBtn      : { padding:'3px 8px', background:'transparent', border:'1px solid var(--border)', borderRadius:4, color:'var(--text-secondary)', fontSize:11, cursor:'pointer', flexShrink:0 },
+  progressRow    : { display:'flex', alignItems:'center', gap:10, padding:'10px 12px', background:'var(--bg-elevated)', borderRadius:'var(--radius-md)' },
+  successBox     : { display:'flex', alignItems:'center', gap:12, padding:'14px', background:'rgba(58,154,106,0.08)', border:'1px solid rgba(58,154,106,0.25)', borderRadius:'var(--radius-md)' },
+  reextractBox   : { marginTop:24, padding:'18px', background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', display:'flex', flexDirection:'column', gap:10 },
+  reextractHeader: { display:'flex', flexDirection:'column', gap:4 },
+  reextractTitle : { fontSize:14, fontWeight:600, color:'var(--text-primary)', margin:0 },
+  reextractDesc  : { fontSize:12, color:'var(--text-muted)', margin:'4px 0 0', lineHeight:1.6 },
+  reextractProgress: { display:'flex', alignItems:'center', gap:10, padding:'8px 0' },
+  reextractLog   : { display:'flex', flexDirection:'column', gap:4, maxHeight:180, overflowY:'auto', background:'var(--bg-base)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 12px' },
+  reextractLogRow: { display:'flex', alignItems:'center', gap:8 },
 }
 
 // ── Send Update styles ────────────────────────────────────────────────────────
