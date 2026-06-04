@@ -9,7 +9,7 @@ const supabase = createClient(
 
 const RESEND_API_KEY      = process.env.RESEND_API_KEY
 const WEBHOOK_SECRET      = process.env.PAYMONGO_WEBHOOK_SECRET
-const APP_URL             = process.env.VITE_APP_URL || 'https://readwise-by-skai-pwa.vercel.app'
+const APP_URL             = process.env.VITE_APP_URL || 'https://readwisebyskai.com'
 const EXPIRY_DAYS         = 7
 const AGENT_COMMISSION    = 5000 // ₱50 in centavos
 

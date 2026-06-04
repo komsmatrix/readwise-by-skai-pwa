@@ -9,7 +9,7 @@ const supabase = createClient(
 
 const RESEND_API_KEY  = process.env.RESEND_API_KEY
 const OWNER_PASSWORD  = process.env.OWNER_PASSWORD
-const APP_URL         = process.env.VITE_APP_URL || 'https://readwise-by-skai-pwa.vercel.app'
+const APP_URL         = process.env.VITE_APP_URL || 'https://readwisebyskai.com'
 const EXPIRY_DAYS     = 7
 
 function generateKey() {

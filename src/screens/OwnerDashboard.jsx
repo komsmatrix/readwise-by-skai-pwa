@@ -25,6 +25,8 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
   const [updMessage,  setUpdMessage]  = useState('')
   const [updStatus,   setUpdStatus]   = useState('idle')
   const [updResult,   setUpdResult]   = useState(null)
+  const [updPreview,  setUpdPreview]  = useState(false)
+  const [lastSent,    setLastSent]    = useState(() => localStorage.getItem('rws_last_update_sent') || null)
 
   // Add book state
   const [bookTitle,   setBookTitle]   = useState('')
@@ -112,7 +114,7 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
   async function handleSendUpdate() {
     const bookList = updBooks.split('\n').map(b => b.trim()).filter(Boolean)
     if (!updSubject.trim()) return
-    setUpdStatus('loading'); setUpdResult(null)
+    setUpdStatus('loading'); setUpdResult(null); setUpdPreview(false)
     const res  = await fetch('/api/send-update', {
       method : 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -120,6 +122,12 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
     })
     const data = await res.json()
     setUpdResult(data)
+    if (data.success) {
+      const now = new Date().toISOString()
+      localStorage.setItem('rws_last_update_sent', now)
+      setLastSent(now)
+      setUpdSubject(''); setUpdBooks(''); setUpdMessage('')
+    }
     setUpdStatus(data.success ? 'success' : 'error')
   }
 
@@ -504,26 +512,150 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
         {/* ── Send Update ── */}
         {tab === 'update' && (
           <div style={s.section}>
-            <p style={s.sectionDesc}>Send a library update email to all {customers.length} customers.</p>
-            <div style={s.field}><label style={s.label}>Email subject</label>
-              <input style={s.input} placeholder="New Books Added to Your Library 📚" value={updSubject} onChange={e => setUpdSubject(e.target.value)}/>
-            </div>
+
+            {/* Last sent indicator */}
+            {lastSent && (
+              <div style={su.lastSentBar}>
+                <span style={su.lastSentDot}/>
+                <span style={su.lastSentText}>
+                  Last update sent: {(() => {
+                    const d = new Date(lastSent)
+                    const now = new Date()
+                    const diffMs = now - d
+                    const diffDays = Math.floor(diffMs / 86400000)
+                    if (diffDays === 0) return 'Today at ' + d.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' })
+                    if (diffDays === 1) return 'Yesterday'
+                    return `${diffDays} days ago`
+                  })()}
+                </span>
+              </div>
+            )}
+
+            <p style={s.sectionDesc}>
+              Announce new books to all <strong style={{ color:'var(--text-primary)' }}>{customers.length} customers</strong>. Each email is personalized with their first name.
+            </p>
+
+            {/* Subject */}
             <div style={s.field}>
-              <label style={s.label}>New book titles (one per line)</label>
-              <textarea style={{ ...s.input, resize:'vertical', minHeight:100, lineHeight:1.6 }}
-                placeholder={"Atomic Habits\nDeep Work\nThe 48 Laws of Power"} value={updBooks} onChange={e => setUpdBooks(e.target.value)}/>
+              <label style={s.label}>Email Subject</label>
+              <input
+                style={s.input}
+                placeholder="📚 New books just dropped in your library!"
+                value={updSubject}
+                onChange={e => { setUpdSubject(e.target.value); setUpdStatus('idle') }}
+              />
             </div>
-            <div style={s.field}><label style={s.label}>Extra message (optional)</label>
-              <input style={s.input} placeholder="Hope you enjoy the new additions!" value={updMessage} onChange={e => setUpdMessage(e.target.value)}/>
+
+            {/* Books */}
+            <div style={s.field}>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                <label style={s.label}>New book titles <span style={{ color:'var(--text-muted)', fontSize:10, textTransform:'none', letterSpacing:0 }}>(one per line)</span></label>
+                {updBooks.trim() && (
+                  <span style={su.bookCount}>
+                    {updBooks.split('\n').filter(b => b.trim()).length} book{updBooks.split('\n').filter(b => b.trim()).length !== 1 ? 's' : ''}
+                  </span>
+                )}
+              </div>
+              <textarea
+                style={{ ...s.input, resize:'vertical', minHeight:110, lineHeight:1.8 }}
+                placeholder={"Think and Grow Rich\nThe Richest Man in Babylon\nMeditations"}
+                value={updBooks}
+                onChange={e => { setUpdBooks(e.target.value); setUpdStatus('idle') }}
+              />
             </div>
-            <button
-              style={{ ...s.btn, ...(!updSubject.trim() || updStatus === 'loading' ? s.btnDisabled : {}) }}
-              onClick={handleSendUpdate} disabled={!updSubject.trim() || updStatus === 'loading'}>
-              {updStatus === 'loading' ? <><span style={s.spinner}/> Sending…</>
-                : updStatus === 'success' ? `✓ Sent to ${updResult?.sent} customers!`
-                : `Send to ${customers.length} customers`}
-            </button>
-            {updResult?.error && <p style={s.error}>{updResult.error}</p>}
+
+            {/* Personal message */}
+            <div style={s.field}>
+              <label style={s.label}>Personal message <span style={{ color:'var(--text-muted)', fontSize:10, textTransform:'none', letterSpacing:0 }}>(optional — shown as a quote)</span></label>
+              <input
+                style={s.input}
+                placeholder="e.g. Meditations is my personal favorite. Try it!"
+                value={updMessage}
+                onChange={e => { setUpdMessage(e.target.value); setUpdStatus('idle') }}
+              />
+            </div>
+
+            {/* Preview toggle */}
+            {(updSubject.trim() || updBooks.trim()) && updStatus !== 'success' && (
+              <button
+                style={su.previewBtn}
+                onClick={() => setUpdPreview(p => !p)}>
+                {updPreview ? '▲ Hide Preview' : '👁 Preview Email'}
+              </button>
+            )}
+
+            {/* Preview panel */}
+            {updPreview && (
+              <div style={su.previewPanel} className="animate-in">
+                <div style={su.previewLabel}>EMAIL PREVIEW</div>
+                <div style={su.previewSubject}>Subject: {updSubject || '(no subject yet)'}</div>
+                <div style={su.previewDivider}/>
+                <p style={su.previewGreeting}>Hi [Customer Name], your library just got bigger. We've added new books — open the app and they're already waiting for you.</p>
+                {updBooks.trim() && (
+                  <div style={su.previewBooks}>
+                    <div style={su.previewBooksLabel}>ADDED TO YOUR LIBRARY</div>
+                    {updBooks.split('\n').filter(b => b.trim()).map((book, i) => (
+                      <div key={i} style={su.previewBookRow}>
+                        <span style={su.previewDot}/>
+                        <span>{book.trim()}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {updMessage.trim() && (
+                  <p style={su.previewMessage}>"{updMessage}"</p>
+                )}
+                <div style={su.previewCta}>Open Your Library →</div>
+                <p style={su.previewFooter}>Books are added regularly. Your library grows — your price stays the same. 🙌</p>
+              </div>
+            )}
+
+            {/* Success state */}
+            {updStatus === 'success' && updResult?.success && (
+              <div style={su.successBox} className="animate-in">
+                <span style={{ fontSize:28 }}>🎉</span>
+                <div>
+                  <p style={su.successTitle}>Update sent to {updResult.sent} customer{updResult.sent !== 1 ? 's' : ''}!</p>
+                  <p style={su.successSub}>Everyone has been notified about the new books.</p>
+                </div>
+              </div>
+            )}
+
+            {/* Error */}
+            {updStatus === 'error' && updResult?.error && (
+              <p style={s.error}>{updResult.error}</p>
+            )}
+
+            {/* Buttons */}
+            {updStatus === 'success' ? (
+              <button
+                style={{ ...s.btn, background:'transparent', border:'1px solid var(--border)', color:'var(--text-secondary)' }}
+                onClick={() => { setUpdStatus('idle'); setUpdResult(null) }}>
+                Send Another Update
+              </button>
+            ) : (
+              <button
+                style={{
+                  ...s.btn,
+                  ...(!updSubject.trim() || updStatus === 'loading' ? s.btnDisabled : {}),
+                  ...(updStatus === 'loading' ? {} : { background: customers.length > 0 ? 'var(--accent)' : 'var(--bg-elevated)' })
+                }}
+                onClick={handleSendUpdate}
+                disabled={!updSubject.trim() || updStatus === 'loading' || customers.length === 0}>
+                {updStatus === 'loading'
+                  ? <><span style={s.spinner}/> Sending to {customers.length} customers…</>
+                  : customers.length === 0
+                    ? 'No customers yet'
+                    : `📢 Send to ${customers.length} customer${customers.length !== 1 ? 's' : ''}`}
+              </button>
+            )}
+
+            {customers.length === 0 && (
+              <p style={{ fontSize:12, color:'var(--text-muted)', textAlign:'center' }}>
+                You'll be able to send updates once you have customers.
+              </p>
+            )}
+
           </div>
         )}
 
@@ -555,7 +687,29 @@ const ab = {
   successBox : { display:'flex', alignItems:'center', gap:12, padding:'14px', background:'rgba(58,154,106,0.08)', border:'1px solid rgba(58,154,106,0.25)', borderRadius:'var(--radius-md)' },
 }
 
-// ── Main styles ───────────────────────────────────────────────────────────────
+// ── Send Update styles ────────────────────────────────────────────────────────
+const su = {
+  lastSentBar    : { display:'flex', alignItems:'center', gap:8, padding:'10px 14px', background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:'var(--radius-md)' },
+  lastSentDot    : { width:7, height:7, borderRadius:'50%', background:'#3a9a6a', flexShrink:0 },
+  lastSentText   : { fontSize:12, color:'var(--text-muted)' },
+  bookCount      : { fontSize:11, color:'var(--accent)', background:'var(--accent-dim)', padding:'2px 8px', borderRadius:99, fontWeight:600 },
+  previewBtn     : { display:'flex', alignItems:'center', justifyContent:'center', gap:6, padding:'10px 14px', background:'transparent', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', color:'var(--text-secondary)', fontSize:13, cursor:'pointer', transition:'all var(--transition)' },
+  previewPanel   : { background:'#111', border:'1px solid rgba(201,169,110,0.2)', borderRadius:'var(--radius-md)', padding:'20px', display:'flex', flexDirection:'column', gap:12 },
+  previewLabel   : { fontSize:10, fontWeight:700, letterSpacing:'0.1em', color:'var(--accent)', textTransform:'uppercase' },
+  previewSubject : { fontSize:14, fontWeight:600, color:'var(--text-primary)' },
+  previewDivider : { height:1, background:'rgba(255,255,255,0.06)' },
+  previewGreeting: { fontSize:13, color:'var(--text-muted)', lineHeight:1.6, margin:0 },
+  previewBooks   : { background:'rgba(201,169,110,0.05)', border:'1px solid rgba(201,169,110,0.15)', borderRadius:8, padding:'14px 16px', display:'flex', flexDirection:'column', gap:8 },
+  previewBooksLabel: { fontSize:10, fontWeight:700, letterSpacing:'0.08em', color:'var(--accent)', textTransform:'uppercase', marginBottom:4 },
+  previewBookRow : { display:'flex', alignItems:'center', gap:10, fontSize:13, color:'var(--text-primary)' },
+  previewDot     : { width:6, height:6, borderRadius:'50%', background:'var(--accent)', flexShrink:0 },
+  previewMessage : { fontSize:13, color:'var(--text-muted)', fontStyle:'italic', margin:0 },
+  previewCta     : { background:'var(--accent)', color:'#0d0d0d', padding:'11px 16px', borderRadius:8, fontSize:13, fontWeight:600, textAlign:'center' },
+  previewFooter  : { fontSize:11, color:'#3a3835', textAlign:'center', margin:0 },
+  successBox     : { display:'flex', alignItems:'center', gap:14, padding:'18px', background:'rgba(58,154,106,0.08)', border:'1px solid rgba(58,154,106,0.25)', borderRadius:'var(--radius-md)' },
+  successTitle   : { fontSize:15, fontWeight:600, color:'#3a9a6a', margin:'0 0 3px' },
+  successSub     : { fontSize:12, color:'var(--text-muted)', margin:0 },
+}
 const s = {
   root         : { minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'var(--bg-base)', padding:20 },
   loginCard    : { width:'100%', maxWidth:380, background:'var(--bg-surface)', border:'1px solid var(--border)', borderRadius:'var(--radius-xl)', padding:'36px 28px', display:'flex', flexDirection:'column', gap:20 },

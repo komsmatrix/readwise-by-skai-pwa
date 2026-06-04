@@ -8,7 +8,7 @@ const supabase = createClient(
 
 const OWNER_PASSWORD  = process.env.OWNER_PASSWORD
 const RESEND_API_KEY  = process.env.RESEND_API_KEY
-const APP_URL         = process.env.VITE_APP_URL || 'https://readwise-by-skai-pwa.vercel.app'
+const APP_URL         = process.env.VITE_APP_URL || 'https://readwisebyskai.com'
 
 function generateCode(name) {
   const base    = name.trim().split(' ')[0].toUpperCase().replace(/[^A-Z]/g, '').slice(0, 6)

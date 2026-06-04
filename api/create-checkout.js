@@ -7,7 +7,7 @@ const supabase = createClient(
 )
 
 const PAYMONGO_SECRET  = process.env.PAYMONGO_SECRET_KEY
-const APP_URL          = process.env.VITE_APP_URL || 'https://readwise-by-skai-pwa.vercel.app'
+const APP_URL          = process.env.VITE_APP_URL || 'https://readwisebyskai.com'
 const REGULAR_PRICE    = 39900  // ₱399 in centavos
 const INTRO_PRICE      = 24900  // ₱249 in centavos
 const REFERRAL_DISCOUNT = 2000  // ₱20 in centavos
