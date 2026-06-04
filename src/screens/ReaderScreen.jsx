@@ -5,16 +5,64 @@ const supabaseUrl  = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnon = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 // ── Continuous TTS Hook ───────────────────────────────────────────────────────
+const TTS_HIGHLIGHT_STYLE = 'rws-tts-active'
+
+// Inject highlight CSS once
+if (typeof document !== 'undefined' && !document.getElementById('rws-tts-style')) {
+  const style = document.createElement('style')
+  style.id = 'rws-tts-style'
+  style.textContent = `
+    .${TTS_HIGHLIGHT_STYLE} {
+      background: rgba(201,169,110,0.13) !important;
+      border-radius: 4px;
+      outline: 1.5px solid rgba(201,169,110,0.35);
+      transition: background 0.2s ease, outline 0.2s ease;
+    }
+    .rws-tts-word {
+      background: rgba(201,169,110,0.35);
+      border-radius: 2px;
+    }
+  `
+  document.head.appendChild(style)
+}
+
 function useTTS(prefs) {
   const [playing, setPlaying]   = useState(false)
   const chunksRef               = useRef([])
+  const elemsRef                = useRef([])
   const indexRef                = useRef(0)
   const containerRef            = useRef(null)
   const activeRef               = useRef(false)
+  const activeElemRef           = useRef(null)
+
+  function clearHighlight() {
+    if (activeElemRef.current) {
+      activeElemRef.current.classList.remove(TTS_HIGHLIGHT_STYLE)
+      // Restore original innerHTML (remove word highlights)
+      const el = activeElemRef.current
+      if (el.dataset.rwsOriginal) {
+        el.innerHTML = el.dataset.rwsOriginal
+        delete el.dataset.rwsOriginal
+      }
+      activeElemRef.current = null
+    }
+  }
+
+  function highlightElem(index) {
+    clearHighlight()
+    const elems = elemsRef.current
+    if (!elems || index >= elems.length) return
+    const el = elems[index]
+    if (!el) return
+    el.classList.add(TTS_HIGHLIGHT_STYLE)
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    activeElemRef.current = el
+  }
 
   function stop() {
     activeRef.current = false
     window.speechSynthesis?.cancel()
+    clearHighlight()
     setPlaying(false)
   }
 
@@ -41,20 +89,33 @@ function useTTS(prefs) {
     const text = chunksRef.current[index]
     if (!text?.trim()) { speakChunk(index + 1); return }
 
+    // Highlight current paragraph
+    highlightElem(index)
+
     const utt    = new SpeechSynthesisUtterance(text)
     utt.rate     = prefs?.ttsSpeed || 1.0
     const voice  = getVoice()
     if (voice) utt.voice = voice
 
+    // Word-level highlight (works on Chrome desktop)
+    utt.onboundary = (e) => {
+      if (e.name !== 'word') return
+      const el = elemsRef.current[index]
+      if (!el) return
+      // Save original once
+      if (!el.dataset.rwsOriginal) el.dataset.rwsOriginal = el.innerHTML
+      const original = el.dataset.rwsOriginal
+      const charIndex = e.charIndex
+      const wordLen   = e.charLength || text.slice(charIndex).search(/\s|$/) || 1
+      const before    = escapeHtmlStr(text.slice(0, charIndex))
+      const word      = escapeHtmlStr(text.slice(charIndex, charIndex + wordLen))
+      const after     = escapeHtmlStr(text.slice(charIndex + wordLen))
+      el.innerHTML = `${before}<mark class="rws-tts-word">${word}</mark>${after}`
+    }
+
     utt.onend = () => {
       if (!activeRef.current) return
       indexRef.current = index + 1
-      // Scroll to next paragraph
-      if (containerRef.current) {
-        const elems = containerRef.current.querySelectorAll('p, h2')
-        const next  = elems[Math.min(index + 1, elems.length - 1)]
-        if (next) next.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      }
       speakChunk(index + 1)
     }
     utt.onerror = (e) => {
@@ -68,13 +129,14 @@ function useTTS(prefs) {
   function startFrom(container, fromIndex = 0) {
     if (!window.speechSynthesis) return
     window.speechSynthesis.cancel()
+    clearHighlight()
 
-    // Extract all text chunks from DOM
-    const elems  = container.querySelectorAll('p, h2')
-    chunksRef.current  = Array.from(elems).map(el => el.textContent.trim()).filter(Boolean)
+    const elems          = container.querySelectorAll('p, h2')
+    elemsRef.current     = Array.from(elems)
+    chunksRef.current    = Array.from(elems).map(el => el.textContent.trim()).filter(Boolean)
     containerRef.current = container
-    indexRef.current   = fromIndex
-    activeRef.current  = true
+    indexRef.current     = fromIndex
+    activeRef.current    = true
     setPlaying(true)
     speakChunk(fromIndex)
   }
@@ -87,6 +149,10 @@ function useTTS(prefs) {
   useEffect(() => () => stop(), [])
 
   return { playing, stop, toggle, startFrom }
+}
+
+function escapeHtmlStr(t) {
+  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
