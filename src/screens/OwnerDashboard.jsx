@@ -193,6 +193,8 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
               bookId  : newBookId,
               pdfPath,
               textPath: `${cat}/${slug}.html`,
+              title   : title.trim(),
+              author  : author.trim(),
             }),
           })
           const extractData = await extractRes.json()

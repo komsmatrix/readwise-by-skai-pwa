@@ -1,4 +1,4 @@
-// api/extract-text.js — Extracts text from a PDF stored in Supabase and saves as HTML
+// api/extract-text.js — Extracts text from PDF and saves as clean reading HTML
 import { createClient } from '@supabase/supabase-js'
 import PDFParser from 'pdf2json'
 
@@ -28,10 +28,123 @@ function pdfBufferToText(buffer) {
   })
 }
 
+// Detect if a line looks like a chapter heading
+function isHeading(line) {
+  const t = line.trim()
+  if (!t || t.length > 120) return false
+
+  // All caps short line
+  if (t === t.toUpperCase() && t.length < 60 && /[A-Z]/.test(t)) return true
+
+  // Chapter / Part / Book / Section patterns
+  if (/^(chapter|part|book|section|unit|lesson|prologue|epilogue|introduction|conclusion|foreword|preface|appendix)\b/i.test(t)) return true
+
+  // Roman numeral headings: I, II, III, IV, V, X etc.
+  if (/^(M{0,4})(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$/i.test(t) && t.length < 15) return true
+
+  // Numbered chapter: "1.", "1 ", "1:", followed by short text
+  if (/^\d{1,2}[\.\:\s]/.test(t) && t.length < 80) return true
+
+  // Short title-case line followed by nothing
+  if (t.length < 50 && /^[A-Z]/.test(t) && !/[.!?,;]$/.test(t)) return true
+
+  return false
+}
+
+// Detect page separator / junk lines
+function isJunk(line) {
+  const t = line.trim()
+  if (!t) return true
+  if (/^-{10,}$/.test(t)) return true                    // dashes
+  if (/^\d+$/.test(t) && t.length < 5) return true       // lone page numbers
+  if (/^page\s+\d+/i.test(t)) return true                // "Page 1"
+  if (t.length < 3) return true                           // tiny fragments
+  return false
+}
+
+function buildHtml(rawText, title, author) {
+  const lines = rawText.split('\n')
+
+  let blocks = []       // { type: 'heading'|'para'|'break', text }
+  let buffer  = []
+
+  function flushBuffer() {
+    if (buffer.length === 0) return
+    const joined = buffer.join(' ').trim()
+    if (joined.length > 0) blocks.push({ type: 'para', text: joined })
+    buffer = []
+  }
+
+  for (let i = 0; i < lines.length; i++) {
+    const line    = lines[i]
+    const trimmed = line.trim()
+
+    if (isJunk(trimmed)) {
+      flushBuffer()
+      continue
+    }
+
+    if (isHeading(trimmed)) {
+      flushBuffer()
+      blocks.push({ type: 'heading', text: trimmed })
+      continue
+    }
+
+    // Empty line = paragraph break
+    if (!trimmed) {
+      flushBuffer()
+      continue
+    }
+
+    // Line ending in sentence-ending punctuation = end of paragraph
+    if (/[.!?:]["'»]?$/.test(trimmed) && trimmed.length > 60) {
+      buffer.push(trimmed)
+      flushBuffer()
+      continue
+    }
+
+    buffer.push(trimmed)
+  }
+
+  flushBuffer()
+
+  // Build HTML string
+  let html = ''
+  let firstPara = true
+
+  // Book header
+  html += `<div class="book-header">\n`
+  html += `  <div class="book-title">${escapeHtml(title || '')}</div>\n`
+  if (author) html += `  <div class="book-author">${escapeHtml(author)}</div>\n`
+  html += `</div>\n`
+
+  html += `<div class="book-content">\n`
+
+  for (let i = 0; i < blocks.length; i++) {
+    const block = blocks[i]
+
+    if (block.type === 'heading') {
+      html += `<h2 class="chapter-heading">${escapeHtml(block.text)}</h2>\n`
+      firstPara = true  // Next para after heading gets drop cap
+      continue
+    }
+
+    if (block.type === 'para') {
+      const cls = firstPara ? ' class="first-para"' : ''
+      html += `<p${cls}>${escapeHtml(block.text)}</p>\n`
+      firstPara = false
+      continue
+    }
+  }
+
+  html += `</div>\n`
+  return html
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
-  const { bookId, pdfPath, textPath } = req.body
+  const { bookId, pdfPath, textPath, title, author } = req.body
   if (!bookId || !pdfPath || !textPath) {
     return res.status(400).json({ error: 'bookId, pdfPath, and textPath required' })
   }
@@ -47,9 +160,9 @@ export default async function handler(req, res) {
     }
 
     const arrayBuffer = await fileData.arrayBuffer()
-    const buffer = Buffer.from(arrayBuffer)
+    const buffer      = Buffer.from(arrayBuffer)
 
-    // 2. Extract text
+    // 2. Extract raw text
     let rawText
     try {
       rawText = await pdfBufferToText(buffer)
@@ -61,36 +174,8 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'No text found in PDF.' })
     }
 
-    // 3. Convert to clean HTML
-    const lines = rawText.split('\n')
-    let html = '<div class="book-content">\n'
-    let paragraphBuffer = []
-
-    for (const line of lines) {
-      const trimmed = line.trim()
-      if (!trimmed || trimmed === '--------------------------------------------------------------------------------') {
-        if (paragraphBuffer.length > 0) {
-          const para = paragraphBuffer.join(' ').trim()
-          if (para.length > 0) {
-            if (para.length < 80 && (para === para.toUpperCase() || /^(chapter|part|book)\s/i.test(para))) {
-              html += `<h2>${escapeHtml(para)}</h2>\n`
-            } else {
-              html += `<p>${escapeHtml(para)}</p>\n`
-            }
-          }
-          paragraphBuffer = []
-        }
-      } else {
-        paragraphBuffer.push(trimmed)
-      }
-    }
-
-    if (paragraphBuffer.length > 0) {
-      const para = paragraphBuffer.join(' ').trim()
-      if (para.length > 0) html += `<p>${escapeHtml(para)}</p>\n`
-    }
-
-    html += '</div>'
+    // 3. Build clean HTML
+    const bodyHtml = buildHtml(rawText, title || '', author || '')
 
     const fullHtml = `<!DOCTYPE html>
 <html lang="en">
@@ -98,13 +183,76 @@ export default async function handler(req, res) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-  body { font-family: Georgia, serif; line-height: 1.8; max-width: 680px; margin: 0 auto; padding: 20px; }
-  h2 { margin: 2em 0 0.5em; font-size: 1.2em; text-transform: uppercase; letter-spacing: 0.1em; }
-  p { margin: 0 0 1.2em; text-indent: 1.5em; }
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: Georgia, 'Times New Roman', serif;
+    line-height: 1.85;
+    background: #111;
+    color: #e8e4dd;
+  }
+  .book-header {
+    text-align: center;
+    padding: 48px 24px 32px;
+    border-bottom: 1px solid #2a2a2a;
+    margin-bottom: 40px;
+  }
+  .book-title {
+    font-family: Georgia, serif;
+    font-size: 26px;
+    font-weight: 400;
+    color: #c9a96e;
+    letter-spacing: -0.02em;
+    margin: 0 0 8px;
+  }
+  .book-author {
+    font-size: 14px;
+    color: #e8e4dd;
+    opacity: 0.55;
+    margin: 0;
+  }
+  .book-content {
+    max-width: 660px;
+    margin: 0 auto;
+    padding: 0 20px 120px;
+  }
+  p {
+    font-size: 18px;
+    line-height: 1.85;
+    color: #e8e4dd;
+    margin: 0 0 1.15em;
+    text-align: justify;
+    text-indent: 1.6em;
+  }
+  p.first-para {
+    text-indent: 0;
+  }
+  p.first-para::first-letter {
+    font-size: 3.2em;
+    font-family: Georgia, serif;
+    font-weight: 400;
+    color: #c9a96e;
+    float: left;
+    line-height: 0.78;
+    margin: 0.06em 0.08em 0 0;
+    padding: 0;
+  }
+  h2.chapter-heading {
+    font-family: Georgia, serif;
+    font-size: 1.3em;
+    font-weight: 600;
+    color: #c9a96e;
+    margin: 3em 0 1.2em;
+    padding-top: 1.2em;
+    border-top: 1px solid #2a2a2a;
+    text-align: center;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
 </style>
 </head>
 <body>
-${html}
+${bodyHtml}
 </body>
 </html>`
 
