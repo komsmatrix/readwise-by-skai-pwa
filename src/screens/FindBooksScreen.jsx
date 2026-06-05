@@ -37,7 +37,7 @@ export default function FindBooksScreen({ onBack }) {
         {
           name : 'Google Play Books',
           url  : 'https://play.google.com/books',
-          desc : 'Buy and download books legally. Many affordable titles available for Filipino readers.',
+          desc : 'Buy and download books legally. Many affordable titles available for all readers.',
           tags : ['Buy', 'Legal', 'Wide Selection'],
         },
         {
@@ -55,20 +55,20 @@ export default function FindBooksScreen({ onBack }) {
       ]
     },
     {
-      category: 'Filipino Content',
-      emoji   : '🇵🇭',
+      category: 'Local & Regional Content',
+      emoji   : '🌏',
       sites   : [
         {
           name : 'National Book Store Digital',
           url  : 'https://www.nationalbookstore.com',
-          desc : 'Philippine books and local titles. Support Filipino authors and publishers.',
-          tags : ['Filipino', 'Local', 'Support PH Authors'],
+          desc : 'Philippine books and local titles. Support local authors and publishers.',
+          tags : ['Local', 'Regional', 'Support Authors'],
         },
         {
           name : 'Flipreads',
           url  : 'https://www.flipreads.com',
-          desc : 'Philippine digital bookstore with local and international titles.',
-          tags : ['Filipino', 'Digital', 'Local'],
+          desc : 'Digital bookstore with local and international titles.',
+          tags : ['Digital', 'Local', 'International'],
         },
       ]
     },

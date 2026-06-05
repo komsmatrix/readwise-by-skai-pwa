@@ -102,7 +102,7 @@ export default function BuyScreen() {
           </div>
 
           <h1 style={s.headline}>{headlineBooks}<br/>One Lifetime Payment.</h1>
-          <p style={s.subhead}>Self-help, finance, wellness — curated books for Filipinos who want to level up. Works on any phone, no installation needed.</p>
+          <p style={s.subhead}>Self-help, finance, classics, and more — curated books for readers who want to grow. Works on any device, no installation needed.</p>
 
           <div style={s.featureList}>
             {[
@@ -198,7 +198,7 @@ export default function BuyScreen() {
             >
               {status === 'loading'
                 ? <><span style={s.spinner}/> Setting up payment…</>
-                : <>Pay ₱{finalPrice} — GCash / Maya / Card</>
+                : <>Pay ₱{finalPrice} — QR Ph / GCash / Maya / Card</>
               }
             </button>
 
