@@ -46,7 +46,7 @@ function welcomeEmail({ firstName, name, email, key, expiresAt, appUrl }) {
             </td>
             <td style="vertical-align:middle;">
               <div style="font-size:18px;font-weight:600;color:#f0ede8;">Readwise by Skai</div>
-              <div style="font-size:11px;color:#c9a96e;letter-spacing:0.08em;text-transform:uppercase;margin-top:2px;">Your Personal Library</div>
+              <div style="font-size:11px;color:#c9a96e;letter-spacing:0.08em;text-transform:uppercase;margin-top:2px;">Your Personal Reading Space</div>
             </td>
           </tr></table>
         </td></tr>
@@ -132,6 +132,12 @@ function welcomeEmail({ firstName, name, email, key, expiresAt, appUrl }) {
             </tr>
           </table>
 
+          <div style="background:rgba(201,169,110,0.06);border:1px solid rgba(201,169,110,0.15);border-radius:8px;padding:14px 16px;margin-bottom:10px;">
+            <p style="margin:0;font-size:13px;color:#9a9690;line-height:1.7;">🔥 You joined at the <span style="color:#c9a96e;font-weight:600;">introductory price of ₱249</span> — regular price is ₱399. You locked in lifetime access at the best price.</p>
+          </div>
+          <div style="background:rgba(160,112,208,0.06);border:1px solid rgba(160,112,208,0.2);border-radius:8px;padding:14px 16px;margin-bottom:10px;">
+            <p style="margin:0;font-size:13px;color:#9a9690;line-height:1.7;">📣 <span style="color:#a070d0;font-weight:600;">Community is coming</span> — book discussions, reading lists, connecting with fellow readers. As a founding member, you get early access. 🚀</p>
+          </div>
           <div style="background:rgba(201,169,110,0.06);border:1px solid rgba(201,169,110,0.15);border-radius:8px;padding:14px 16px;">
             <p style="margin:0;font-size:13px;color:#9a9690;line-height:1.7;">Your access is <span style="color:#c9a96e;font-weight:600;">lifetime</span> — works on any device. New books are added regularly and appear in your library automatically.</p>
           </div>

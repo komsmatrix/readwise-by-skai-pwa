@@ -59,7 +59,7 @@ export default function ActivationScreen({ onActivated }) {
         </div>
 
         <h1 style={s.heading}>Welcome.</h1>
-        <p style={s.sub}>Enter your details to unlock your personal library.</p>
+        <p style={s.sub}>Enter your details to unlock your personal reading space.</p>
 
         <div style={s.form}>
           <div style={s.field}>
@@ -84,7 +84,7 @@ export default function ActivationScreen({ onActivated }) {
           >
             {status === 'loading' ? (
               <><span style={s.spinner}/> Activating…</>
-            ) : status === 'success' ? 'Welcome ✓' : 'Unlock my library'}
+            ) : status === 'success' ? 'Welcome ✓' : 'Open my reading space'}
           </button>
         </div>
 

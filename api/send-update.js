@@ -52,7 +52,7 @@ function updateEmailTemplate({ firstName, newBooks, message, appUrl }) {
                   </td>
                   <td style="vertical-align:middle;">
                     <div style="font-size:18px;font-weight:600;color:#f0ede8;letter-spacing:-0.02em;">Readwise by Skai</div>
-                    <div style="font-size:11px;color:#c9a96e;letter-spacing:0.08em;text-transform:uppercase;margin-top:2px;">Your Personal Library</div>
+                    <div style="font-size:11px;color:#c9a96e;letter-spacing:0.08em;text-transform:uppercase;margin-top:2px;">Your Personal Reading Space</div>
                   </td>
                 </tr>
               </table>

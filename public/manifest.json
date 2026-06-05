@@ -1,7 +1,7 @@
 {
   "name"            : "Readwise by Skai",
   "short_name"      : "Readwise",
-  "description"     : "Your personal library app",
+  "description"     : "Your personal reading space. Upload your books + growing library of classics.",
   "start_url"       : "/",
   "display"         : "standalone",
   "background_color": "#0f0f0f",
