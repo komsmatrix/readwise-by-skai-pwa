@@ -90,7 +90,77 @@ export default async function handler(req, res) {
       }).select().single()
 
       if (error) return res.status(500).json({ error: error.message })
-      return res.status(200).json({ success: true, agent })
+
+      // Send welcome email to agent automatically
+      const firstName  = name.trim().split(' ')[0]
+      const buyLink    = `${APP_URL}/buy?ref=${code}`
+      try {
+        await fetch('https://api.resend.com/emails', {
+          method : 'POST',
+          headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+          body   : JSON.stringify({
+            from    : 'Readwise by Skai <hello@readwisebyskai.com>',
+            reply_to: 'readwisebyskai@gmail.com',
+            to      : [email.toLowerCase().trim()],
+            subject : `🤝 Welcome to the Readwise by Skai Agent Team, ${firstName}!`,
+            html    : `<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:32px 20px;background:#f5f3ef;color:#1a1a1a;">
+<div style="background:#0d0d0d;border-radius:16px;padding:40px 36px;border:1px solid #2a2a2a;">
+
+  <h1 style="font-size:26px;color:#c9a96e;margin:0 0 4px;font-family:Georgia,serif;">Readwise by Skai</h1>
+  <p style="color:#666;margin:0 0 32px;font-size:13px;letter-spacing:0.05em;text-transform:uppercase;">Agent Partner Program</p>
+
+  <p style="font-size:16px;color:#f0ede8;margin:0 0 12px;">Hi ${firstName}! 👋</p>
+  <p style="font-size:15px;color:#b0a898;line-height:1.7;margin:0 0 24px;">
+    Welcome to the Readwise by Skai agent team! You're all set up and ready to earn. Here's everything you need to get started.
+  </p>
+
+  <div style="background:#1a1a1a;border:1px solid rgba(201,169,110,0.3);border-radius:10px;padding:20px 22px;margin:0 0 20px;text-align:center;">
+    <p style="margin:0 0 6px;font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.08em;">Your Referral Code</p>
+    <p style="margin:0 0 10px;font-size:36px;color:#c9a96e;font-family:monospace;font-weight:700;letter-spacing:0.15em;">${code}</p>
+    <p style="margin:0;font-size:13px;color:#666;">Customers enter this at checkout for ₱20 off</p>
+  </div>
+
+  <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:18px 20px;margin:0 0 20px;">
+    <p style="margin:0 0 8px;font-size:13px;color:#f0ede8;font-weight:600;">💰 How You Earn</p>
+    <table style="width:100%;border-collapse:collapse;">
+      <tr><td style="padding:6px 0;font-size:13px;color:#888;">Customer pays</td><td style="padding:6px 0;font-size:13px;color:#c9a96e;font-weight:600;text-align:right;">₱249</td></tr>
+      <tr><td style="padding:6px 0;font-size:13px;color:#888;">Discount for customer</td><td style="padding:6px 0;font-size:13px;color:#c9a96e;font-weight:600;text-align:right;">₱20 off</td></tr>
+      <tr><td style="padding:6px 0;font-size:13px;color:#888;">Your commission</td><td style="padding:6px 0;font-size:14px;color:#3a9a6a;font-weight:700;text-align:right;">₱50 per sale</td></tr>
+      <tr><td style="padding:6px 0;font-size:13px;color:#888;">Payout schedule</td><td style="padding:6px 0;font-size:13px;color:#c9a96e;font-weight:600;text-align:right;">Every Friday via GCash</td></tr>
+    </table>
+  </div>
+
+  <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:18px 20px;margin:0 0 20px;">
+    <p style="margin:0 0 8px;font-size:13px;color:#f0ede8;font-weight:600;">🔗 Your Personal Buy Link</p>
+    <a href="${buyLink}" style="display:block;background:#1e1e1e;border:1px solid rgba(201,169,110,0.2);border-radius:8px;padding:10px 14px;font-family:monospace;font-size:13px;color:#c9a96e;text-decoration:none;word-break:break-all;">${buyLink}</a>
+    <p style="margin:8px 0 0;font-size:12px;color:#666;">Share this link — the referral code is pre-filled automatically.</p>
+  </div>
+
+  <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:18px 20px;margin:0 0 28px;">
+    <p style="margin:0 0 10px;font-size:13px;color:#f0ede8;font-weight:600;">💬 Ready-to-Send Message</p>
+    <p style="margin:0;font-size:13px;color:#888;line-height:1.75;font-style:italic;background:#111;padding:14px;border-radius:8px;border-left:3px solid #c9a96e;">
+"Hey! I found this app I think you'd love — it's your own personal reading space. Upload any book you own and read it beautifully, plus there's a growing library of classics included. Dark mode, Text-to-Speech, works on any device. ₱229 only with my code <strong style="color:#c9a96e;">${code}</strong>: ${buyLink}"
+    </p>
+  </div>
+
+  <hr style="border:none;border-top:1px solid #2a2a2a;margin:0 0 20px;">
+  <p style="font-size:13px;color:#555;line-height:1.7;margin:0;">
+    Questions? Just reply to this email — Kyle reads every message personally.<br>
+    Let's grow this together! 🚀
+  </p>
+</div>
+</body>
+</html>`,
+          }),
+        })
+      } catch (emailErr) {
+        console.warn('Agent welcome email failed:', emailErr.message)
+      }
+
+      return res.status(200).json({ success: true, agent, emailSent: true })
     }
 
     // ── List agents with sales summary ──────────────────────────────────────

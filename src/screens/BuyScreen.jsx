@@ -7,7 +7,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 
 const INTRO_PRICE    = 249
 const REGULAR_PRICE  = 399
-const REFERRAL_DISC  = 20
+const REFERRAL_DISC  = 20  // default agent discount, overridden by API response
 
 export default function BuyScreen() {
   const [name,         setName]         = useState('')
@@ -15,6 +15,8 @@ export default function BuyScreen() {
   const [referralCode, setReferralCode] = useState('')
   const [codeStatus,   setCodeStatus]   = useState('idle')
   const [agentName,    setAgentName]    = useState('')
+  const [referrerName, setReferrerName] = useState('')
+  const [discountAmt,  setDiscountAmt]  = useState(REFERRAL_DISC)
   const [status,       setStatus]       = useState('idle')
   const [errorMsg,     setErrorMsg]     = useState('')
   const [cancelled,    setCancelled]    = useState(false)
@@ -37,12 +39,10 @@ export default function BuyScreen() {
     } catch(e) {}
   }
 
-  const bookLabel = bookCount !== null ? `${bookCount}+ curated books` : '18+ curated books'
-  const headlineBooks = bookCount !== null ? `${bookCount}+ Premium Books.` : '18+ Premium Books.'
-  const finalPrice = codeStatus === 'valid' ? INTRO_PRICE - REFERRAL_DISC : INTRO_PRICE
+  const finalPrice = codeStatus === 'valid' ? INTRO_PRICE - discountAmt : INTRO_PRICE
 
   async function checkReferralCode(code) {
-    if (!code.trim()) { setCodeStatus('idle'); setAgentName(''); return }
+    if (!code.trim()) { setCodeStatus('idle'); setAgentName(''); setReferrerName(''); setDiscountAmt(REFERRAL_DISC); return }
     setCodeStatus('checking')
     const res  = await fetch('/api/validate-referral', {
       method : 'POST',
@@ -50,8 +50,14 @@ export default function BuyScreen() {
       body   : JSON.stringify({ code }),
     })
     const data = await res.json()
-    if (data.valid) { setCodeStatus('valid'); setAgentName(data.agentName) }
-    else            { setCodeStatus('invalid'); setAgentName('') }
+    if (data.valid) {
+      setCodeStatus('valid')
+      setDiscountAmt(data.discount || REFERRAL_DISC)
+      if (data.type === 'agent') { setAgentName(data.agentName); setReferrerName('') }
+      else { setReferrerName(data.referrerName); setAgentName('') }
+    } else {
+      setCodeStatus('invalid'); setAgentName(''); setReferrerName(''); setDiscountAmt(REFERRAL_DISC)
+    }
   }
 
   async function handleBuy() {
@@ -88,7 +94,10 @@ export default function BuyScreen() {
     <div style={s.root}>
       <div style={s.urgencyBanner}>
         <span style={s.urgencyDot}/>
-        <span style={s.urgencyText}>🔥 Introductory price of <strong>₱{INTRO_PRICE}</strong> — limited time only. Regular price will be ₱{REGULAR_PRICE}.</span>
+        <span style={s.urgencyText}>🔥 Introductory price — <strong>₱{INTRO_PRICE}</strong> only. Regular price is <strong style={{ textDecoration:'line-through', opacity:0.7 }}>₱{REGULAR_PRICE}</strong>. Lock in lifetime access now before the price increases.</span>
+      </div>
+      <div style={s.currencyBanner}>
+        <span style={s.currencyText}>₱{INTRO_PRICE} PHP · ≈ $4.40 USD · ≈ €4.10 EUR · ≈ £3.50 GBP · ≈ ¥640 JPY</span>
       </div>
 
       <div style={s.wrap}>
@@ -97,20 +106,21 @@ export default function BuyScreen() {
             <div style={s.logoIcon}>📖</div>
             <div>
               <div style={s.logoName}>Readwise by Skai</div>
-              <div style={s.logoTagline}>Your Personal Library</div>
+              <div style={s.logoTagline}>Your Personal Reading Space</div>
             </div>
           </div>
 
-          <h1 style={s.headline}>{headlineBooks}<br/>One Lifetime Payment.</h1>
-          <p style={s.subhead}>Self-help, finance, classics, and more — curated books for readers who want to grow. Works on any device, no installation needed.</p>
+          <h1 style={s.headline}>Your Books.<br/>Your Library.<br/><span style={{ color:'var(--accent)' }}>One Lifetime Payment.</span></h1>
+          <p style={s.subhead}>Upload your own books and read them beautifully — plus a growing library of curated classics included. Works on any device, no installation needed.</p>
 
           <div style={s.featureList}>
             {[
-              ['📚', bookLabel, 'Self-help, finance, wellness'],
-              ['🔊', 'Text to Speech', 'Listen while commuting'],
-              ['🔖', 'Bookmarks & Progress', 'Resume where you left off'],
-              ['📱', 'Works on any device', 'Phone, tablet, laptop'],
-              ['✨', 'New books added regularly', 'Library keeps growing'],
+              ['🔒', 'Upload Your Own Books', 'Read any PDF you own — beautifully'],
+              ['🌙', 'Beautiful Dark Mode', 'Easy on the eyes, day and night'],
+              ['🔊', 'Text-to-Speech', 'Listen while commuting or doing anything'],
+              ['📍', 'Auto-saves Progress', 'Always picks up where you left off'],
+              ['📱', 'Works on Any Device', 'Phone, tablet, laptop — no install needed'],
+              ['✨', 'Growing Library of Classics', 'New books added regularly — free forever'],
             ].map(([icon, title, desc]) => (
               <div key={title} style={s.feature}>
                 <span style={s.featureIcon}>{icon}</span>
@@ -163,11 +173,14 @@ export default function BuyScreen() {
                   onBlur={() => checkReferralCode(referralCode)}
                 />
                 {codeStatus === 'checking' && <span style={s.codeChecking}>checking…</span>}
-                {codeStatus === 'valid'    && <span style={s.codeValid}>✓ -₱{REFERRAL_DISC}</span>}
+                {codeStatus === 'valid'    && <span style={s.codeValid}>✓ -₱{discountAmt}</span>}
                 {codeStatus === 'invalid'  && <span style={s.codeInvalid}>✗ Invalid</span>}
               </div>
-              {codeStatus === 'valid' && (
-                <p style={{ margin:'4px 0 0', fontSize:12, color:'#3a9a6a' }}>Referred by {agentName} — ₱{REFERRAL_DISC} discount applied!</p>
+              {codeStatus === 'valid' && agentName && (
+                <p style={{ margin:'4px 0 0', fontSize:12, color:'#3a9a6a' }}>Referred by {agentName} — ₱{discountAmt} discount applied!</p>
+              )}
+              {codeStatus === 'valid' && referrerName && (
+                <p style={{ margin:'4px 0 0', fontSize:12, color:'#3a9a6a' }}>Friend referral from {referrerName} — ₱{discountAmt} discount applied! 🎁</p>
               )}
             </div>
 
@@ -179,7 +192,7 @@ export default function BuyScreen() {
               {codeStatus === 'valid' && (
                 <div style={s.summaryRow}>
                   <span style={{ ...s.summaryLabel, color:'#3a9a6a' }}>Referral discount</span>
-                  <span style={{ ...s.summaryValue, color:'#3a9a6a' }}>-₱{REFERRAL_DISC}</span>
+                  <span style={{ ...s.summaryValue, color:'#3a9a6a' }}>-₱{discountAmt}</span>
                 </div>
               )}
               <div style={s.summaryDivider}/>
@@ -227,6 +240,8 @@ const s = {
   urgencyBanner: { background:'rgba(201,169,110,0.1)', borderBottom:'1px solid rgba(201,169,110,0.2)', padding:'10px 20px', display:'flex', alignItems:'center', justifyContent:'center', gap:8 },
   urgencyDot   : { width:8, height:8, borderRadius:'50%', background:'#c9a96e', animation:'pulse 1.5s ease infinite', flexShrink:0 },
   urgencyText  : { fontSize:13, color:'#c9a96e', textAlign:'center' },
+  currencyBanner: { background:'rgba(255,255,255,0.02)', borderBottom:'1px solid rgba(255,255,255,0.05)', padding:'6px 20px', textAlign:'center' },
+  currencyText : { fontSize:11, color:'var(--text-muted)', letterSpacing:'0.03em' },
   wrap         : { flex:1, display:'flex', flexWrap:'wrap', gap:0, maxWidth:1100, margin:'0 auto', padding:'40px 20px', width:'100%' },
   left         : { flex:'1 1 420px', padding:'0 40px 40px 0' },
   right        : { flex:'1 1 340px', minWidth:300 },

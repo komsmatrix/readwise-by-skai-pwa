@@ -654,7 +654,7 @@ export default function LibraryScreen({ customer, books, progress, prefs, onOpen
 
         <div style={s.stat}>
           <span style={s.statNum}>{books.length}</span>
-          <span style={s.statLabel}>books in your library</span>
+          <span style={s.statLabel}>books & growing</span>
         </div>
 
         <nav style={s.nav}>
@@ -799,6 +799,73 @@ export default function LibraryScreen({ customer, books, progress, prefs, onOpen
                   </div>
                 )}
               </section>
+
+              {/* Coming Soon + Community + Referral — only on main library tab */}
+              {!search && activeCategory === 'All' && activeTab === 'library' && (
+                <>
+                  {/* Coming Soon */}
+                  <section style={{ ...s.section, marginTop:8 }}>
+                    <div style={s.sectionHeader}>
+                      <h2 style={{ ...s.sectionTitle, fontSize:14 }}>Coming Soon</h2>
+                      <span style={xS.soonBadge}>📖 New arrivals</span>
+                    </div>
+                    <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                      {[
+                        { title:'The Prince', author:'Niccolò Machiavelli', cat:'Philosophy' },
+                        { title:'Walden', author:'Henry David Thoreau', cat:'Self-Help' },
+                        { title:'The Jungle Book', author:'Rudyard Kipling', cat:'Fiction' },
+                        { title:'The War of the Worlds', author:'H.G. Wells', cat:'Fiction' },
+                        { title:'The Adventures of Tom Sawyer', author:'Mark Twain', cat:'Fiction' },
+                      ].map((book, i) => (
+                        <div key={i} style={xS.soonCard}>
+                          <div style={xS.soonCover}><span style={{ fontSize:16, position:'relative', zIndex:1 }}>📚</span></div>
+                          <div style={{ flex:1, minWidth:0 }}>
+                            <p style={xS.soonTitle}>{book.title}</p>
+                            <p style={xS.soonAuthor}>{book.author}</p>
+                            <span style={xS.soonCat}>{book.cat}</span>
+                          </div>
+                          <div style={xS.soonPill}>Soon</div>
+                        </div>
+                      ))}
+                    </div>
+                    <p style={xS.soonNote}>New books added regularly — all free for lifetime members. 🎉</p>
+                  </section>
+
+                  {/* Community Teaser */}
+                  <section style={{ ...s.section, marginTop:8 }}>
+                    <div style={xS.communityCard}>
+                      <div style={xS.communityIcon}>📣</div>
+                      <div style={{ flex:1 }}>
+                        <p style={xS.communityTitle}>Community is coming</p>
+                        <p style={xS.communityDesc}>
+                          We're building a reading community — book discussions, reading lists, and connecting with fellow readers. As a founding member, you'll get early access. 🚀
+                        </p>
+                      </div>
+                    </div>
+                  </section>
+
+                  {/* Customer Referral */}
+                  {customer?.referral_code && (
+                    <section style={{ ...s.section, marginTop:8 }}>
+                      <div style={xS.referralCard}>
+                        <p style={xS.referralTitle}>🎁 Share & Give ₱10 Off</p>
+                        <p style={xS.referralDesc}>Know someone who'd love this app? Share your code — they get ₱10 off their purchase.</p>
+                        <div style={xS.referralCodeRow}>
+                          <span style={xS.referralCode}>{customer.referral_code}</span>
+                          <button style={xS.referralCopy}
+                            onClick={() => {
+                              navigator.clipboard.writeText(`${customer.referral_code}`)
+                              alert('Code copied! Share it with friends.')
+                            }}>Copy Code</button>
+                        </div>
+                        <p style={xS.referralLink}>
+                          Or share your link: <span style={{ color:'var(--accent)' }}>readwisebyskai.com/buy?ref={customer.referral_code}</span>
+                        </p>
+                      </div>
+                    </section>
+                  )}
+                </>
+              )}
             </>
           )}
 
@@ -1051,4 +1118,30 @@ const na = {
   title    : { fontSize:13, color:'var(--text-primary)', fontWeight:500, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' },
   author   : { fontSize:11, color:'var(--text-muted)' },
   time     : { fontSize:10, color:'var(--text-muted)', flexShrink:0, opacity:0.7 },
+}
+
+// ── Extra section styles (Coming Soon, Community, Referral) ──────────────────
+const xS = {
+  // Coming Soon
+  soonBadge  : { fontSize:10, color:'#a070d0', background:'rgba(160,112,208,0.1)', padding:'2px 8px', borderRadius:99, border:'1px solid rgba(160,112,208,0.2)' },
+  soonCard   : { display:'flex', alignItems:'center', gap:12, padding:'10px 14px', background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', opacity:0.75 },
+  soonCover  : { width:38, height:50, borderRadius:6, background:'var(--bg-surface)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, border:'1px solid var(--border)', overflow:'hidden', position:'relative' },
+  soonTitle  : { fontSize:13, fontWeight:500, color:'var(--text-primary)', margin:'0 0 2px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' },
+  soonAuthor : { fontSize:11, color:'var(--text-muted)', margin:'0 0 4px' },
+  soonCat    : { fontSize:10, color:'#a070d0', background:'rgba(160,112,208,0.1)', border:'1px solid rgba(160,112,208,0.2)', padding:'1px 6px', borderRadius:99 },
+  soonPill   : { fontSize:10, fontWeight:600, color:'#a070d0', background:'rgba(160,112,208,0.1)', border:'1px solid rgba(160,112,208,0.2)', padding:'3px 8px', borderRadius:99, flexShrink:0 },
+  soonNote   : { fontSize:11, color:'var(--text-muted)', marginTop:10, textAlign:'center' },
+  // Community
+  communityCard : { display:'flex', gap:14, padding:'16px 18px', background:'rgba(160,112,208,0.06)', border:'1px solid rgba(160,112,208,0.18)', borderRadius:'var(--radius-md)' },
+  communityIcon : { fontSize:24, flexShrink:0 },
+  communityTitle: { fontSize:14, fontWeight:600, color:'var(--text-primary)', margin:'0 0 6px' },
+  communityDesc : { fontSize:13, color:'var(--text-muted)', margin:0, lineHeight:1.6, fontWeight:300 },
+  // Referral
+  referralCard  : { padding:'18px 20px', background:'var(--accent-dim)', border:'1px solid var(--gold-border, rgba(201,169,110,0.25))', borderRadius:'var(--radius-md)' },
+  referralTitle : { fontSize:14, fontWeight:600, color:'var(--text-primary)', margin:'0 0 6px' },
+  referralDesc  : { fontSize:13, color:'var(--text-muted)', margin:'0 0 12px', fontWeight:300 },
+  referralCodeRow: { display:'flex', alignItems:'center', gap:10, marginBottom:8 },
+  referralCode  : { fontFamily:'monospace', fontSize:22, fontWeight:700, color:'var(--accent)', letterSpacing:'0.1em', background:'var(--bg-elevated)', padding:'6px 14px', borderRadius:8, border:'1px solid var(--border)' },
+  referralCopy  : { padding:'6px 14px', background:'var(--accent)', color:'#0d0d0d', border:'none', borderRadius:8, fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:'inherit' },
+  referralLink  : { fontSize:11, color:'var(--text-muted)', margin:0 },
 }

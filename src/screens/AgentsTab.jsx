@@ -114,12 +114,12 @@ export default function AgentsTab({ savedPass }) {
         </button>
         {createStatus==='success' && createResult && (
           <div style={s.successBox} className="animate-in">
-            <p style={s.successLabel}>✅ Agent Created!</p>
+            <p style={s.successLabel}>✅ Agent added — welcome email sent!</p>
             <p style={{margin:'4px 0',fontSize:14,color:'var(--text-primary)',fontWeight:500}}>{createResult.name}</p>
             <p style={{margin:'4px 0',fontSize:11,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Their referral code:</p>
             <p style={{margin:'4px 0',fontFamily:'monospace',fontSize:28,color:'var(--accent)',fontWeight:700,letterSpacing:'0.1em'}}>{createResult.code}</p>
             <p style={{margin:'4px 0',fontSize:12,color:'var(--text-muted)',lineHeight:1.6}}>
-              Send this code to {createResult.name.split(' ')[0]} via Messenger. Customers get ₱20 off. You pay ₱50 commission per sale.
+              ✉️ {createResult.name.split(' ')[0]} received a welcome email with their code, commission details, buy link with code pre-filled, and a ready-to-send script. No manual work needed!
             </p>
             <button style={{...s.btn,marginTop:4,padding:'8px 16px',fontSize:13}}
               onClick={() => navigator.clipboard.writeText(createResult.code)}>Copy Code</button>
