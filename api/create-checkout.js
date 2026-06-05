@@ -27,21 +27,37 @@ export default async function handler(req, res) {
     let discountAmt = 0
 
     if (referralCode) {
-      const code = referralCode.trim().toUpperCase()
+      const code       = referralCode.trim().toUpperCase()
+      const emailClean = email.toLowerCase().trim()
 
       // Check agent code first (₱20 discount)
       const { data: agent } = await supabase
-        .from('agents').select('id, name, is_active').eq('code', code).single()
+        .from('agents').select('id, name, email, is_active').eq('code', code).single()
 
       if (agent && agent.is_active) {
+        // FRAUD PROTECTION: agent cannot use their own code
+        if (agent.email && agent.email.toLowerCase().trim() === emailClean) {
+          return res.status(400).json({ error: 'You cannot use your own referral code.' })
+        }
         agentId    = agent.id
         finalPrice = INTRO_PRICE - AGENT_DISCOUNT
         discountAmt = AGENT_DISCOUNT
       } else {
         // Check customer referral code (₱10 discount)
         const { data: referrer } = await supabase
-          .from('customers').select('id').eq('referral_code', code).single()
+          .from('customers').select('id, email').eq('referral_code', code).single()
+
         if (referrer) {
+          // FRAUD PROTECTION: customer cannot use their own code
+          if (referrer.email && referrer.email.toLowerCase().trim() === emailClean) {
+            return res.status(400).json({ error: 'You cannot use your own referral code.' })
+          }
+          // FRAUD PROTECTION: existing customer cannot buy again with a referral discount
+          const { data: existing } = await supabase
+            .from('customers').select('id').eq('email', emailClean).single()
+          if (existing) {
+            return res.status(400).json({ error: 'This email already has an active account.' })
+          }
           finalPrice  = INTRO_PRICE - CUSTOMER_DISCOUNT
           discountAmt = CUSTOMER_DISCOUNT
         }

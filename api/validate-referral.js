@@ -8,20 +8,25 @@ const supabase = createClient(
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
-  const { code } = req.body
+  const { code, email } = req.body
   if (!code?.trim()) return res.status(400).json({ valid: false })
 
-  const codeUpper = code.trim().toUpperCase()
+  const codeUpper  = code.trim().toUpperCase()
+  const emailClean = email?.toLowerCase().trim() || ''
 
   try {
     // 1. Check agents table first (₱20 discount)
     const { data: agent } = await supabase
       .from('agents')
-      .select('id, name, code')
+      .select('id, name, email, code')
       .eq('code', codeUpper)
       .single()
 
     if (agent) {
+      // Self-referral check
+      if (emailClean && agent.email?.toLowerCase().trim() === emailClean) {
+        return res.status(200).json({ valid: false, reason: 'self_referral' })
+      }
       return res.status(200).json({
         valid    : true,
         type     : 'agent',
@@ -34,11 +39,15 @@ export default async function handler(req, res) {
     // 2. Check customers table (₱10 friend referral discount)
     const { data: customer } = await supabase
       .from('customers')
-      .select('id, name, referral_code')
+      .select('id, name, email, referral_code')
       .eq('referral_code', codeUpper)
       .single()
 
     if (customer) {
+      // Self-referral check
+      if (emailClean && customer.email?.toLowerCase().trim() === emailClean) {
+        return res.status(200).json({ valid: false, reason: 'self_referral' })
+      }
       return res.status(200).json({
         valid       : true,
         type        : 'customer',

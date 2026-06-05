@@ -47,7 +47,7 @@ export default function BuyScreen() {
     const res  = await fetch('/api/validate-referral', {
       method : 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body   : JSON.stringify({ code }),
+      body   : JSON.stringify({ code, email: buyerEmail }),
     })
     const data = await res.json()
     if (data.valid) {
@@ -55,6 +55,8 @@ export default function BuyScreen() {
       setDiscountAmt(data.discount || REFERRAL_DISC)
       if (data.type === 'agent') { setAgentName(data.agentName); setReferrerName('') }
       else { setReferrerName(data.referrerName); setAgentName('') }
+    } else if (data.reason === 'self_referral') {
+      setCodeStatus('self_referral'); setAgentName(''); setReferrerName(''); setDiscountAmt(REFERRAL_DISC)
     } else {
       setCodeStatus('invalid'); setAgentName(''); setReferrerName(''); setDiscountAmt(REFERRAL_DISC)
     }
@@ -173,8 +175,9 @@ export default function BuyScreen() {
                   onBlur={() => checkReferralCode(referralCode)}
                 />
                 {codeStatus === 'checking' && <span style={s.codeChecking}>checking…</span>}
-                {codeStatus === 'valid'    && <span style={s.codeValid}>✓ -₱{discountAmt}</span>}
-                {codeStatus === 'invalid'  && <span style={s.codeInvalid}>✗ Invalid</span>}
+                {codeStatus === 'valid'        && <span style={s.codeValid}>✓ -₱{discountAmt}</span>}
+                {codeStatus === 'invalid'      && <span style={s.codeInvalid}>✗ Invalid</span>}
+                {codeStatus === 'self_referral'&& <span style={s.codeInvalid}>✗ Can't use own code</span>}
               </div>
               {codeStatus === 'valid' && agentName && (
                 <p style={{ margin:'4px 0 0', fontSize:12, color:'#3a9a6a' }}>Referred by {agentName} — ₱{discountAmt} discount applied!</p>
