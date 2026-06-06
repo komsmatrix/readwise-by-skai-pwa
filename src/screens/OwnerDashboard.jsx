@@ -10,6 +10,20 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
   const [password,    setPassword]    = useState('')
   const [authError,   setAuthError]   = useState('')
   const [tab,         setTab]         = useState('generate')
+
+  // Edit Book state
+  const [editBooks,     setEditBooks]     = useState([])
+  const [editLoading,   setEditLoading]   = useState(false)
+  const [editBook,      setEditBook]      = useState(null)   // currently editing
+  const [editTitle,     setEditTitle]     = useState('')
+  const [editAuthor,    setEditAuthor]    = useState('')
+  const [editCategory,  setEditCategory]  = useState('Self-Help')
+  const [editDesc,      setEditDesc]      = useState('')
+  const [editCoverFile, setEditCoverFile] = useState(null)
+  const [editStatus,    setEditStatus]    = useState('idle') // idle|saving|success|error
+  const [editError,     setEditError]     = useState('')
+  const [deleteConfirm, setDeleteConfirm] = useState(false) // confirm delete modal
+  const editCoverRef = useRef(null)
   const [customers,   setCustomers]   = useState([])
   const [loading,     setLoading]     = useState(false)
 
@@ -275,6 +289,99 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
     navigator.clipboard.writeText(emails)
   }
 
+  async function loadEditBooks() {
+    setEditLoading(true)
+    try {
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/books?select=id,title,author,category,description,cover_path&is_active=eq.true&order=title.asc`, {
+        headers: { 'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY, 'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}` }
+      })
+      const data = await res.json()
+      setEditBooks(Array.isArray(data) ? data : [])
+    } catch { setEditBooks([]) }
+    setEditLoading(false)
+  }
+
+  function startEdit(book) {
+    setEditBook(book)
+    setEditTitle(book.title || '')
+    setEditAuthor(book.author || '')
+    setEditCategory(book.category || 'Self-Help')
+    setEditDesc(book.description || '')
+    setEditCoverFile(null)
+    setEditStatus('idle')
+    setEditError('')
+    if (editCoverRef.current) editCoverRef.current.value = ''
+  }
+
+  async function handleSaveEdit() {
+    if (!editBook) return
+    setEditStatus('saving')
+    setEditError('')
+    try {
+      let coverPath = editBook.cover_path
+
+      // Upload new cover if provided
+      if (editCoverFile) {
+        const ext  = editCoverFile.name.split('.').pop()
+        const cat  = editCategory.toLowerCase().replace(/\s+/g, '-')
+        const slug = editTitle.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40)
+        coverPath  = `${cat}/${slug}.${ext}`
+        const { error: covErr } = await supabase.storage
+          .from('covers').upload(coverPath, editCoverFile, { upsert: true, contentType: editCoverFile.type })
+        if (covErr) throw new Error('Cover upload failed: ' + covErr.message)
+      }
+
+      // Update book record
+      const { error: dbErr } = await supabase
+        .from('books')
+        .update({
+          title      : editTitle.trim(),
+          author     : editAuthor.trim() || null,
+          category   : editCategory,
+          description: editDesc.trim() || null,
+          cover_path : coverPath,
+        })
+        .eq('id', editBook.id)
+
+      if (dbErr) throw new Error('Update failed: ' + dbErr.message)
+
+      // Refresh list
+      setEditBooks(prev => prev.map(b => b.id === editBook.id
+        ? { ...b, title: editTitle.trim(), author: editAuthor.trim(), category: editCategory, description: editDesc.trim(), cover_path: coverPath }
+        : b
+      ))
+      setEditStatus('success')
+      setTimeout(() => { setEditBook(null); setEditStatus('idle') }, 1500)
+    } catch(err) {
+      setEditStatus('error')
+      setEditError(err.message)
+    }
+  }
+
+  async function handleDeleteBook() {
+    if (!editBook) return
+    setEditStatus('saving')
+    setEditError('')
+    try {
+      // Soft delete — set is_active to false (book disappears from library but data preserved)
+      const { error } = await supabase
+        .from('books')
+        .update({ is_active: false })
+        .eq('id', editBook.id)
+      if (error) throw new Error('Delete failed: ' + error.message)
+
+      // Remove from local list
+      setEditBooks(prev => prev.filter(b => b.id !== editBook.id))
+      setDeleteConfirm(false)
+      setEditStatus('idle')
+      setEditBook(null)
+    } catch(err) {
+      setEditStatus('error')
+      setEditError(err.message)
+      setDeleteConfirm(false)
+    }
+  }
+
   async function loadFeedback() {
     setFbLoading(true)
     try {
@@ -342,6 +449,7 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
         {[
           ['generate', '🔑 Generate Key'],
           ['addbook',  '📚 Add Book'],
+          ['editbook', '✏️ Edit Book'],
           ['sales',    '💰 Sales'],
           ['agents',   '🤝 Agents'],
           ['customers','👥 Customers'],
@@ -517,6 +625,127 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
         )}
 
         {/* ── Sales ── */}
+        {/* ── Edit Book Tab ── */}
+        {tab === 'editbook' && (
+          <div style={s.section}>
+            <p style={s.sectionDesc}>Edit title, author, category, description, or cover photo of any existing book.</p>
+
+            {/* Book not selected yet — show list */}
+            {!editBook && (
+              <>
+                <button style={s.btn} onClick={loadEditBooks} disabled={editLoading}>
+                  {editLoading ? <><span style={s.spinner}/> Loading books…</> : '📚 Load Books to Edit'}
+                </button>
+                <div style={{ display:'flex', flexDirection:'column', gap:8, marginTop:12 }}>
+                  {editBooks.map(book => (
+                    <div key={book.id} style={ebS.bookRow}>
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <p style={ebS.bookTitle}>{book.title}</p>
+                        <p style={ebS.bookMeta}>{book.author || '—'} · {book.category}</p>
+                      </div>
+                      <button style={ebS.editBtn} onClick={() => startEdit(book)}>✏️ Edit</button>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* Edit form */}
+            {editBook && (
+              <div className="animate-in">
+                <div style={ebS.editHeader}>
+                  <button style={ebS.backBtn} onClick={() => { setEditBook(null); setEditStatus('idle') }}>← Back</button>
+                  <p style={ebS.editTitle}>Editing: {editBook.title}</p>
+                </div>
+
+                {/* Title */}
+                <div style={s.field}>
+                  <label style={s.label}>Title</label>
+                  <input style={s.input} value={editTitle} onChange={e => setEditTitle(e.target.value)} placeholder="Book title"/>
+                </div>
+
+                {/* Author */}
+                <div style={s.field}>
+                  <label style={s.label}>Author</label>
+                  <input style={s.input} value={editAuthor} onChange={e => setEditAuthor(e.target.value)} placeholder="Author name"/>
+                </div>
+
+                {/* Category */}
+                <div style={s.field}>
+                  <label style={s.label}>Category</label>
+                  <select style={s.input} value={editCategory} onChange={e => setEditCategory(e.target.value)}>
+                    {['Self-Help','Finance','Business','Philosophy','Fiction','Health','Biography','History','Science','Other'].map(c => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Description */}
+                <div style={s.field}>
+                  <label style={s.label}>Description <span style={{ color:'var(--text-muted)', fontSize:11 }}>(optional)</span></label>
+                  <textarea style={{ ...s.input, resize:'vertical', minHeight:80, lineHeight:1.6 }}
+                    placeholder="Short description shown on the book card…"
+                    value={editDesc} onChange={e => setEditDesc(e.target.value)}/>
+                </div>
+
+                {/* Cover Photo */}
+                <div style={s.field}>
+                  <label style={s.label}>Cover Photo <span style={{ color:'var(--text-muted)', fontSize:11 }}>(leave empty to keep current)</span></label>
+                  {editBook.cover_path && (
+                    <p style={{ fontSize:12, color:'var(--text-muted)', marginBottom:6 }}>
+                      Current: <span style={{ color:'var(--accent)' }}>{editBook.cover_path}</span>
+                    </p>
+                  )}
+                  <input ref={editCoverRef} type="file" accept="image/*" style={{ display:'none' }}
+                    onChange={e => setEditCoverFile(e.target.files[0] || null)}/>
+                  {!editCoverFile ? (
+                    <button style={ab.pickBtn} onClick={() => editCoverRef.current?.click()}>
+                      🖼️ {editBook.cover_path ? 'Replace Cover Photo' : 'Upload Cover Photo'}
+                    </button>
+                  ) : (
+                    <div style={ab.fileChosen}>
+                      <span style={ab.tag}>IMG</span>
+                      <span style={ab.fileName}>{editCoverFile.name}</span>
+                      <button style={ab.changeBtn} onClick={() => { setEditCoverFile(null); if (editCoverRef.current) editCoverRef.current.value = '' }}>Remove</button>
+                    </div>
+                  )}
+                </div>
+
+                {editStatus === 'error' && <p style={{ fontSize:13, color:'#e05c5c', margin:'8px 0' }}>✗ {editError}</p>}
+                {editStatus === 'success' && <p style={{ fontSize:13, color:'#3a9a6a', margin:'8px 0' }}>✅ Book updated successfully!</p>}
+
+                <button
+                  style={{ ...s.btn, ...(editStatus === 'saving' ? s.btnDisabled : {}) }}
+                  onClick={handleSaveEdit}
+                  disabled={editStatus === 'saving' || !editTitle.trim()}>
+                  {editStatus === 'saving' ? <><span style={s.spinner}/> Saving…</> : '💾 Save Changes'}
+                </button>
+
+                {/* Delete section */}
+                <div style={ebS.deleteSection}>
+                  {!deleteConfirm ? (
+                    <button style={ebS.deleteBtn} onClick={() => setDeleteConfirm(true)}>
+                      🗑️ Delete This Book
+                    </button>
+                  ) : (
+                    <div style={ebS.deleteConfirmBox} className="animate-in">
+                      <p style={ebS.deleteWarning}>⚠️ Are you sure you want to delete <strong>"{editBook.title}"</strong>? It will be removed from the library for all customers.</p>
+                      <div style={{ display:'flex', gap:10, marginTop:12 }}>
+                        <button style={ebS.deleteConfirmBtn} onClick={handleDeleteBook} disabled={editStatus === 'saving'}>
+                          {editStatus === 'saving' ? <><span style={s.spinner}/> Deleting…</> : 'Yes, Delete'}
+                        </button>
+                        <button style={ebS.deleteCancelBtn} onClick={() => setDeleteConfirm(false)}>
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {tab === 'sales' && (
           <div style={{ ...s.section, maxWidth:640 }}>
 
@@ -886,4 +1115,21 @@ const fbS = {
   cardName   : { fontSize:13, fontWeight:600, color:'var(--text-primary)', margin:0 },
   cardMeta   : { fontSize:11, color:'var(--text-muted)', margin:'2px 0 0' },
   cardMsg    : { fontSize:14, color:'var(--text-secondary)', margin:0, lineHeight:1.6, whiteSpace:'pre-wrap' },
+}
+
+// ── Edit Book styles ──────────────────────────────────────────────────────────
+const ebS = {
+  bookRow        : { display:'flex', alignItems:'center', gap:12, padding:'12px 16px', background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:'var(--radius-md)' },
+  bookTitle      : { fontSize:14, fontWeight:500, color:'var(--text-primary)', margin:'0 0 2px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' },
+  bookMeta       : { fontSize:12, color:'var(--text-muted)', margin:0 },
+  editBtn        : { padding:'6px 14px', background:'var(--accent-dim)', border:'1px solid rgba(201,169,110,0.3)', borderRadius:8, color:'var(--accent)', fontSize:13, cursor:'pointer', fontFamily:'inherit', flexShrink:0 },
+  editHeader     : { display:'flex', alignItems:'center', gap:12, marginBottom:16, paddingBottom:12, borderBottom:'1px solid var(--border)' },
+  backBtn        : { padding:'6px 12px', background:'transparent', border:'1px solid var(--border)', borderRadius:8, color:'var(--text-secondary)', fontSize:13, cursor:'pointer', fontFamily:'inherit', flexShrink:0 },
+  editTitle      : { fontSize:13, color:'var(--text-muted)', margin:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' },
+  deleteSection  : { marginTop:24, paddingTop:16, borderTop:'1px solid var(--border)' },
+  deleteBtn      : { padding:'8px 16px', background:'transparent', border:'1px solid rgba(224,92,92,0.3)', borderRadius:8, color:'#e05c5c', fontSize:13, cursor:'pointer', fontFamily:'inherit', width:'100%' },
+  deleteConfirmBox: { background:'rgba(224,92,92,0.06)', border:'1px solid rgba(224,92,92,0.2)', borderRadius:10, padding:'14px 16px' },
+  deleteWarning  : { fontSize:13, color:'var(--text-secondary)', lineHeight:1.6, margin:0 },
+  deleteConfirmBtn: { flex:1, padding:'10px', background:'#e05c5c', border:'none', borderRadius:8, color:'#fff', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'inherit' },
+  deleteCancelBtn : { flex:1, padding:'10px', background:'transparent', border:'1px solid var(--border)', borderRadius:8, color:'var(--text-secondary)', fontSize:13, cursor:'pointer', fontFamily:'inherit' },
 }
