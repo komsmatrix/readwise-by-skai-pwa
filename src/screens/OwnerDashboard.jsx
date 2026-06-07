@@ -158,6 +158,40 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
     setAddStatus('uploading'); setAddError(''); setAddProgress('')
 
     try {
+      // ── PART 1: Duplicate Prevention ──────────────────────────────────────
+      setAddProgress('Checking for duplicates…')
+
+      function normTitle(t) {
+        if (!t) return ''
+        return t.split(/[;:,—–]/, 1)[0].toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim()
+      }
+      function normAuthor(a) {
+        if (!a) return ''
+        const parts = a.split(',')
+        let str = parts.length > 1 ? `${parts[1].trim()} ${parts[0].trim()}` : a
+        return str.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim()
+      }
+
+      const { data: existingBooks } = await supabase
+        .from('books')
+        .select('id, title, author')
+        .eq('is_active', true)
+
+      const normNew   = normTitle(bookTitle)
+      const normAuth  = normAuthor(bookAuthor)
+
+      const duplicate = (existingBooks || []).find(b => {
+        const titleMatch  = normTitle(b.title) === normNew
+        const authorMatch = !normAuth || !normAuthor(b.author) || normAuthor(b.author) === normAuth
+        return titleMatch && authorMatch
+      })
+
+      if (duplicate) {
+        setAddStatus('error')
+        setAddError(`"${bookTitle}" by ${bookAuthor || 'this author'} already exists in the library.`)
+        return
+      }
+
       const slug = bookTitle.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
       const cat  = bookCategory.toLowerCase().replace(/\s+/g, '-')
 
@@ -203,27 +237,45 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
 
       const newBookId = insertedBook?.id
 
-      // 5. Auto-extract text from PDF if no text file was uploaded
+      // ── PART 2: Auto-fetch text from Standard Ebooks / Gutenberg ──────────
       if (!textFile && newBookId) {
-        setAddProgress('Extracting text from PDF…')
+        setAddProgress('Searching for clean text online…')
         try {
-          const extractRes = await fetch('/api/extract-text', {
+          const fetchRes = await fetch('/api/fetch-book-text', {
             method : 'POST',
             headers: { 'Content-Type': 'application/json' },
             body   : JSON.stringify({
-              bookId  : newBookId,
-              pdfPath,
-              textPath: `${cat}/${slug}.html`,
-              title   : title.trim(),
-              author  : author.trim(),
+              bookId      : newBookId,
+              title       : bookTitle.trim(),
+              author      : bookAuthor.trim(),
+              textPathBase: `${cat}/${slug}`,
             }),
           })
-          const extractData = await extractRes.json()
-          if (!extractData.success) {
-            console.warn('Text extraction failed (book still added):', extractData.error)
+          const fetchData = await fetchRes.json()
+          if (fetchData.success) {
+            setAddProgress(`✓ Text found on ${fetchData.source === 'standardebooks' ? 'Standard Ebooks' : 'Project Gutenberg'}!`)
+          } else if (fetchData.reason === 'not_found') {
+            // Fall back to PDF extraction
+            setAddProgress('Not found online — extracting from PDF…')
+            const extractRes = await fetch('/api/extract-text', {
+              method : 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body   : JSON.stringify({
+                bookId  : newBookId,
+                pdfPath,
+                textPath: `${cat}/${slug}.html`,
+                title   : bookTitle.trim(),
+                author  : bookAuthor.trim(),
+              }),
+            })
+            const extractData = await extractRes.json()
+            if (!extractData.success) {
+              console.warn('Text extraction failed (book still added):', extractData.error)
+            }
           }
         } catch(e) {
-          console.warn('Text extraction error (book still added):', e)
+          // Silent fallback — book is still added
+          console.warn('Auto text fetch error (book still added):', e)
         }
       }
 
