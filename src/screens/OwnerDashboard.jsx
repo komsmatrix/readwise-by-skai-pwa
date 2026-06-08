@@ -60,6 +60,7 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
   const [addStatus,   setAddStatus]   = useState('idle')
   const [addError,    setAddError]    = useState('')
   const [addProgress,      setAddProgress]      = useState('')
+  const [addTextSource,    setAddTextSource]    = useState(null) // null | 'standardebooks' | 'gutenberg' | 'pdf' | 'manual'
   const [reextractStatus,  setReextractStatus]  = useState('idle')  // idle | loading | done | error
   const [reextractLog,     setReextractLog]     = useState([])
   const [reextractCount,   setReextractCount]   = useState({ done:0, total:0 })
@@ -155,7 +156,7 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
   // ── Add Book ──────────────────────────────────────────────────────────────
   async function handleAddBook() {
     if (!bookTitle.trim() || !pdfFile) return
-    setAddStatus('uploading'); setAddError(''); setAddProgress('')
+    setAddStatus('uploading'); setAddError(''); setAddProgress(''); setAddTextSource(null)
 
     try {
       // ── PART 1: Duplicate Prevention ──────────────────────────────────────
@@ -206,6 +207,7 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
         textPath = `${cat}/${slug}.html`
         const { error: txtErr } = await supabase.storage.from('books').upload(textPath, textFile, { upsert: true, contentType: 'text/html' })
         if (txtErr) throw new Error('Text file upload failed: ' + txtErr.message)
+        setAddTextSource('uploaded')
       }
 
       let coverPath = null
@@ -253,6 +255,7 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
           })
           const fetchData = await fetchRes.json()
           if (fetchData.success) {
+            setAddTextSource(fetchData.source) // 'standardebooks' or 'gutenberg'
             setAddProgress(`✓ Text found on ${fetchData.source === 'standardebooks' ? 'Standard Ebooks' : 'Project Gutenberg'}!`)
           } else if (fetchData.reason === 'not_found') {
             // Fall back to PDF extraction
@@ -269,8 +272,10 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
               }),
             })
             const extractData = await extractRes.json()
-            if (!extractData.success) {
-              console.warn('Text extraction failed (book still added):', extractData.error)
+            if (extractData.success) {
+              setAddTextSource('pdf')
+            } else {
+              setAddTextSource('manual')
             }
           }
         } catch(e) {
@@ -624,7 +629,24 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
                 <span style={{ fontSize:22 }}>✅</span>
                 <div>
                   <p style={{ fontSize:14, color:'#3a9a6a', fontWeight:500 }}>Book added successfully!</p>
-                  <p style={{ fontSize:12, color:'var(--text-muted)', marginTop:3 }}>It's now live in the library for all customers.</p>
+                  {addTextSource === 'standardebooks' && (
+                    <p style={{ fontSize:12, color:'var(--text-muted)', marginTop:3 }}>📖 Text source: <strong style={{ color:'#3a9a6a' }}>Standard Ebooks</strong> — high quality, professionally formatted.</p>
+                  )}
+                  {addTextSource === 'gutenberg' && (
+                    <p style={{ fontSize:12, color:'var(--text-muted)', marginTop:3 }}>📖 Text source: <strong style={{ color:'#3a9a6a' }}>Project Gutenberg</strong> — clean text extracted successfully.</p>
+                  )}
+                  {addTextSource === 'pdf' && (
+                    <p style={{ fontSize:12, color:'var(--text-muted)', marginTop:3 }}>📄 Text source: <strong style={{ color:'#c9a96e' }}>PDF extraction</strong> — not found online. Check Text Mode quality and re-extract if needed.</p>
+                  )}
+                  {addTextSource === 'manual' && (
+                    <p style={{ fontSize:12, color:'#e05c5c', marginTop:3 }}>⚠️ <strong>Text extraction failed</strong> — Text Mode may not work. Consider uploading an HTML text file manually.</p>
+                  )}
+                  {addTextSource === 'uploaded' && (
+                    <p style={{ fontSize:12, color:'var(--text-muted)', marginTop:3 }}>📎 Text source: <strong style={{ color:'#3a9a6a' }}>Manually uploaded</strong> — your file is live.</p>
+                  )}
+                  {!addTextSource && (
+                    <p style={{ fontSize:12, color:'var(--text-muted)', marginTop:3 }}>It's now live in the library for all customers.</p>
+                  )}
                 </div>
               </div>
             )}
@@ -637,7 +659,7 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
             </button>
             {addStatus === 'success' && (
               <button style={{ ...s.btn, background:'transparent', border:'1px solid var(--border)', color:'var(--text-secondary)' }}
-                onClick={() => setAddStatus('idle')}>Add Another Book</button>
+                onClick={() => { setAddStatus('idle'); setAddTextSource(null) }}>Add Another Book</button>
             )}
 
             {/* ── Re-extract All Books ── */}
