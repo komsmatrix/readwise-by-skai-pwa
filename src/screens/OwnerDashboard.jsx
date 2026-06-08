@@ -23,6 +23,8 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
   const [editStatus,    setEditStatus]    = useState('idle') // idle|saving|success|error
   const [editError,     setEditError]     = useState('')
   const [deleteConfirm, setDeleteConfirm] = useState(false) // confirm delete modal
+  const [refreshStatus, setRefreshStatus] = useState('idle') // idle|loading|success|error|not_found
+  const [refreshSource, setRefreshSource] = useState(null)
   const editCoverRef = useRef(null)
   const [customers,   setCustomers]   = useState([])
   const [loading,     setLoading]     = useState(false)
@@ -367,6 +369,8 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
     setEditCoverFile(null)
     setEditStatus('idle')
     setEditError('')
+    setRefreshStatus('idle')
+    setRefreshSource(null)
     if (editCoverRef.current) editCoverRef.current.value = ''
   }
 
@@ -436,6 +440,42 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
       setEditStatus('error')
       setEditError(err.message)
       setDeleteConfirm(false)
+    }
+  }
+
+  async function handleRefreshText() {
+    if (!editBook) return
+    setRefreshStatus('loading')
+    setRefreshSource(null)
+    try {
+      const cat  = editCategory.toLowerCase().replace(/\s+/g, '-')
+      const slug = editTitle.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+      const res  = await fetch('/api/fetch-book-text', {
+        method : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body   : JSON.stringify({
+          bookId      : editBook.id,
+          title       : editTitle.trim(),
+          author      : editAuthor.trim(),
+          textPathBase: `${cat}/${slug}`,
+        }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setRefreshStatus('success')
+        setRefreshSource(data.source)
+        // Update local book list to show it now has text
+        setEditBooks(prev => prev.map(b => b.id === editBook.id
+          ? { ...b, text_path: data.textPath }
+          : b
+        ))
+      } else if (data.reason === 'not_found') {
+        setRefreshStatus('not_found')
+      } else {
+        setRefreshStatus('error')
+      }
+    } catch {
+      setRefreshStatus('error')
     }
   }
 
@@ -794,6 +834,34 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
                   disabled={editStatus === 'saving' || !editTitle.trim()}>
                   {editStatus === 'saving' ? <><span style={s.spinner}/> Saving…</> : '💾 Save Changes'}
                 </button>
+
+                {/* Refresh text from Standard Ebooks / Gutenberg */}
+                <div style={ebS.refreshSection}>
+                  <p style={ebS.refreshLabel}>🔄 Refresh Text Source</p>
+                  <p style={ebS.refreshDesc}>Re-fetch clean text from Standard Ebooks or Project Gutenberg. Replaces the current text file with a higher quality version if found.</p>
+                  {refreshStatus === 'success' && (
+                    <p style={{ fontSize:12, color:'#3a9a6a', margin:'6px 0' }}>
+                      ✅ Text refreshed from <strong>{refreshSource === 'standardebooks' ? 'Standard Ebooks' : 'Project Gutenberg'}</strong>
+                    </p>
+                  )}
+                  {refreshStatus === 'not_found' && (
+                    <p style={{ fontSize:12, color:'#c9a96e', margin:'6px 0' }}>
+                      ⚠️ Not found on Standard Ebooks or Gutenberg — text file unchanged.
+                    </p>
+                  )}
+                  {refreshStatus === 'error' && (
+                    <p style={{ fontSize:12, color:'#e05c5c', margin:'6px 0' }}>
+                      ✗ Refresh failed. Try again.
+                    </p>
+                  )}
+                  <button style={ebS.refreshBtn}
+                    onClick={handleRefreshText}
+                    disabled={refreshStatus === 'loading'}>
+                    {refreshStatus === 'loading'
+                      ? <><span style={s.spinner}/> Searching…</>
+                      : '🔄 Refresh from Standard Ebooks / Gutenberg'}
+                  </button>
+                </div>
 
                 {/* Delete section */}
                 <div style={ebS.deleteSection}>
@@ -1206,4 +1274,8 @@ const ebS = {
   deleteWarning  : { fontSize:13, color:'var(--text-secondary)', lineHeight:1.6, margin:0 },
   deleteConfirmBtn: { flex:1, padding:'10px', background:'#e05c5c', border:'none', borderRadius:8, color:'#fff', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'inherit' },
   deleteCancelBtn : { flex:1, padding:'10px', background:'transparent', border:'1px solid var(--border)', borderRadius:8, color:'var(--text-secondary)', fontSize:13, cursor:'pointer', fontFamily:'inherit' },
+  refreshSection : { marginTop:12, paddingTop:14, borderTop:'1px solid var(--border)' },
+  refreshLabel   : { fontSize:13, fontWeight:500, color:'var(--text-primary)', margin:'0 0 4px' },
+  refreshDesc    : { fontSize:12, color:'var(--text-muted)', margin:'0 0 10px', lineHeight:1.6, fontWeight:300 },
+  refreshBtn     : { width:'100%', padding:'9px 14px', background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:8, color:'var(--text-secondary)', fontSize:13, cursor:'pointer', fontFamily:'inherit', display:'flex', alignItems:'center', justifyContent:'center', gap:8, transition:'border-color var(--transition)' },
 }
