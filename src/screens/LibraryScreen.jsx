@@ -670,19 +670,7 @@ export default function LibraryScreen({ customer, books, progress, prefs, onOpen
           <span style={s.statLabel}>books & growing</span>
         </div>
 
-        {/* Section Toggle */}
-        <div style={secS.toggle}>
-          <button
-            style={{ ...secS.toggleBtn, ...(sectionType === 'original' ? secS.toggleActive : {}) }}
-            onClick={() => { setSectionType('original'); setActiveCategory('All') }}>
-            📚 Novels
-          </button>
-          <button
-            style={{ ...secS.toggleBtn, ...(sectionType === 'light' ? secS.toggleActive : {}) }}
-            onClick={() => { setSectionType('light'); setActiveCategory('All') }}>
-            ⚡ Light Novels
-          </button>
-        </div>
+        {/* Section Toggle removed from sidebar — now in main header */}
 
         <nav style={s.nav}>
           <p style={s.navLabel}>Categories</p>
@@ -760,6 +748,19 @@ export default function LibraryScreen({ customer, books, progress, prefs, onOpen
             <div>
               <p style={s.greeting}>{getGreeting()},</p>
               <h1 style={s.name}>{customer?.name?.split(' ')[0] || 'Reader'}</h1>
+            </div>
+            {/* Section Toggle — in header */}
+            <div style={secS.headerToggle}>
+              <button
+                style={{ ...secS.headerBtn, ...(sectionType === 'original' ? secS.headerBtnActive : {}) }}
+                onClick={() => { setSectionType('original'); setActiveCategory('All') }}>
+                📚 Novels
+              </button>
+              <button
+                style={{ ...secS.headerBtn, ...(sectionType === 'light' ? secS.headerBtnActive : {}) }}
+                onClick={() => { setSectionType('light'); setActiveCategory('All') }}>
+                ⚡ Light
+              </button>
             </div>
           </div>
           <button style={s.searchBtn} onClick={() => setActiveTab('search')}>
@@ -1177,7 +1178,10 @@ const xS = {
 
 // ── Section toggle styles ─────────────────────────────────────────────────────
 const secS = {
-  toggle    : { display:'flex', gap:3, background:'var(--bg-elevated)', borderRadius:'var(--radius-md)', padding:3, marginBottom:10 },
-  toggleBtn : { flex:1, padding:'7px 6px', border:'none', borderRadius:7, fontSize:11, fontWeight:600, cursor:'pointer', background:'transparent', color:'var(--text-muted)', transition:'all var(--transition)', fontFamily:'inherit', letterSpacing:'0.02em' },
+  toggle      : { display:'flex', gap:3, background:'var(--bg-elevated)', borderRadius:'var(--radius-md)', padding:3, marginBottom:10 },
+  toggleBtn   : { flex:1, padding:'7px 6px', border:'none', borderRadius:7, fontSize:11, fontWeight:600, cursor:'pointer', background:'transparent', color:'var(--text-muted)', transition:'all var(--transition)', fontFamily:'inherit', letterSpacing:'0.02em' },
   toggleActive: { background:'var(--bg-surface)', color:'var(--accent)', boxShadow:'0 1px 3px rgba(0,0,0,0.2)' },
+  headerToggle: { display:'flex', gap:3, background:'var(--bg-elevated)', borderRadius:10, padding:3, marginLeft:'auto', marginRight:8 },
+  headerBtn   : { padding:'6px 10px', border:'none', borderRadius:7, fontSize:11, fontWeight:600, cursor:'pointer', background:'transparent', color:'var(--text-muted)', transition:'all var(--transition)', fontFamily:'inherit', whiteSpace:'nowrap' },
+  headerBtnActive: { background:'var(--bg-surface)', color:'var(--accent)', boxShadow:'0 1px 3px rgba(0,0,0,0.2)' },
 }
