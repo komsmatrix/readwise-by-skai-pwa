@@ -64,9 +64,18 @@ export default function App() {
   }
 
   async function handleActivated(result) {
-    const cust = { id: result.customerId, name: result.name, email: result.email, is_active: true }
+    const cust = {
+      id           : result.customerId,
+      name         : result.name,
+      email        : result.email,
+      is_active    : true,
+      referral_code: result.referral_code || null,
+    }
     setCustomer(cust)
-    localStorage.setItem('rbs_session', JSON.stringify({ customerId: result.customerId, email: result.email }))
+    localStorage.setItem('rbs_session', JSON.stringify({
+      customerId: result.customerId,
+      email     : result.email,
+    }))
     await loadLibrary(result.customerId)
     setScreen('library')
   }
