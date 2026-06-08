@@ -754,12 +754,12 @@ export default function LibraryScreen({ customer, books, progress, prefs, onOpen
               <button
                 style={{ ...secS.headerBtn, ...(sectionType === 'original' ? secS.headerBtnActive : {}) }}
                 onClick={() => { setSectionType('original'); setActiveCategory('All') }}>
-                📚 Novels
+                📚 Original Book Novel
               </button>
               <button
                 style={{ ...secS.headerBtn, ...(sectionType === 'light' ? secS.headerBtnActive : {}) }}
                 onClick={() => { setSectionType('light'); setActiveCategory('All') }}>
-                ⚡ Light
+                ⚡ Light Novel
               </button>
             </div>
           </div>
@@ -1181,7 +1181,7 @@ const secS = {
   toggle      : { display:'flex', gap:3, background:'var(--bg-elevated)', borderRadius:'var(--radius-md)', padding:3, marginBottom:10 },
   toggleBtn   : { flex:1, padding:'7px 6px', border:'none', borderRadius:7, fontSize:11, fontWeight:600, cursor:'pointer', background:'transparent', color:'var(--text-muted)', transition:'all var(--transition)', fontFamily:'inherit', letterSpacing:'0.02em' },
   toggleActive: { background:'var(--bg-surface)', color:'var(--accent)', boxShadow:'0 1px 3px rgba(0,0,0,0.2)' },
-  headerToggle: { display:'flex', gap:3, background:'var(--bg-elevated)', borderRadius:10, padding:3, marginLeft:'auto', marginRight:8 },
-  headerBtn   : { padding:'6px 10px', border:'none', borderRadius:7, fontSize:11, fontWeight:600, cursor:'pointer', background:'transparent', color:'var(--text-muted)', transition:'all var(--transition)', fontFamily:'inherit', whiteSpace:'nowrap' },
-  headerBtnActive: { background:'var(--bg-surface)', color:'var(--accent)', boxShadow:'0 1px 3px rgba(0,0,0,0.2)' },
+  headerToggle: { display:'flex', gap:3, background:'var(--bg-elevated)', borderRadius:12, padding:3, marginLeft:'auto', marginRight:8 },
+  headerBtn   : { padding:'8px 14px', border:'none', borderRadius:9, fontSize:13, fontWeight:600, cursor:'pointer', background:'transparent', color:'var(--text-muted)', transition:'all var(--transition)', fontFamily:'inherit', whiteSpace:'nowrap' },
+  headerBtnActive: { background:'var(--bg-surface)', color:'var(--accent)', boxShadow:'0 1px 4px rgba(0,0,0,0.25)' },
 }

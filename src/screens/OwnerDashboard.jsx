@@ -609,7 +609,7 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
             <div style={s.field}>
               <label style={s.label}>Book Type <span style={{ color:'#e05c5c' }}>*</span></label>
               <div style={ab.typeToggle}>
-                {[['original','📚 Original Novel'],['light','⚡ Light Novel']].map(([val,label]) => (
+                {[['original','📚 Original Book Novel'],['light','⚡ Light Novel']].map(([val,label]) => (
                   <button key={val}
                     style={{ ...ab.typeBtn, ...(bookType === val ? ab.typeBtnActive : {}) }}
                     onClick={() => { setBookType(val); setBookCategory(val === 'original' ? 'Self-Help' : 'Isekai') }}>
@@ -812,7 +812,7 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
                 <div style={s.field}>
                   <label style={s.label}>Book Type</label>
                   <div style={ab.typeToggle}>
-                    {[['original','📚 Original Novel'],['light','⚡ Light Novel']].map(([val,label]) => (
+                    {[['original','📚 Original Book Novel'],['light','⚡ Light Novel']].map(([val,label]) => (
                       <button key={val}
                         style={{ ...ab.typeBtn, ...(editBookType === val ? ab.typeBtnActive : {}) }}
                         onClick={() => {
