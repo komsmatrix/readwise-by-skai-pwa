@@ -20,9 +20,10 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
   const [editCategory,  setEditCategory]  = useState('Self-Help')
   const [editDesc,      setEditDesc]      = useState('')
   const [editCoverFile, setEditCoverFile] = useState(null)
-  const [editStatus,    setEditStatus]    = useState('idle') // idle|saving|success|error
+  const [editStatus,    setEditStatus]    = useState('idle')
   const [editError,     setEditError]     = useState('')
-  const [deleteConfirm, setDeleteConfirm] = useState(false) // confirm delete modal
+  const [editBookType,  setEditBookType]  = useState('original') // 'original' | 'light'
+  const [deleteConfirm, setDeleteConfirm] = useState(false)
   const [refreshStatus, setRefreshStatus] = useState('idle') // idle|loading|success|error|not_found
   const [refreshSource, setRefreshSource] = useState(null)
   const editCoverRef = useRef(null)
@@ -52,6 +53,7 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
   const [bookTitle,   setBookTitle]   = useState('')
   const [bookAuthor,  setBookAuthor]  = useState('')
   const [bookCategory,setBookCategory]= useState('Self-Help')
+  const [bookType,    setBookType]    = useState('original') // 'original' | 'light'
   const [bookTags,    setBookTags]    = useState('')
   const [bookMode,    setBookMode]    = useState('text')
   const [bookPages,   setBookPages]   = useState('')
@@ -236,6 +238,7 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
         preferred_mode,
         pages          : bookPages ? parseInt(bookPages) : null,
         description    : bookDesc.trim() || null,
+        book_type      : bookType,
       }).select('id').single()
       if (dbErr) throw new Error('Database insert failed: ' + dbErr.message)
 
@@ -289,7 +292,7 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
       setAddStatus('success')
       setAddProgress('')
       setBookTitle(''); setBookAuthor(''); setBookTags(''); setBookPages(''); setBookDesc('')
-      setBookCategory('Self-Help'); setBookMode('text')
+      setBookCategory('Self-Help'); setBookMode('text'); setBookType('original')
       setPdfFile(null); setTextFile(null); setCoverFile(null)
       if (pdfRef.current)   pdfRef.current.value   = ''
       if (textRef.current)  textRef.current.value  = ''
@@ -364,6 +367,8 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
     setEditBook(book)
     setEditTitle(book.title || '')
     setEditAuthor(book.author || '')
+    const isLight = ['Isekai','Action','Slice of Life','Romance','Horror'].includes(book.category)
+    setEditBookType(isLight ? 'light' : 'original')
     setEditCategory(book.category || 'Self-Help')
     setEditDesc(book.description || '')
     setEditCoverFile(null)
@@ -498,7 +503,11 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
   const today           = new Date().toDateString()
   const salesToday      = sales.filter(s => new Date(s.activated_at).toDateString() === today).length
 
-  const categories = ['Self-Help','Finance','Business','Health','Fiction','Biography','Other']
+  const originalCategories  = ['Self-Help','Finance','Business','Fiction','Philosophy','Health','Biography','Other']
+  const lightNovelCategories = ['Isekai','Action','Slice of Life','Romance','Horror','Other']
+  const categories = bookType === 'original' ? originalCategories : lightNovelCategories
+  const editOriginalCategories  = ['Self-Help','Finance','Business','Fiction','Philosophy','Health','Biography','Other']
+  const editLightCategories      = ['Isekai','Action','Slice of Life','Romance','Horror','Other']
   const canAdd = bookTitle.trim() && pdfFile && addStatus !== 'uploading'
 
   // ── Login screen ──────────────────────────────────────────────────────────
@@ -595,6 +604,21 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
         {tab === 'addbook' && (
           <div style={s.section}>
             <p style={s.sectionDesc}>Upload a new book to the shared library. It appears instantly for all customers.</p>
+
+            {/* Book Type selector */}
+            <div style={s.field}>
+              <label style={s.label}>Book Type <span style={{ color:'#e05c5c' }}>*</span></label>
+              <div style={ab.typeToggle}>
+                {[['original','📚 Original Novel'],['light','⚡ Light Novel']].map(([val,label]) => (
+                  <button key={val}
+                    style={{ ...ab.typeBtn, ...(bookType === val ? ab.typeBtnActive : {}) }}
+                    onClick={() => { setBookType(val); setBookCategory(val === 'original' ? 'Self-Help' : 'Isekai') }}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div style={s.field}>
               <label style={s.label}>PDF File <span style={{ color:'#e05c5c' }}>*</span></label>
               {pdfFile ? (
@@ -786,9 +810,24 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
 
                 {/* Category */}
                 <div style={s.field}>
+                  <label style={s.label}>Book Type</label>
+                  <div style={ab.typeToggle}>
+                    {[['original','📚 Original Novel'],['light','⚡ Light Novel']].map(([val,label]) => (
+                      <button key={val}
+                        style={{ ...ab.typeBtn, ...(editBookType === val ? ab.typeBtnActive : {}) }}
+                        onClick={() => {
+                          setEditBookType(val)
+                          setEditCategory(val === 'original' ? 'Self-Help' : 'Isekai')
+                        }}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div style={s.field}>
                   <label style={s.label}>Category</label>
                   <select style={s.input} value={editCategory} onChange={e => setEditCategory(e.target.value)}>
-                    {['Self-Help','Finance','Business','Philosophy','Fiction','Health','Biography','History','Science','Other'].map(c => (
+                    {(editBookType === 'original' ? editOriginalCategories : editLightCategories).map(c => (
                       <option key={c} value={c}>{c}</option>
                     ))}
                   </select>
@@ -1173,6 +1212,9 @@ const st = {
 
 // ── Add Book styles ───────────────────────────────────────────────────────────
 const ab = {
+  typeToggle     : { display:'flex', gap:4, background:'var(--bg-elevated)', borderRadius:'var(--radius-md)', padding:4 },
+  typeBtn        : { flex:1, padding:'10px 8px', border:'none', borderRadius:8, fontSize:13, fontWeight:500, cursor:'pointer', background:'transparent', color:'var(--text-muted)', transition:'all var(--transition)', fontFamily:'inherit' },
+  typeBtnActive  : { background:'var(--bg-surface)', color:'var(--accent)', boxShadow:'0 1px 4px rgba(0,0,0,0.2)', border:'1px solid var(--border)' },
   pickBtn        : { display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:6, width:'100%', padding:'18px 12px', background:'var(--bg-elevated)', border:'2px dashed var(--border)', borderRadius:'var(--radius-md)', color:'var(--text-muted)', fontSize:13, cursor:'pointer', minHeight:72 },
   fileChosen     : { display:'flex', alignItems:'center', gap:8, padding:'10px 12px', background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:'var(--radius-md)' },
   fileName       : { flex:1, fontSize:12, color:'var(--text-primary)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' },

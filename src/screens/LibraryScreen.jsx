@@ -538,8 +538,9 @@ function NewlyAddedCard({ book, timeAgo, onClick, animDelay = 0 }) {
 export default function LibraryScreen({ customer, books, progress, prefs, onOpenBook, onSignOut, onRefresh, onPrefsChange, onFindBooks, onBooksUpdated }) {
   const isMobile = useIsMobile()
 
-  const [activeTab,      setActiveTab]      = useState('library') // 'library' | 'mybooks' | 'search'
+  const [activeTab,      setActiveTab]      = useState('library')
   const [activeCategory, setActiveCategory] = useState('All')
+  const [sectionType,    setSectionType]    = useState('original') // 'original' | 'light'
   const [search,         setSearch]         = useState('')
   const [sidebarOpen,    setSidebarOpen]    = useState(false)
   const [showSettings,   setShowSettings]   = useState(false)
@@ -549,19 +550,31 @@ export default function LibraryScreen({ customer, books, progress, prefs, onOpen
   const [deleteTarget,   setDeleteTarget]   = useState(null)
   const [loadingPersonal,setLoadingPersonal]= useState(false)
 
+  const ORIGINAL_CATS    = ['Self-Help','Finance','Business','Fiction','Philosophy','Health','Biography','Other']
+  const LIGHT_NOVEL_CATS = ['Isekai','Action','Slice of Life','Romance','Horror','Other']
+
   const categories = useMemo(() => {
-    const cats = [...new Set(books.map(b => b.category).filter(Boolean))].sort()
-    return ['All', ...cats]
-  }, [books])
+    const sectionCats = sectionType === 'original' ? ORIGINAL_CATS : LIGHT_NOVEL_CATS
+    const booksInSection = books.filter(b =>
+      sectionType === 'original'
+        ? !LIGHT_NOVEL_CATS.includes(b.category)
+        : LIGHT_NOVEL_CATS.includes(b.category)
+    )
+    const presentCats = [...new Set(booksInSection.map(b => b.category).filter(Boolean))]
+    const ordered = sectionCats.filter(c => presentCats.includes(c))
+    return ['All', ...ordered]
+  }, [books, sectionType])
 
   const filtered = useMemo(() => {
     return books.filter(book => {
+      const isLight = LIGHT_NOVEL_CATS.includes(book.category)
+      const matchSection = sectionType === 'light' ? isLight : !isLight
       const matchCat = activeCategory === 'All' || book.category === activeCategory
       const q        = search.toLowerCase()
       const matchQ   = !q || book.title?.toLowerCase().includes(q) || book.author?.toLowerCase().includes(q) || (book.tags||[]).some(t=>t.toLowerCase().includes(q))
-      return matchCat && matchQ
+      return matchSection && matchCat && matchQ
     })
-  }, [books, activeCategory, search])
+  }, [books, activeCategory, search, sectionType])
 
   const recentBooks = useMemo(() => {
     return books
@@ -655,6 +668,20 @@ export default function LibraryScreen({ customer, books, progress, prefs, onOpen
         <div style={s.stat}>
           <span style={s.statNum}>{books.length}</span>
           <span style={s.statLabel}>books & growing</span>
+        </div>
+
+        {/* Section Toggle */}
+        <div style={secS.toggle}>
+          <button
+            style={{ ...secS.toggleBtn, ...(sectionType === 'original' ? secS.toggleActive : {}) }}
+            onClick={() => { setSectionType('original'); setActiveCategory('All') }}>
+            📚 Novels
+          </button>
+          <button
+            style={{ ...secS.toggleBtn, ...(sectionType === 'light' ? secS.toggleActive : {}) }}
+            onClick={() => { setSectionType('light'); setActiveCategory('All') }}>
+            ⚡ Light Novels
+          </button>
         </div>
 
         <nav style={s.nav}>
@@ -785,7 +812,9 @@ export default function LibraryScreen({ customer, books, progress, prefs, onOpen
               <section style={s.section}>
                 <div style={s.sectionHeader}>
                   <h2 style={s.sectionTitle}>
-                    {search ? `"${search}"` : activeCategory === 'All' ? 'Your library' : activeCategory}
+                    {search ? `"${search}"` : activeCategory === 'All'
+                      ? sectionType === 'light' ? '⚡ Light Novels' : '📚 Your Library'
+                      : activeCategory}
                   </h2>
                   <span style={s.count}>{filtered.length} books</span>
                 </div>
@@ -1144,4 +1173,11 @@ const xS = {
   referralCode  : { fontFamily:'monospace', fontSize:22, fontWeight:700, color:'var(--accent)', letterSpacing:'0.1em', background:'var(--bg-elevated)', padding:'6px 14px', borderRadius:8, border:'1px solid var(--border)' },
   referralCopy  : { padding:'6px 14px', background:'var(--accent)', color:'#0d0d0d', border:'none', borderRadius:8, fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:'inherit' },
   referralLink  : { fontSize:11, color:'var(--text-muted)', margin:0 },
+}
+
+// ── Section toggle styles ─────────────────────────────────────────────────────
+const secS = {
+  toggle    : { display:'flex', gap:3, background:'var(--bg-elevated)', borderRadius:'var(--radius-md)', padding:3, marginBottom:10 },
+  toggleBtn : { flex:1, padding:'7px 6px', border:'none', borderRadius:7, fontSize:11, fontWeight:600, cursor:'pointer', background:'transparent', color:'var(--text-muted)', transition:'all var(--transition)', fontFamily:'inherit', letterSpacing:'0.02em' },
+  toggleActive: { background:'var(--bg-surface)', color:'var(--accent)', boxShadow:'0 1px 3px rgba(0,0,0,0.2)' },
 }
