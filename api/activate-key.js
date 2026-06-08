@@ -76,6 +76,11 @@ export default async function handler(req, res) {
       await supabase.from('customers').insert(customerData)
     }
 
+    // Get the customer ID (re-fetch to ensure we have it)
+    const { data: savedCustomer } = await supabase
+      .from('customers').select('id').eq('email', emailClean).single()
+    const customerId = savedCustomer?.id || existing?.id || null
+
     // 5. Mark key as used
     if (!keyEntry.is_owner) {
       await supabase.from('access_keys')
@@ -150,6 +155,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       success      : true,
+      customerId,
       name         : name.trim(),
       email        : emailClean,
       referral_code: customerCode,
