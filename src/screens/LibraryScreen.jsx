@@ -743,13 +743,9 @@ export default function LibraryScreen({ customer, books, progress, prefs, onOpen
         <header style={s.header}>
           <div style={s.headerLeft}>
             <button style={s.menuBtn} onClick={() => setSidebarOpen(v => !v)}>
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M2 5h16M2 10h16M2 15h16" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg>
+              <svg width="22" height="22" viewBox="0 0 20 20" fill="none"><path d="M2 5h16M2 10h16M2 15h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
             </button>
-            <div>
-              <p style={s.greeting}>{getGreeting()},</p>
-              <h1 style={s.name}>{customer?.name?.split(' ')[0] || 'Reader'}</h1>
-            </div>
-            {/* Section Toggle — in header */}
+            {/* Section Toggle */}
             <div style={secS.headerToggle}>
               <button
                 style={{ ...secS.headerBtn, ...(sectionType === 'original' ? secS.headerBtnActive : {}) }}
@@ -762,6 +758,11 @@ export default function LibraryScreen({ customer, books, progress, prefs, onOpen
                 ⚡ Light Novel
               </button>
             </div>
+          </div>
+          {/* Greeting — right side, big and prominent */}
+          <div style={secS.greetingRight}>
+            <p style={secS.greetingText}>{getGreeting()},</p>
+            <h1 style={secS.greetingName}>{customer?.name?.split(' ')[0] || 'Reader'}</h1>
           </div>
           <button style={s.searchBtn} onClick={() => setActiveTab('search')}>
             <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="6" stroke="currentColor" strokeWidth="1.5"/><path d="M13.5 13.5L17 17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
@@ -1181,7 +1182,10 @@ const secS = {
   toggle      : { display:'flex', gap:3, background:'var(--bg-elevated)', borderRadius:'var(--radius-md)', padding:3, marginBottom:10 },
   toggleBtn   : { flex:1, padding:'7px 6px', border:'none', borderRadius:7, fontSize:11, fontWeight:600, cursor:'pointer', background:'transparent', color:'var(--text-muted)', transition:'all var(--transition)', fontFamily:'inherit', letterSpacing:'0.02em' },
   toggleActive: { background:'var(--bg-surface)', color:'var(--accent)', boxShadow:'0 1px 3px rgba(0,0,0,0.2)' },
-  headerToggle: { display:'flex', gap:3, background:'var(--bg-elevated)', borderRadius:12, padding:3, marginLeft:'auto', marginRight:8 },
+  headerToggle: { display:'flex', gap:3, background:'var(--bg-elevated)', borderRadius:12, padding:3, marginLeft:10 },
   headerBtn   : { padding:'8px 14px', border:'none', borderRadius:9, fontSize:13, fontWeight:600, cursor:'pointer', background:'transparent', color:'var(--text-muted)', transition:'all var(--transition)', fontFamily:'inherit', whiteSpace:'nowrap' },
   headerBtnActive: { background:'var(--bg-surface)', color:'var(--accent)', boxShadow:'0 1px 4px rgba(0,0,0,0.25)' },
+  greetingRight: { display:'flex', flexDirection:'column', alignItems:'flex-end', marginLeft:'auto', marginRight:12 },
+  greetingText : { fontSize:11, color:'var(--text-muted)', lineHeight:1.2, margin:0 },
+  greetingName : { fontFamily:'var(--font-display)', fontSize:22, fontWeight:400, color:'var(--text-primary)', letterSpacing:'-0.02em', margin:0, lineHeight:1.1 },
 }
