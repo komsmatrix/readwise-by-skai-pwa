@@ -6,9 +6,9 @@ async function sb(path, options = {}) {
   const res = await fetch(`${supabaseUrl}${path}`, {
     ...options,
     headers: {
-      'apikey'        : supabaseAnon,
-      'Authorization' : `Bearer ${supabaseAnon}`,
-      'Content-Type'  : 'application/json',
+      'apikey'       : supabaseAnon,
+      'Authorization': `Bearer ${supabaseAnon}`,
+      'Content-Type' : 'application/json',
       ...(options.headers || {}),
     },
   })
@@ -31,144 +31,275 @@ export async function activateKey(key, name, email) {
   return res.json()
 }
 
-// ── Books ─────────────────────────────────────────────────────────────────────
-export async function getBooks() {
-  const res  = await sb('/rest/v1/books?is_active=eq.true&order=created_at.desc')
+// ── Student Exam enrollment ───────────────────────────────────────────────────
+export async function getStudentExam(customerId) {
+  const res  = await sb(`/rest/v1/student_exams?customer_id=eq.${customerId}&limit=1`)
   const data = await res.json()
-  return { books: Array.isArray(data) ? data : [] }
+  return data?.[0] || null
 }
 
-export function getBookFileUrl(filePath) {
-  return `${supabaseUrl}/storage/v1/object/public/books/${filePath}`
-}
-
-export function getCoverUrl(coverPath) {
-  if (!coverPath) return null
-  return `${supabaseUrl}/storage/v1/object/public/covers/${coverPath}`
-}
-
-export async function getTextContent(textPath) {
-  if (!textPath) return null
-  const res = await fetch(`${supabaseUrl}/storage/v1/object/public/books/${textPath}`)
-  if (!res.ok) return null
-  return res.text()
-}
-
-// ── Progress ──────────────────────────────────────────────────────────────────
-export async function getProgress(customerId) {
-  if (!customerId) return {}
-  const res  = await sb(`/rest/v1/reading_progress?customer_id=eq.${customerId}`)
-  const data = await res.json()
-  const map  = {}
-  for (const item of (Array.isArray(data) ? data : [])) {
-    map[item.book_id] = {
-      book_id        : item.book_id,
-      customer_id    : item.customer_id,
-      currentPage    : item.current_page    || 1,
-      current_page   : item.current_page    || 1,
-      scrollPosition : item.scroll_position || 0,
-      scroll_position: item.scroll_position || 0,
-      percent        : item.percent         || 0,
-      bookmarks      : item.bookmarks       || [],
-      updated_at     : item.updated_at,
-    }
-  }
-  return map
-}
-
-export async function saveProgress(customerId, bookId, data) {
-  if (!customerId || !bookId) return false
-  const res = await sb('/rest/v1/reading_progress', {
+export async function enrollStudentExam(customerId, examId, examDate, studyMode) {
+  const res = await sb('/rest/v1/student_exams', {
     method : 'POST',
-    headers: { 'Prefer': 'resolution=merge-duplicates' },
+    headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
     body   : JSON.stringify({
-      customer_id    : customerId,
-      book_id        : bookId,
-      current_page   : data.currentPage    || data.current_page    || 1,
-      scroll_position: data.scrollPosition || data.scroll_position || 0,
-      percent        : data.percent        || 0,
-      bookmarks      : data.bookmarks      || [],
-      updated_at     : new Date().toISOString(),
+      customer_id: customerId,
+      exam_id    : examId,
+      exam_date  : examDate || null,
+      study_mode : studyMode || 'Standard',
+      enrolled_at: new Date().toISOString(),
     }),
+  })
+  const data = await res.json()
+  return data?.[0] || data
+}
+
+export async function updateStudyMode(customerId, studyMode) {
+  const res = await sb(`/rest/v1/student_exams?customer_id=eq.${customerId}`, {
+    method : 'PATCH',
+    headers: { 'Prefer': 'return=representation' },
+    body   : JSON.stringify({ study_mode: studyMode }),
   })
   return res.ok
 }
 
-// ── Personal books ────────────────────────────────────────────────────────────
-export async function getPersonalBooks(customerId) {
-  if (!customerId) return []
-  const res  = await sb(`/rest/v1/personal_books?customer_id=eq.${customerId}&order=created_at.desc`)
+// ── Exams / Subjects / Topics ─────────────────────────────────────────────────
+export async function getExams() {
+  const res  = await sb('/rest/v1/exams?is_active=eq.true&order=id')
   const data = await res.json()
   return Array.isArray(data) ? data : []
 }
 
-export async function uploadPersonalBook(customerId, file, coverFile, title, author) {
-  const slug      = title.toLowerCase().replace(/[^a-z0-9]/g, '-').slice(0, 40)
-  const timestamp = Date.now()
-  const filePath  = `${customerId}/${timestamp}-${slug}.pdf`
+export async function getSubjectsForExam(examId) {
+  const res  = await sb(`/rest/v1/subjects?exam_id=eq.${examId}&order=sort_order`)
+  const data = await res.json()
+  return Array.isArray(data) ? data : []
+}
 
-  // Upload PDF to personal bucket
-  const fileBuffer = await file.arrayBuffer()
-  const uploadRes  = await fetch(`${supabaseUrl}/storage/v1/object/personal/${filePath}`, {
-    method : 'POST',
-    headers: {
-      'apikey'       : supabaseAnon,
-      'Authorization': `Bearer ${supabaseAnon}`,
-      'Content-Type' : 'application/pdf',
-      'x-upsert'     : 'true',
-    },
-    body: fileBuffer,
-  })
+export async function getTopicsForExam(examId) {
+  // Join topics → subjects → exam
+  const subjects = await getSubjectsForExam(examId)
+  if (!subjects.length) return []
+  const subjectIds = subjects.map(s => s.id).join(',')
+  const res  = await sb(`/rest/v1/topics?subject_id=in.(${subjectIds})&order=sort_order`)
+  const data = await res.json()
+  return Array.isArray(data) ? data.map(t => ({
+    ...t,
+    subject: subjects.find(s => s.id === t.subject_id),
+  })) : []
+}
 
-  if (!uploadRes.ok) return { success: false, error: 'Upload failed' }
+// ── Cards ─────────────────────────────────────────────────────────────────────
+export async function getCardsForTopic(topicId) {
+  const res  = await sb(`/rest/v1/cards?topic_id=eq.${topicId}&is_active=eq.true`)
+  const data = await res.json()
+  return Array.isArray(data) ? data : []
+}
 
-  // Upload cover if provided
-  let coverPath = null
-  if (coverFile) {
-    const coverExt    = coverFile.name.split('.').pop()
-    const coverFPath  = `${customerId}/${timestamp}-${slug}-cover.${coverExt}`
-    const coverBuffer = await coverFile.arrayBuffer()
-    const coverRes    = await fetch(`${supabaseUrl}/storage/v1/object/personal/${coverFPath}`, {
-      method : 'POST',
-      headers: {
-        'apikey'       : supabaseAnon,
-        'Authorization': `Bearer ${supabaseAnon}`,
-        'Content-Type' : coverFile.type || 'image/jpeg',
-        'x-upsert'     : 'true',
-      },
-      body: coverBuffer,
-    })
-    if (coverRes.ok) coverPath = coverFPath
+export async function getCardsForExam(examId) {
+  const topics = await getTopicsForExam(examId)
+  if (!topics.length) return []
+  const topicIds = topics.map(t => t.id).join(',')
+  const res  = await sb(`/rest/v1/cards?topic_id=in.(${topicIds})&is_active=eq.true`)
+  const data = await res.json()
+  return Array.isArray(data) ? data.map(c => ({
+    ...c,
+    topic: topics.find(t => t.id === c.topic_id),
+  })) : []
+}
+
+// ── Card Reviews (Spaced Repetition) ─────────────────────────────────────────
+export async function getCardReviews(customerId) {
+  const res  = await sb(`/rest/v1/card_reviews?customer_id=eq.${customerId}&order=reviewed_at.desc`)
+  const data = await res.json()
+  return Array.isArray(data) ? data : []
+}
+
+export async function getDueCards(customerId) {
+  const today = new Date().toISOString().split('T')[0]
+  const res   = await sb(
+    `/rest/v1/card_reviews?customer_id=eq.${customerId}&next_review_at=lte.${today}&order=next_review_at`
+  )
+  const data = await res.json()
+  return Array.isArray(data) ? data : []
+}
+
+export async function saveCardReview(customerId, cardId, correct, confidence) {
+  // SM-2 simplified interval calculation
+  const existing = await getLastReview(customerId, cardId)
+  let interval = 1
+  let attempts = 1
+
+  if (existing) {
+    attempts = (existing.attempt_number || 1) + 1
+    if (correct) {
+      const multiplier = confidence === 'Sure' ? 2.5 : confidence === 'Guessed' ? 1.2 : 1.0
+      interval = Math.round((existing.interval_days || 1) * multiplier)
+      interval = Math.max(1, Math.min(interval, 60))
+    } else {
+      interval = 1
+    }
   }
 
-  // Save record to database
-  const bookRes = await sb('/rest/v1/personal_books', {
+  const nextReview = new Date()
+  nextReview.setDate(nextReview.getDate() + interval)
+
+  const res = await sb('/rest/v1/card_reviews', {
     method : 'POST',
     headers: { 'Prefer': 'return=representation' },
     body   : JSON.stringify({
       customer_id   : customerId,
-      title         : title.trim(),
-      author        : author.trim() || 'Unknown',
-      file_path     : filePath,
-      cover_path    : coverPath,
-      preferred_mode: 'pdf',
-      created_at    : new Date().toISOString(),
+      card_id       : cardId,
+      correct,
+      confidence    : confidence || null,
+      interval_days : interval,
+      next_review_at: nextReview.toISOString().split('T')[0],
+      attempt_number: attempts,
+      reviewed_at   : new Date().toISOString(),
     }),
-  })
-
-  if (!bookRes.ok) return { success: false, error: 'Database save failed' }
-  const bookData = await bookRes.json()
-  return { success: true, book: bookData?.[0] || bookData }
-}
-
-export async function deletePersonalBook(bookId, customerId) {
-  const res = await sb(`/rest/v1/personal_books?id=eq.${bookId}&customer_id=eq.${customerId}`, {
-    method: 'DELETE',
   })
   return res.ok
 }
 
-export function getPersonalBookUrl(filePath) {
-  // Personal books need a signed URL since bucket is private
-  return `${supabaseUrl}/storage/v1/object/personal/${filePath}`
+async function getLastReview(customerId, cardId) {
+  const res  = await sb(
+    `/rest/v1/card_reviews?customer_id=eq.${customerId}&card_id=eq.${cardId}&order=reviewed_at.desc&limit=1`
+  )
+  const data = await res.json()
+  return data?.[0] || null
+}
+
+// ── Topic Health ──────────────────────────────────────────────────────────────
+export async function getTopicHealth(customerId) {
+  const res  = await sb(`/rest/v1/topic_health?customer_id=eq.${customerId}`)
+  const data = await res.json()
+  const map  = {}
+  for (const item of (Array.isArray(data) ? data : [])) {
+    map[item.topic_id] = item
+  }
+  return map
+}
+
+export async function upsertTopicHealth(customerId, topicId, updates) {
+  const res = await sb('/rest/v1/topic_health', {
+    method : 'POST',
+    headers: { 'Prefer': 'resolution=merge-duplicates' },
+    body   : JSON.stringify({
+      customer_id: customerId,
+      topic_id   : topicId,
+      ...updates,
+      updated_at : new Date().toISOString(),
+    }),
+  })
+  return res.ok
+}
+
+// Compute topic health state from stats
+export function computeHealthState(attemptCount, correctCount, streak) {
+  if (attemptCount < 5) return 'Stable'
+  const mistakeRate = 1 - (correctCount / attemptCount)
+  if (mistakeRate > 0.6)                           return 'Critical'
+  if (mistakeRate > 0.4)                           return 'Weak'
+  if (mistakeRate < 0.1 && streak >= 5)            return 'Mastered'
+  if (mistakeRate < 0.2)                           return 'Strong'
+  return 'Stable'
+}
+
+// ── Study Sessions ────────────────────────────────────────────────────────────
+export async function startSession(customerId, examId, phase) {
+  const res  = await sb('/rest/v1/study_sessions', {
+    method : 'POST',
+    headers: { 'Prefer': 'return=representation' },
+    body   : JSON.stringify({
+      customer_id   : customerId,
+      exam_id       : examId,
+      cards_reviewed: 0,
+      correct_count : 0,
+      phase         : phase || 'Foundation',
+      started_at    : new Date().toISOString(),
+    }),
+  })
+  const data = await res.json()
+  return data?.[0] || null
+}
+
+export async function endSession(sessionId, cardsReviewed, correctCount) {
+  const res = await sb(`/rest/v1/study_sessions?id=eq.${sessionId}`, {
+    method: 'PATCH',
+    body  : JSON.stringify({
+      cards_reviewed: cardsReviewed,
+      correct_count : correctCount,
+      ended_at      : new Date().toISOString(),
+    }),
+  })
+  return res.ok
+}
+
+export async function getRecentSessions(customerId, days = 30) {
+  const since = new Date()
+  since.setDate(since.getDate() - days)
+  const res  = await sb(
+    `/rest/v1/study_sessions?customer_id=eq.${customerId}&started_at=gte.${since.toISOString()}&order=started_at.desc`
+  )
+  const data = await res.json()
+  return Array.isArray(data) ? data : []
+}
+
+// ── Mock Exam Results ─────────────────────────────────────────────────────────
+export async function getMockResults(customerId) {
+  const res  = await sb(`/rest/v1/mock_results?customer_id=eq.${customerId}&order=taken_at.desc`)
+  const data = await res.json()
+  return Array.isArray(data) ? data : []
+}
+
+export async function saveMockResult(customerId, examId, scorePct) {
+  const res = await sb('/rest/v1/mock_results', {
+    method: 'POST',
+    body  : JSON.stringify({
+      customer_id: customerId,
+      exam_id    : examId,
+      score_pct  : scorePct,
+      completed  : true,
+      taken_at   : new Date().toISOString(),
+    }),
+  })
+  return res.ok
+}
+
+// ── Readiness Score Calculation ───────────────────────────────────────────────
+export function computeReadinessScore({ coveragePct, masteryPct, consistencyPct, mockPct }) {
+  const hasMock = mockPct !== null && mockPct !== undefined
+  if (!hasMock) {
+    // Redistribute weights across 3 components
+    const score = (coveragePct * 0.40) + (masteryPct * 0.35) + (consistencyPct * 0.25)
+    return { score: Math.round(score), estimated: true }
+  }
+  const score =
+    (coveragePct    * 0.30) +
+    (masteryPct     * 0.30) +
+    (consistencyPct * 0.20) +
+    (mockPct        * 0.20)
+  return { score: Math.round(score), estimated: false }
+}
+
+export function getReadinessLevel(score) {
+  if (score < 30) return { level: 1, label: 'Started',      color: '#6B7280' }
+  if (score < 50) return { level: 2, label: 'Consistent',   color: '#F59E0B' }
+  if (score < 70) return { level: 3, label: 'Preparing',    color: '#3B82F6' }
+  if (score < 85) return { level: 4, label: 'Almost Ready', color: '#8B5CF6' }
+  return           { level: 5, label: 'Board Ready',        color: '#10B981' }
+}
+
+export function getPreparationPhase(daysLeft) {
+  if (daysLeft > 180) return 'Foundation'
+  if (daysLeft > 90)  return 'Build'
+  if (daysLeft > 30)  return 'Reinforce'
+  if (daysLeft > 7)   return 'Peak Prep'
+  return 'Final Push'
+}
+
+export function getDaysLeft(examDate) {
+  if (!examDate) return null
+  const diff = new Date(examDate) - new Date()
+  return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)))
 }

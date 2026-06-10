@@ -1,40 +1,33 @@
 import { useState, useEffect } from 'react'
-import { getCustomer, getBooks, getProgress } from './lib/supabase.js'
+import { getCustomer, getStudentExam } from './lib/supabase.js'
 import ActivationScreen from './screens/ActivationScreen.jsx'
-import LibraryScreen    from './screens/LibraryScreen.jsx'
-import ReaderScreen     from './screens/ReaderScreen.jsx'
-import OwnerDashboard   from './screens/OwnerDashboard.jsx'
-import FindBooksScreen  from './screens/FindBooksScreen.jsx'
-import LoadingScreen    from './screens/LoadingScreen.jsx'
-import BuyScreen        from './screens/BuyScreen.jsx'
+import OnboardingScreen  from './screens/OnboardingScreen.jsx'
+import HomeScreen        from './screens/HomeScreen.jsx'
+import StudyScreen       from './screens/StudyScreen.jsx'
+import TopicsScreen      from './screens/TopicsScreen.jsx'
+import ProfileScreen     from './screens/ProfileScreen.jsx'
+import OwnerDashboard    from './screens/OwnerDashboard.jsx'
+import BuyScreen         from './screens/BuyScreen.jsx'
+import LoadingScreen     from './screens/LoadingScreen.jsx'
 
 export default function App() {
-  const [screen,   setScreen]   = useState('loading')
-  const [customer, setCustomer] = useState(null)
-  const [books,    setBooks]    = useState([])
-  const [progress, setProgress] = useState({})
-  const [openBook, setOpenBook] = useState(null)
-  const [prefs,    setPrefs]    = useState({ theme: 'dark', fontSize: 18, ttsVoice: '', ttsSpeed: 1.0 })
+  const [screen,      setScreen]      = useState('loading')
+  const [customer,    setCustomer]    = useState(null)
+  const [studentExam, setStudentExam] = useState(null)
+  const [activeTab,   setActiveTab]   = useState('home')
 
   useEffect(() => { init() }, [])
 
   async function init() {
-    // Owner dashboard
     if (window.location.pathname === '/owner') {
       const ownerPass = sessionStorage.getItem('owner_auth')
       setScreen(ownerPass ? 'owner' : 'owner_login')
       return
     }
-
-    // Buy page
     if (window.location.pathname === '/buy') {
       setScreen('buy')
       return
     }
-
-    const savedPrefs = localStorage.getItem('rbs_prefs')
-    if (savedPrefs) { try { setPrefs(JSON.parse(savedPrefs)) } catch {} }
-
     const savedSession = localStorage.getItem('rbs_session')
     if (savedSession) {
       try {
@@ -43,8 +36,9 @@ export default function App() {
           const { customer: cust } = await getCustomer(session.email)
           if (cust && cust.is_active) {
             setCustomer(cust)
-            await loadLibrary(cust.id)
-            setScreen('library')
+            const enrollment = await getStudentExam(cust.id)
+            setStudentExam(enrollment)
+            setScreen(enrollment ? 'app' : 'onboarding')
             return
           }
         }
@@ -52,15 +46,6 @@ export default function App() {
       localStorage.removeItem('rbs_session')
     }
     setScreen('activation')
-  }
-
-  async function loadLibrary(customerId) {
-    const [{ books: bookList }, progressMap] = await Promise.all([
-      getBooks(),
-      getProgress(customerId),
-    ])
-    setBooks(bookList)
-    setProgress(progressMap)
   }
 
   async function handleActivated(result) {
@@ -76,69 +61,136 @@ export default function App() {
       customerId: result.customerId,
       email     : result.email,
     }))
-    await loadLibrary(result.customerId)
-    setScreen('library')
+    const enrollment = await getStudentExam(result.customerId)
+    setStudentExam(enrollment)
+    setScreen(enrollment ? 'app' : 'onboarding')
   }
 
-  function handleOpenBook(book) { setOpenBook(book); setScreen('reader') }
-
-  async function handleCloseBook() {
-    setOpenBook(null); setScreen('library')
-    if (customer) { const p = await getProgress(customer.id); setProgress(p) }
-  }
-
-  function handleProgressUpdate(bookId, data) {
-    setProgress(prev => ({ ...prev, [bookId]: { ...(prev[bookId] || {}), ...data, book_id: bookId } }))
+  function handleEnrolled(enrollment) {
+    setStudentExam(enrollment)
+    setScreen('app')
   }
 
   function handleSignOut() {
     localStorage.removeItem('rbs_session')
-    setCustomer(null); setBooks([]); setProgress({})
+    setCustomer(null)
+    setStudentExam(null)
+    setActiveTab('home')
     setScreen('activation')
   }
 
-  function handlePrefsChange(newPrefs) {
-    setPrefs(newPrefs)
-    localStorage.setItem('rbs_prefs', JSON.stringify(newPrefs))
-  }
-
-  // Apply theme
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', prefs.theme || 'dark')
-  }, [prefs.theme])
-
+  // Always check loading/owner/buy first
   if (screen === 'owner' || screen === 'owner_login') {
-    return <OwnerDashboard isLoggedIn={screen === 'owner'} onLogin={() => setScreen('owner')}/>
+    return <OwnerDashboard isLoggedIn={screen === 'owner'} onLogin={() => setScreen('owner')} />
   }
-  if (screen === 'buy')         return <BuyScreen/>
-  if (screen === 'loading')     return <LoadingScreen/>
-  if (screen === 'activation')  return <ActivationScreen onActivated={handleActivated}/>
-  if (screen === 'find-books')  return <FindBooksScreen onBack={() => setScreen('library')}/>
-  if (screen === 'reader' && openBook) {
+  if (screen === 'buy')     return <BuyScreen />
+  if (screen === 'loading') return <LoadingScreen />
+
+  // Activation — no customer, show login
+  if (screen === 'activation' || !customer) {
+    return <ActivationScreen onActivated={handleActivated} />
+  }
+
+  // Onboarding — customer exists but no exam enrolled
+  if (screen === 'onboarding') {
     return (
-      <ReaderScreen
-        bookData={openBook}
+      <OnboardingScreen
         customer={customer}
-        prefs={prefs}
-        progress={progress[openBook.id]}
-        onClose={handleCloseBook}
-        onProgressUpdate={(p) => handleProgressUpdate(openBook.id, p)}
+        onEnrolled={handleEnrolled}
       />
     )
   }
 
+  // Main app
   return (
-    <LibraryScreen
-      customer={customer}
-      books={books}
-      progress={progress}
-      prefs={prefs}
-      onOpenBook={handleOpenBook}
-      onSignOut={handleSignOut}
-      onRefresh={() => loadLibrary(customer.id)}
-      onPrefsChange={handlePrefsChange}
-      onFindBooks={() => setScreen('find-books')}
-      onBooksUpdated={() => loadLibrary(customer.id)}
-    />
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--bg-base)' }}>
+      <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        {activeTab === 'home' && (
+          <HomeScreen
+            customer={customer}
+            studentExam={studentExam}
+            onStartStudy={() => setActiveTab('study')}
+            onViewTopics={() => setActiveTab('topics')}
+          />
+        )}
+        {activeTab === 'study' && (
+          <StudyScreen
+            customer={customer}
+            studentExam={studentExam}
+            onDone={() => setActiveTab('home')}
+          />
+        )}
+        {activeTab === 'topics' && (
+          <TopicsScreen
+            customer={customer}
+            studentExam={studentExam}
+          />
+        )}
+        {activeTab === 'profile' && (
+          <ProfileScreen
+            customer={customer}
+            studentExam={studentExam}
+            onSignOut={handleSignOut}
+            onExamUpdated={setStudentExam}
+          />
+        )}
+      </div>
+      <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
+    </div>
+  )
+}
+
+function BottomNav({ activeTab, setActiveTab }) {
+  const tabs = [
+    { id: 'home',    label: 'Home',    icon: HomeIcon   },
+    { id: 'study',   label: 'Study',   icon: CardsIcon  },
+    { id: 'topics',  label: 'Topics',  icon: ChartIcon  },
+    { id: 'profile', label: 'Profile', icon: PersonIcon },
+  ]
+  return (
+    <nav style={{ display: 'flex', justifyContent: 'space-around', padding: '10px 0 14px', background: 'var(--bg-surface)', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
+      {tabs.map(t => (
+        <button key={t.id} onClick={() => setActiveTab(t.id)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, background: 'none', border: 'none', cursor: 'pointer', color: activeTab === t.id ? 'var(--accent)' : 'var(--text-muted)', fontSize: 10, fontFamily: 'inherit', padding: '0 16px', transition: 'color 0.15s' }}>
+          <t.icon size={22} active={activeTab === t.id} />
+          {t.label}
+        </button>
+      ))}
+    </nav>
+  )
+}
+
+function HomeIcon({ size, active }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2 : 1.5} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/>
+      <path d="M9 21V12h6v9"/>
+    </svg>
+  )
+}
+function CardsIcon({ size, active }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2 : 1.5} strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="6" width="20" height="14" rx="2"/>
+      <path d="M6 6V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2"/>
+      <line x1="12" y1="11" x2="12" y2="17"/>
+      <line x1="9" y1="14" x2="15" y2="14"/>
+    </svg>
+  )
+}
+function ChartIcon({ size, active }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2 : 1.5} strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="20" x2="18" y2="10"/>
+      <line x1="12" y1="20" x2="12" y2="4"/>
+      <line x1="6"  y1="20" x2="6"  y2="14"/>
+    </svg>
+  )
+}
+function PersonIcon({ size, active }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2 : 1.5} strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="8" r="4"/>
+      <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+    </svg>
   )
 }
