@@ -6,6 +6,7 @@ import HomeScreen        from './screens/HomeScreen.jsx'
 import StudyScreen       from './screens/StudyScreen.jsx'
 import TopicsScreen      from './screens/TopicsScreen.jsx'
 import ProfileScreen     from './screens/ProfileScreen.jsx'
+import LessonScreen      from './screens/LessonScreen.jsx'
 import OwnerDashboard    from './screens/OwnerDashboard.jsx'
 import BuyScreen         from './screens/BuyScreen.jsx'
 import LoadingScreen     from './screens/LoadingScreen.jsx'
@@ -126,6 +127,12 @@ export default function App() {
             studentExam={studentExam}
           />
         )}
+        {activeTab === 'lessons' && (
+          <LessonScreen
+            session={{ customerId: customer.id }}
+            onBack={() => setActiveTab('home')}
+          />
+        )}
         {activeTab === 'profile' && (
           <ProfileScreen
             customer={customer}
@@ -144,6 +151,7 @@ function BottomNav({ activeTab, setActiveTab }) {
   const tabs = [
     { id: 'home',    label: 'Home',    icon: HomeIcon   },
     { id: 'study',   label: 'Study',   icon: CardsIcon  },
+    { id: 'lessons', label: 'Lessons', icon: BookIcon   },
     { id: 'topics',  label: 'Topics',  icon: ChartIcon  },
     { id: 'profile', label: 'Profile', icon: PersonIcon },
   ]
@@ -174,6 +182,14 @@ function CardsIcon({ size, active }) {
       <path d="M6 6V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2"/>
       <line x1="12" y1="11" x2="12" y2="17"/>
       <line x1="9" y1="14" x2="15" y2="14"/>
+    </svg>
+  )
+}
+function BookIcon({ size, active }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2 : 1.5} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
     </svg>
   )
 }
