@@ -1,5 +1,24 @@
 import { useState, useEffect } from "react";
-import { supabase } from "../lib/supabase";
+
+// ─── Supabase config ──────────────────────────────────────────────────────────
+const SUPA_URL = import.meta.env.VITE_SUPABASE_URL
+const SUPA_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
+
+async function sbFetch(path, options = {}) {
+  const res = await fetch(`${SUPA_URL}/rest/v1/${path}`, {
+    ...options,
+    headers: {
+      'apikey': SUPA_KEY,
+      'Authorization': `Bearer ${SUPA_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation',
+      ...(options.headers || {}),
+    },
+  })
+  if (!res.ok) throw new Error(await res.text())
+  const text = await res.text()
+  return text ? JSON.parse(text) : []
+}
 
 // ─── Markdown renderer (no external dep) ──────────────────────────────────────
 function renderMarkdown(text) {
@@ -37,10 +56,7 @@ export default function LessonScreen({ session, onBack }) {
 
   async function loadTopics() {
     setLoading(true);
-    const { data } = await supabase
-      .from("topics")
-      .select("id, name, board_frequency, topic_weight, subject_id")
-      .order("sort_order");
+    const data = await sbFetch('topics?select=id,name,board_frequency,topic_weight,subject_id&order=sort_order')
     setTopics(data || []);
     if (data?.length) setSelected(data[0]);
     setLoading(false);
@@ -54,23 +70,13 @@ export default function LessonScreen({ session, onBack }) {
 
   async function loadLessons(topicId) {
     setLoading(true);
-    const { data: lessonData } = await supabase
-      .from("lessons")
-      .select("*")
-      .eq("topic_id", topicId)
-      .eq("is_active", true)
-      .order("sort_order");
-
+    const lessonData = await sbFetch(`lessons?topic_id=eq.${topicId}&is_active=eq.true&order=sort_order&select=*`)
     setLessons(lessonData || []);
 
     // Load progress for this student
     if (customerId && lessonData?.length) {
-      const ids = lessonData.map(l => l.id);
-      const { data: prog } = await supabase
-        .from("lesson_progress")
-        .select("lesson_id, completed")
-        .eq("customer_id", customerId)
-        .in("lesson_id", ids);
+      const ids = lessonData.map(l => l.id).join(',');
+      const prog = await sbFetch(`lesson_progress?customer_id=eq.${customerId}&lesson_id=in.(${ids})&select=lesson_id,completed`)
       const map = {};
       (prog || []).forEach(p => { map[p.lesson_id] = p.completed; });
       setProgress(map);
@@ -81,12 +87,16 @@ export default function LessonScreen({ session, onBack }) {
   // ── Mark lesson complete ──────────────────────────────────────────────────────
   async function markComplete(lessonId) {
     setProgress(p => ({ ...p, [lessonId]: true }));
-    await supabase.from("lesson_progress").upsert({
-      customer_id: customerId,
-      lesson_id: lessonId,
-      completed: true,
-      completed_at: new Date().toISOString(),
-    }, { onConflict: "customer_id,lesson_id" });
+    await sbFetch('lesson_progress', {
+      method: 'POST',
+      headers: { 'Prefer': 'resolution=merge-duplicates' },
+      body: JSON.stringify({
+        customer_id: customerId,
+        lesson_id: lessonId,
+        completed: true,
+        completed_at: new Date().toISOString(),
+      })
+    });
   }
 
   const activeLesson = lessons.find(l => l.id === activeLessonId);
