@@ -5,9 +5,9 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 
-const INTRO_PRICE    = 249
-const REGULAR_PRICE  = 399
-const REFERRAL_DISC  = 20  // default agent discount, overridden by API response
+const INTRO_PRICE   = 249
+const REGULAR_PRICE = 399
+const REFERRAL_DISC = 20
 
 export default function BuyScreen() {
   const [name,         setName]         = useState('')
@@ -15,78 +15,85 @@ export default function BuyScreen() {
   const [referralCode, setReferralCode] = useState('')
   const [codeStatus,   setCodeStatus]   = useState('idle')
   const [agentName,    setAgentName]    = useState('')
-  const [referrerName, setReferrerName] = useState('')
   const [discountAmt,  setDiscountAmt]  = useState(REFERRAL_DISC)
   const [status,       setStatus]       = useState('idle')
   const [errorMsg,     setErrorMsg]     = useState('')
-  const [cancelled,    setCancelled]    = useState(false)
   const [success,      setSuccess]      = useState(false)
-  const [bookCount,    setBookCount]    = useState(null)
+  const [cancelled,    setCancelled]    = useState(false)
+  const [studentCount, setStudentCount] = useState(null)
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
-    if (params.get('success') === 'true') setSuccess(true)
-    if (params.get('cancelled') === 'true') setCancelled(true)
-    loadBookCount()
+    if (params.get('success') === 'true')    setSuccess(true)
+    if (params.get('cancelled') === 'true')  setCancelled(true)
+    loadStudentCount()
   }, [])
 
-  async function loadBookCount() {
+  async function loadStudentCount() {
     try {
       const { count } = await supabase
-        .from('books')
+        .from('customers')
         .select('*', { count: 'exact', head: true })
-      if (count !== null) setBookCount(count)
+        .eq('is_active', true)
+      if (count !== null) setStudentCount(count)
     } catch(e) {}
   }
 
   const finalPrice = codeStatus === 'valid' ? INTRO_PRICE - discountAmt : INTRO_PRICE
 
   async function checkReferralCode(code) {
-    if (!code.trim()) { setCodeStatus('idle'); setAgentName(''); setReferrerName(''); setDiscountAmt(REFERRAL_DISC); return }
+    if (!code.trim()) { setCodeStatus('idle'); setAgentName(''); setDiscountAmt(REFERRAL_DISC); return }
     setCodeStatus('checking')
-    const res  = await fetch('/api/validate-referral', {
-      method : 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body   : JSON.stringify({ code, email: buyerEmail }),
-    })
-    const data = await res.json()
-    if (data.valid) {
-      setCodeStatus('valid')
-      setDiscountAmt(data.discount || REFERRAL_DISC)
-      if (data.type === 'agent') { setAgentName(data.agentName); setReferrerName('') }
-      else { setReferrerName(data.referrerName); setAgentName('') }
-    } else if (data.reason === 'self_referral') {
-      setCodeStatus('self_referral'); setAgentName(''); setReferrerName(''); setDiscountAmt(REFERRAL_DISC)
-    } else {
-      setCodeStatus('invalid'); setAgentName(''); setReferrerName(''); setDiscountAmt(REFERRAL_DISC)
+    try {
+      const res = await fetch('/api/validate-referral', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, email }),
+      })
+      const data = await res.json()
+      if (data.valid) {
+        setCodeStatus('valid')
+        setAgentName(data.agentName || '')
+        setDiscountAmt(data.discount || REFERRAL_DISC)
+      } else {
+        setCodeStatus('invalid')
+      }
+    } catch {
+      setCodeStatus('invalid')
     }
   }
 
-  async function handleBuy() {
-    if (!name.trim() || !email.trim()) return
+  async function handlePurchase() {
+    if (!name.trim())  return setErrorMsg('Please enter your full name.')
+    if (!email.trim() || !email.includes('@')) return setErrorMsg('Please enter a valid email address.')
     setStatus('loading'); setErrorMsg('')
-    const res  = await fetch('/api/create-checkout', {
-      method : 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body   : JSON.stringify({ name: name.trim(), email: email.trim(), referralCode: codeStatus === 'valid' ? referralCode : '' }),
-    })
-    const data = await res.json()
-    if (data.checkoutUrl) {
-      window.location.href = data.checkoutUrl
-    } else {
-      setStatus('error')
-      setErrorMsg(data.error || 'Something went wrong. Please try again.')
+    try {
+      const res = await fetch('/api/create-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, referralCode, amount: finalPrice }),
+      })
+      const data = await res.json()
+      if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl
+      } else {
+        setErrorMsg(data.error || 'Payment setup failed. Please try again.')
+        setStatus('idle')
+      }
+    } catch {
+      setErrorMsg('Something went wrong. Please try again.')
+      setStatus('idle')
     }
   }
 
   if (success) {
     return (
       <div style={s.root}>
-        <div style={s.card} className="animate-up">
-          <div style={s.successIcon}>✅</div>
-          <h2 style={s.successTitle}>Payment Successful!</h2>
-          <p style={s.successDesc}>Check your email — your access key and setup guide have been sent. Check your spam folder if you don't see it within 2 minutes.</p>
-          <a href="/" style={s.btn}>Open Readwise by Skai →</a>
+        <div style={s.card}>
+          <div style={s.successIcon}>🎓</div>
+          <h1 style={s.heading}>You're in.</h1>
+          <p style={s.sub}>Check your email for your access key. You're one step closer to passing your board exam.</p>
+          <a href="/" style={s.btn}>Open Readwise →</a>
         </div>
       </div>
     )
@@ -94,204 +101,152 @@ export default function BuyScreen() {
 
   return (
     <div style={s.root}>
-      <div style={s.urgencyBanner}>
-        <span style={s.urgencyDot}/>
-        <span style={s.urgencyText}>🔥 Introductory price — <strong>₱{INTRO_PRICE}</strong> only. Regular price is <strong style={{ textDecoration:'line-through', opacity:0.7 }}>₱{REGULAR_PRICE}</strong>. Lock in lifetime access now before the price increases.</span>
-      </div>
-      <div style={s.currencyBanner}>
-        <span style={s.currencyText}>₱{INTRO_PRICE} PHP · ≈ $4.40 USD · ≈ €4.10 EUR · ≈ £3.50 GBP · ≈ ¥640 JPY</span>
-      </div>
+      <div style={s.bg} />
+      <div style={s.card}>
 
-      <div style={s.wrap}>
-        <div style={s.left}>
-          <div style={s.logo}>
-            <div style={s.logoIcon}>📖</div>
-            <div>
-              <div style={s.logoName}>Readwise by Skai</div>
-              <div style={s.logoTagline}>Your Personal Reading Space</div>
-            </div>
+        {/* Brand */}
+        <div style={s.brand}>
+          <div style={s.brandIcon}>R</div>
+          <div>
+            <div style={s.brandName}>Readwise</div>
+            <div style={s.brandBy}>by Skai · Board Exam OS</div>
           </div>
-
-          <h1 style={s.headline}>Your Books.<br/>Your Library.<br/><span style={{ color:'var(--accent)' }}>One Lifetime Payment.</span></h1>
-          <p style={s.subhead}>Upload your own books and read them beautifully — plus a growing library of curated classics included. Works on any device, no installation needed.</p>
-
-          <div style={s.featureList}>
-            {[
-              ['🔒', 'Upload Your Own Books', 'Read any PDF you own — beautifully'],
-              ['🌙', 'Beautiful Dark Mode', 'Easy on the eyes, day and night'],
-              ['🔊', 'Text-to-Speech', 'Listen while commuting or doing anything'],
-              ['📍', 'Auto-saves Progress', 'Always picks up where you left off'],
-              ['📱', 'Works on Any Device', 'Phone, tablet, laptop — no install needed'],
-              ['✨', 'Growing Library of Classics', 'New books added regularly — free forever'],
-            ].map(([icon, title, desc]) => (
-              <div key={title} style={s.feature}>
-                <span style={s.featureIcon}>{icon}</span>
-                <div>
-                  <p style={s.featureTitle}>{title}</p>
-                  <p style={s.featureDesc}>{desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div style={s.priceBlock}>
-            <span style={s.priceRegular}>₱{REGULAR_PRICE}</span>
-            <span style={s.priceIntro}>₱{finalPrice}</span>
-            <span style={s.priceBadge}>INTRODUCTORY</span>
-          </div>
-          <p style={s.priceNote}>One-time payment. Lifetime access. No subscription.</p>
         </div>
 
-        <div style={s.right}>
-          <div style={s.formCard} className="animate-up">
-            {cancelled && (
-              <div style={s.cancelledBox}>
-                <p style={{ margin:0, fontSize:13, color:'#e0a050' }}>⚠ Payment was cancelled. You can try again below.</p>
+        {/* Hero */}
+        <h1 style={s.heading}>Pass your board exam.</h1>
+        <p style={s.sub}>
+          Spaced repetition, readiness tracking, daily coaching — built specifically for Philippine licensure examinees.
+        </p>
+
+        {/* Exam badges */}
+        <div style={s.examRow}>
+          {['LET', 'NLE', 'CPA', 'Bar'].map(e => (
+            <span key={e} style={s.examBadge}>{e}</span>
+          ))}
+        </div>
+
+        {/* Features */}
+        <div style={s.features}>
+          {[
+            { icon: '🧠', title: 'Spaced Repetition', desc: 'Platform remembers what you forget and brings it back at the right time' },
+            { icon: '📊', title: 'Readiness Score', desc: 'Know exactly where you stand vs. the passing mark — every day' },
+            { icon: '⚡', title: 'Daily Coaching', desc: 'Your Next Best Action — what to study, why, and how much it matters' },
+            { icon: '📖', title: 'Structured Lessons', desc: 'Board-weighted lessons with memory hooks, glossary, and mnemonics' },
+          ].map(f => (
+            <div key={f.title} style={s.feature}>
+              <span style={s.featureIcon}>{f.icon}</span>
+              <div>
+                <div style={s.featureTitle}>{f.title}</div>
+                <div style={s.featureDesc}>{f.desc}</div>
               </div>
-            )}
-
-            <p style={s.formTitle}>Get Lifetime Access</p>
-            <p style={s.formDesc}>Pay once, read forever. Key sent to your email instantly.</p>
-
-            <div style={s.field}>
-              <label style={s.label}>Full Name</label>
-              <input style={s.input} placeholder="Juan Dela Cruz" value={name} onChange={e => setName(e.target.value)}/>
             </div>
+          ))}
+        </div>
 
-            <div style={s.field}>
-              <label style={s.label}>Email Address</label>
-              <input style={s.input} type="email" placeholder="juan@gmail.com" value={email} onChange={e => setEmail(e.target.value)}/>
-              <p style={s.inputNote}>Your access key will be sent here</p>
+        <div style={s.divider} />
+
+        {/* Pricing */}
+        <div style={s.priceRow}>
+          <div>
+            <div style={s.priceLabel}>Introductory Price</div>
+            <div style={s.price}>
+              ₱{finalPrice}
+              <span style={s.priceOld}>₱{REGULAR_PRICE}</span>
             </div>
+            <div style={s.priceNote}>One-time · Lifetime access · All exams included</div>
+          </div>
+          {studentCount > 0 && (
+            <div style={s.socialProof}>{studentCount} students enrolled</div>
+          )}
+        </div>
 
-            <div style={s.field}>
-              <label style={s.label}>Referral Code <span style={{ color:'var(--text-muted)', fontSize:11 }}>(optional)</span></label>
-              <div style={s.codeRow}>
-                <input
-                  style={{ ...s.input, flex:1 }}
-                  placeholder="e.g. JUAN50"
-                  value={referralCode}
-                  onChange={e => { setReferralCode(e.target.value.toUpperCase()); setCodeStatus('idle') }}
-                  onBlur={() => checkReferralCode(referralCode)}
-                />
-                {codeStatus === 'checking' && <span style={s.codeChecking}>checking…</span>}
-                {codeStatus === 'valid'        && <span style={s.codeValid}>✓ -₱{discountAmt}</span>}
-                {codeStatus === 'invalid'      && <span style={s.codeInvalid}>✗ Invalid</span>}
-                {codeStatus === 'self_referral'&& <span style={s.codeInvalid}>✗ Can't use own code</span>}
-              </div>
-              {codeStatus === 'valid' && agentName && (
-                <p style={{ margin:'4px 0 0', fontSize:12, color:'#3a9a6a' }}>Referred by {agentName} — ₱{discountAmt} discount applied!</p>
-              )}
-              {codeStatus === 'valid' && referrerName && (
-                <p style={{ margin:'4px 0 0', fontSize:12, color:'#3a9a6a' }}>Friend referral from {referrerName} — ₱{discountAmt} discount applied! 🎁</p>
-              )}
-            </div>
+        {cancelled && (
+          <div style={s.cancelNote}>Payment was cancelled. No charge was made.</div>
+        )}
 
-            <div style={s.priceSummary}>
-              <div style={s.summaryRow}>
-                <span style={s.summaryLabel}>Readwise by Skai — Lifetime</span>
-                <span style={s.summaryValue}>₱{INTRO_PRICE}</span>
-              </div>
+        {/* Form */}
+        <div style={s.form}>
+          <div style={s.field}>
+            <label style={s.label}>Full name</label>
+            <input style={s.input} type="text" placeholder="e.g. Juan Dela Cruz"
+              value={name} onChange={e => setName(e.target.value)}
+              autoComplete="name" />
+          </div>
+          <div style={s.field}>
+            <label style={s.label}>Email address</label>
+            <input style={s.input} type="email" placeholder="your@email.com"
+              value={email} onChange={e => setEmail(e.target.value)}
+              autoComplete="email" />
+          </div>
+          <div style={s.field}>
+            <label style={s.label}>Referral code <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span></label>
+            <div style={{ position: 'relative' }}>
+              <input style={s.input} type="text" placeholder="e.g. SKAI2025"
+                value={referralCode}
+                onChange={e => { setReferralCode(e.target.value.toUpperCase()); checkReferralCode(e.target.value) }} />
               {codeStatus === 'valid' && (
-                <div style={s.summaryRow}>
-                  <span style={{ ...s.summaryLabel, color:'#3a9a6a' }}>Referral discount</span>
-                  <span style={{ ...s.summaryValue, color:'#3a9a6a' }}>-₱{discountAmt}</span>
-                </div>
+                <div style={s.codeValid}>✓ ₱{discountAmt} off {agentName ? `via ${agentName}` : ''}</div>
               )}
-              <div style={s.summaryDivider}/>
-              <div style={s.summaryRow}>
-                <span style={{ ...s.summaryLabel, color:'var(--text-primary)', fontWeight:600 }}>Total</span>
-                <span style={{ ...s.summaryValue, color:'#c9a96e', fontWeight:700, fontSize:18 }}>₱{finalPrice}</span>
-              </div>
-            </div>
-
-            {errorMsg && <p style={s.error}>{errorMsg}</p>}
-
-            <button
-              style={{ ...s.buyBtn, ...(!name.trim() || !email.trim() || status === 'loading' ? s.buyBtnDisabled : {}) }}
-              onClick={handleBuy}
-              disabled={!name.trim() || !email.trim() || status === 'loading'}
-            >
-              {status === 'loading'
-                ? <><span style={s.spinner}/> Setting up payment…</>
-                : <>Pay ₱{finalPrice} — QR Ph / GCash / Maya / Card</>
-              }
-            </button>
-
-            <div style={s.paymentLogos}>
-              {['GCash', 'Maya', 'QR Ph', 'Visa', 'Mastercard'].map(p => (
-                <span key={p} style={s.paymentBadge}>{p}</span>
-              ))}
-            </div>
-
-            <p style={s.secureNote}>🔒 Secure payment via PayMongo · Key sent instantly after payment</p>
-
-            <div style={s.refundNote}>
-              <p style={{ margin:0, fontSize:11, color:'var(--text-muted)', lineHeight:1.6, textAlign:'center' }}>
-                🛡 <strong style={{ color:'var(--text-secondary)' }}>No refunds after key activation.</strong> Please make sure you want the product before purchasing. Questions? Email us at readwisebyskai@gmail.com
-              </p>
+              {codeStatus === 'invalid' && (
+                <div style={s.codeInvalid}>Invalid code</div>
+              )}
             </div>
           </div>
+
+          {errorMsg && <div style={s.error}>{errorMsg}</div>}
+
+          <button style={{ ...s.btn, ...(status === 'loading' ? { opacity: 0.7, cursor: 'not-allowed' } : {}) }}
+            onClick={handlePurchase}
+            disabled={status === 'loading'}>
+            {status === 'loading' ? 'Setting up payment…' : `Get Access · ₱${finalPrice}`}
+          </button>
+
+          <p style={s.payNote}>Secure payment via PayMongo · GCash · Card · Maya</p>
         </div>
+
+        <p style={s.footer}>
+          Already have an account? <a href="/" style={{ color: 'var(--accent)' }}>Sign in here →</a>
+        </p>
       </div>
     </div>
   )
 }
 
 const s = {
-  root         : { minHeight:'100vh', background:'var(--bg-base)', display:'flex', flexDirection:'column' },
-  urgencyBanner: { background:'rgba(201,169,110,0.1)', borderBottom:'1px solid rgba(201,169,110,0.2)', padding:'10px 20px', display:'flex', alignItems:'center', justifyContent:'center', gap:8 },
-  urgencyDot   : { width:8, height:8, borderRadius:'50%', background:'#c9a96e', animation:'pulse 1.5s ease infinite', flexShrink:0 },
-  urgencyText  : { fontSize:13, color:'#c9a96e', textAlign:'center' },
-  currencyBanner: { background:'rgba(255,255,255,0.02)', borderBottom:'1px solid rgba(255,255,255,0.05)', padding:'6px 20px', textAlign:'center' },
-  currencyText : { fontSize:11, color:'var(--text-muted)', letterSpacing:'0.03em' },
-  wrap         : { flex:1, display:'flex', flexWrap:'wrap', gap:0, maxWidth:1100, margin:'0 auto', padding:'40px 20px', width:'100%' },
-  left         : { flex:'1 1 420px', padding:'0 40px 40px 0' },
-  right        : { flex:'1 1 340px', minWidth:300 },
-  logo         : { display:'flex', alignItems:'center', gap:10, marginBottom:32 },
-  logoIcon     : { width:44, height:44, background:'rgba(201,169,110,0.15)', borderRadius:10, display:'flex', alignItems:'center', justifyContent:'center', fontSize:22 },
-  logoName     : { fontFamily:'var(--font-display)', fontSize:18, color:'var(--text-primary)' },
-  logoTagline  : { fontSize:11, color:'var(--accent)', textTransform:'uppercase', letterSpacing:'0.08em' },
-  headline     : { fontSize:32, fontWeight:700, color:'var(--text-primary)', lineHeight:1.25, letterSpacing:'-0.02em', margin:'0 0 16px' },
-  subhead      : { fontSize:15, color:'var(--text-secondary)', lineHeight:1.7, margin:'0 0 32px' },
-  featureList  : { display:'flex', flexDirection:'column', gap:14, marginBottom:32 },
-  feature      : { display:'flex', alignItems:'flex-start', gap:12 },
-  featureIcon  : { fontSize:18, flexShrink:0, marginTop:1 },
-  featureTitle : { margin:'0 0 2px', fontSize:14, color:'var(--text-primary)', fontWeight:500 },
-  featureDesc  : { margin:0, fontSize:12, color:'var(--text-muted)' },
-  priceBlock   : { display:'flex', alignItems:'center', gap:12, marginBottom:8 },
-  priceRegular : { fontSize:18, color:'var(--text-muted)', textDecoration:'line-through' },
-  priceIntro   : { fontSize:36, fontWeight:700, color:'#c9a96e', letterSpacing:'-0.02em' },
-  priceBadge   : { fontSize:10, fontWeight:700, color:'#c9a96e', background:'rgba(201,169,110,0.12)', border:'1px solid rgba(201,169,110,0.25)', padding:'3px 8px', borderRadius:99 },
-  priceNote    : { margin:0, fontSize:13, color:'var(--text-muted)' },
-  formCard     : { background:'var(--bg-surface)', border:'1px solid var(--border)', borderRadius:'var(--radius-xl)', padding:28, display:'flex', flexDirection:'column', gap:16 },
-  formTitle    : { margin:0, fontSize:18, fontWeight:600, color:'var(--text-primary)' },
-  formDesc     : { margin:0, fontSize:13, color:'var(--text-muted)', lineHeight:1.6 },
-  field        : { display:'flex', flexDirection:'column', gap:6 },
-  label        : { fontSize:11, fontWeight:500, color:'var(--text-secondary)', textTransform:'uppercase', letterSpacing:'0.07em' },
-  input        : { padding:'10px 12px', background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', color:'var(--text-primary)', fontSize:14, outline:'none', width:'100%' },
-  inputNote    : { margin:'4px 0 0', fontSize:11, color:'var(--text-muted)' },
-  codeRow      : { display:'flex', alignItems:'center', gap:8 },
-  codeChecking : { fontSize:12, color:'var(--text-muted)', flexShrink:0 },
-  codeValid    : { fontSize:13, color:'#3a9a6a', fontWeight:600, flexShrink:0 },
-  codeInvalid  : { fontSize:13, color:'#e05c5c', fontWeight:600, flexShrink:0 },
-  priceSummary : { background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', padding:14, display:'flex', flexDirection:'column', gap:8 },
-  summaryRow   : { display:'flex', justifyContent:'space-between', alignItems:'center' },
-  summaryLabel : { fontSize:13, color:'var(--text-muted)' },
-  summaryValue : { fontSize:14, color:'var(--text-primary)', fontWeight:500 },
-  summaryDivider: { height:1, background:'var(--border)' },
-  cancelledBox : { background:'rgba(224,160,80,0.08)', border:'1px solid rgba(224,160,80,0.2)', borderRadius:'var(--radius-sm)', padding:'10px 12px' },
-  error        : { fontSize:13, color:'#e05c5c', background:'rgba(224,92,92,0.08)', borderRadius:'var(--radius-sm)', padding:'10px 12px', margin:0 },
-  buyBtn       : { display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:'14px', background:'#c9a96e', color:'#0d0d0d', border:'none', borderRadius:'var(--radius-md)', fontSize:15, fontWeight:600, cursor:'pointer' },
-  buyBtnDisabled: { opacity:0.45, cursor:'not-allowed' },
-  paymentLogos : { display:'flex', flexWrap:'wrap', gap:6, justifyContent:'center' },
-  paymentBadge : { fontSize:11, color:'var(--text-muted)', background:'var(--bg-elevated)', border:'1px solid var(--border)', padding:'3px 8px', borderRadius:4 },
-  secureNote   : { margin:0, fontSize:11, color:'var(--text-muted)', textAlign:'center', lineHeight:1.6 },
-  refundNote   : { background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:'var(--radius-sm)', padding:'10px 12px' },
-  spinner      : { width:14, height:14, border:'2px solid rgba(0,0,0,0.2)', borderTop:'2px solid #0d0d0d', borderRadius:'50%', animation:'spin 0.7s linear infinite', display:'inline-block' },
-  successIcon  : { fontSize:48, textAlign:'center' },
-  successTitle : { margin:'0 0 12px', fontSize:24, fontWeight:600, color:'var(--text-primary)', textAlign:'center' },
-  successDesc  : { margin:'0 0 24px', fontSize:14, color:'var(--text-muted)', lineHeight:1.7, textAlign:'center' },
-  btn          : { display:'block', background:'#c9a96e', color:'#0d0d0d', textDecoration:'none', padding:'13px 24px', borderRadius:'var(--radius-md)', fontSize:15, fontWeight:600, textAlign:'center' },
-  card         : { width:'100%', maxWidth:480, background:'var(--bg-surface)', border:'1px solid var(--border)', borderRadius:'var(--radius-xl)', padding:'40px 32px', display:'flex', flexDirection:'column', gap:16, margin:'80px auto' },
+  root        : { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-base)', padding: '20px 16px', position: 'relative', overflow: 'hidden' },
+  bg          : { position: 'absolute', top: '-20%', left: '50%', transform: 'translateX(-50%)', width: 600, height: 600, borderRadius: '50%', background: 'radial-gradient(circle, var(--accent-dim) 0%, transparent 70%)', pointerEvents: 'none' },
+  card        : { width: '100%', maxWidth: 440, background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-xl)', padding: '36px 28px', position: 'relative', zIndex: 1 },
+  brand       : { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24 },
+  brandIcon   : { width: 36, height: 36, background: 'var(--accent-dim)', border: '1px solid var(--accent)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 18, color: 'var(--accent)' },
+  brandName   : { fontFamily: 'var(--font-display)', fontSize: 17, color: 'var(--text-primary)', lineHeight: 1.1 },
+  brandBy     : { fontSize: 10, color: 'var(--accent)', letterSpacing: '0.06em', textTransform: 'uppercase' },
+  heading     : { fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8, letterSpacing: '-0.02em', lineHeight: 1.2 },
+  sub         : { fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 16 },
+  examRow     : { display: 'flex', gap: 6, marginBottom: 20, flexWrap: 'wrap' },
+  examBadge   : { background: 'var(--accent-dim)', border: '1px solid var(--accent)', borderRadius: 20, padding: '3px 12px', fontSize: 11, fontWeight: 700, color: 'var(--accent)' },
+  features    : { display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 },
+  feature     : { display: 'flex', gap: 12, alignItems: 'flex-start' },
+  featureIcon : { fontSize: 18, flexShrink: 0, marginTop: 1 },
+  featureTitle: { fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 },
+  featureDesc : { fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 },
+  divider     : { height: 1, background: 'var(--border)', margin: '4px 0 16px' },
+  priceRow    : { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 20 },
+  priceLabel  : { fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 },
+  price       : { fontFamily: 'var(--font-display)', fontSize: 32, fontWeight: 700, color: 'var(--accent)', lineHeight: 1 },
+  priceOld    : { fontSize: 16, color: 'var(--text-muted)', textDecoration: 'line-through', marginLeft: 8, fontWeight: 400 },
+  priceNote   : { fontSize: 11, color: 'var(--text-muted)', marginTop: 4 },
+  socialProof : { fontSize: 12, color: 'var(--text-muted)', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 8, padding: '4px 10px' },
+  cancelNote  : { fontSize: 12, color: '#F59E0B', background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 8, padding: '8px 12px', marginBottom: 12 },
+  form        : { display: 'flex', flexDirection: 'column', gap: 14 },
+  field       : { display: 'flex', flexDirection: 'column', gap: 6 },
+  label       : { fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em' },
+  input       : { padding: '11px 14px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', color: 'var(--text-primary)', fontSize: 14, outline: 'none', width: '100%' },
+  codeValid   : { marginTop: 6, fontSize: 12, color: '#10B981', fontWeight: 600 },
+  codeInvalid : { marginTop: 6, fontSize: 12, color: '#e05c5c' },
+  error       : { fontSize: 13, color: '#e05c5c', background: 'rgba(224,92,92,0.08)', border: '1px solid rgba(224,92,92,0.2)', borderRadius: 8, padding: '10px 12px' },
+  btn         : { display: 'block', width: '100%', padding: '14px', background: 'var(--accent)', color: '#0d0d0d', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 15, fontWeight: 700, cursor: 'pointer', textAlign: 'center', textDecoration: 'none', transition: 'opacity 0.15s' },
+  payNote     : { fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', marginTop: -4 },
+  footer      : { marginTop: 20, fontSize: 12, color: 'var(--text-muted)', textAlign: 'center' },
+  successIcon : { fontSize: 48, textAlign: 'center', marginBottom: 16 },
 }

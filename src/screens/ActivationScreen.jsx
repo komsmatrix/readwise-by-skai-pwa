@@ -90,7 +90,7 @@ export default function ActivationScreen({ onActivated }) {
         </div>
 
         <h1 style={s.heading}>Welcome.</h1>
-        <p style={s.sub}>Your personal reading space.</p>
+        <p style={s.sub}>Your board exam operating system.</p>
 
         {/* Tabs */}
         <div style={s.tabs}>
@@ -122,7 +122,7 @@ export default function ActivationScreen({ onActivated }) {
               disabled={status === 'loading' || status === 'success'}>
               {status === 'loading' ? <><span style={s.spinner}/> Looking up account…</>
                : status === 'success' ? 'Welcome back ✓'
-               : 'Open my reading space'}
+               : 'Open my study space'}
             </button>
           </div>
         )}
@@ -167,7 +167,7 @@ export default function ActivationScreen({ onActivated }) {
 
         <p style={s.footer}>
           {tab === 'returning'
-            ? 'Your library is tied to your email — works on any device.'
+            ? 'Your account is tied to your email — works on any device.'
             : 'Your key is personal and must be activated within 7 days of purchase.'}
         </p>
       </div>

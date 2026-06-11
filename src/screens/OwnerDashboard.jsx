@@ -157,7 +157,7 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
     setUpdStatus(data.success ? 'success' : 'error')
   }
 
-  // ── Add Book ──────────────────────────────────────────────────────────────
+  // ── Add Content ──────────────────────────────────────────────────────────────
   async function handleAddBook() {
     if (!bookTitle.trim() || !pdfFile) return
     setAddStatus('uploading'); setAddError(''); setAddProgress(''); setAddTextSource(null)
@@ -193,7 +193,7 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
 
       if (duplicate) {
         setAddStatus('error')
-        setAddError(`"${bookTitle}" by ${bookAuthor || 'this author'} already exists in the library.`)
+        setAddError(`"${bookTitle}" by ${bookAuthor || 'this author'} already exists in the content.`)
         return
       }
 
@@ -554,7 +554,7 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
       <div style={s.tabs}>
         {[
           ['generate', '🔑 Generate Key'],
-          ['addbook',  '📚 Add Book'],
+          ['addbook',  '📚 Add Content'],
           ['editbook', '✏️ Edit Book'],
           ['sales',    '💰 Sales'],
           ['agents',   '🤝 Agents'],
@@ -600,7 +600,7 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
           </div>
         )}
 
-        {/* ── Add Book ── */}
+        {/* ── Add Content ── */}
         {tab === 'addbook' && (
           <div style={s.section}>
             <p style={s.sectionDesc}>Upload a new book to the shared library. It appears instantly for all customers.</p>
@@ -664,7 +664,7 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
               )}
               <input ref={coverRef} type="file" accept="image/*" style={{ display:'none' }} onChange={e => setCoverFile(e.target.files[0] || null)}/>
             </div>
-            <div style={s.field}><label style={s.label}>Book Title <span style={{ color:'#e05c5c' }}>*</span></label>
+            <div style={s.field}><label style={s.label}>Content Title <span style={{ color:'#e05c5c' }}>*</span></label>
               <input style={s.input} placeholder="e.g. Atomic Habits" value={bookTitle} onChange={e => setBookTitle(e.target.value)}/>
             </div>
             <div style={s.field}><label style={s.label}>Author</label>
@@ -709,7 +709,7 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
                     <p style={{ fontSize:12, color:'var(--text-muted)', marginTop:3 }}>📎 Text source: <strong style={{ color:'#3a9a6a' }}>Manually uploaded</strong> — your file is live.</p>
                   )}
                   {!addTextSource && (
-                    <p style={{ fontSize:12, color:'var(--text-muted)', marginTop:3 }}>It's now live in the library for all customers.</p>
+                    <p style={{ fontSize:12, color:'var(--text-muted)', marginTop:3 }}>It's now live in the content for all customers.</p>
                   )}
                 </div>
               </div>
@@ -719,7 +719,7 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
               style={{ ...s.btn, ...(!canAdd ? s.btnDisabled : {}), ...(addStatus === 'success' ? { background:'#3a9a6a' } : {}) }}
               onClick={handleAddBook} disabled={!canAdd}>
               {addStatus === 'uploading' ? <><span style={{ ...s.spinner, borderTopColor:'#0d0d0d' }}/> Uploading…</>
-                : addStatus === 'success' ? '✓ Added to Library!' : '📚 Add Book to Library'}
+                : addStatus === 'success' ? '✓ Added to Library!' : '📚 Add Content to Library'}
             </button>
             {addStatus === 'success' && (
               <button style={{ ...s.btn, background:'transparent', border:'1px solid var(--border)', color:'var(--text-secondary)' }}
@@ -729,7 +729,7 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
             {/* ── Re-extract All Books ── */}
             <div style={ab.reextractBox}>
               <p style={ab.reextractTitle}>🔄 Re-extract All Books</p>
-              <p style={ab.reextractDesc}>Regenerates the Text Mode HTML for all existing books using the improved formatter. Fixes formatting on books already in the library.</p>
+              <p style={ab.reextractDesc}>Regenerates the Text Mode HTML for all existing books using the improved formatter. Fixes formatting on books already in the content.</p>
               {reextractStatus === 'loading' && (
                 <div style={ab.reextractProgress} className="animate-in">
                   <span style={s.spinner}/>
@@ -910,7 +910,7 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
                     </button>
                   ) : (
                     <div style={ebS.deleteConfirmBox} className="animate-in">
-                      <p style={ebS.deleteWarning}>⚠️ Are you sure you want to delete <strong>"{editBook.title}"</strong>? It will be removed from the library for all customers.</p>
+                      <p style={ebS.deleteWarning}>⚠️ Are you sure you want to delete <strong>"{editBook.title}"</strong>? It will be removed from the content for all customers.</p>
                       <div style={{ display:'flex', gap:10, marginTop:12 }}>
                         <button style={ebS.deleteConfirmBtn} onClick={handleDeleteBook} disabled={editStatus === 'saving'}>
                           {editStatus === 'saving' ? <><span style={s.spinner}/> Deleting…</> : 'Yes, Delete'}
@@ -1056,7 +1056,7 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
             {/* Books */}
             <div style={s.field}>
               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                <label style={s.label}>New book titles <span style={{ color:'var(--text-muted)', fontSize:10, textTransform:'none', letterSpacing:0 }}>(one per line)</span></label>
+                <label style={s.label}>New content titles <span style={{ color:'var(--text-muted)', fontSize:10, textTransform:'none', letterSpacing:0 }}>(one per line)</span></label>
                 {updBooks.trim() && (
                   <span style={su.bookCount}>
                     {updBooks.split('\n').filter(b => b.trim()).length} book{updBooks.split('\n').filter(b => b.trim()).length !== 1 ? 's' : ''}
@@ -1113,7 +1113,7 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
                   <p style={su.previewMessage}>"{updMessage}"</p>
                 )}
                 <div style={su.previewCta}>Open Your Library →</div>
-                <p style={su.previewFooter}>Books are added regularly. Your library grows — your price stays the same. 🙌</p>
+                <p style={su.previewFooter}>Books are added regularly. Your content grows — your price stays the same. 🙌</p>
               </div>
             )}
 
@@ -1210,7 +1210,7 @@ const st = {
   directBadge:{ fontSize:10, color:'var(--text-muted)', background:'var(--bg-overlay)', padding:'2px 6px', borderRadius:99 },
 }
 
-// ── Add Book styles ───────────────────────────────────────────────────────────
+// ── Add Content styles ───────────────────────────────────────────────────────────
 const ab = {
   typeToggle     : { display:'flex', gap:4, background:'var(--bg-elevated)', borderRadius:'var(--radius-md)', padding:4 },
   typeBtn        : { flex:1, padding:'10px 8px', border:'none', borderRadius:8, fontSize:13, fontWeight:500, cursor:'pointer', background:'transparent', color:'var(--text-muted)', transition:'all var(--transition)', fontFamily:'inherit' },
