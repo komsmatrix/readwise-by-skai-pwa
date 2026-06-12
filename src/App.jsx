@@ -10,6 +10,7 @@ import LessonScreen      from './screens/LessonScreen.jsx'
 import OwnerDashboard    from './screens/OwnerDashboard.jsx'
 import BuyScreen         from './screens/BuyScreen.jsx'
 import LoadingScreen     from './screens/LoadingScreen.jsx'
+import LandingScreen     from './screens/LandingScreen.jsx'
 
 export default function App() {
   const [screen,      setScreen]      = useState('loading')
@@ -87,9 +88,18 @@ export default function App() {
   if (screen === 'buy')     return <BuyScreen />
   if (screen === 'loading') return <LoadingScreen />
 
-  // Activation — no customer, show login
+  // Landing page — show to non-logged-in visitors
   if (screen === 'activation' || !customer) {
-    return <ActivationScreen onActivated={handleActivated} />
+    if (screen === 'activation_form') {
+      return <ActivationScreen onActivated={handleActivated} />
+    }
+    return (
+      <LandingScreen
+        onGetAccess={() => window.location.href = '/buy'}
+        onTryFree={() => setScreen('activation_form')}
+        onSignIn={() => setScreen('activation_form')}
+      />
+    )
   }
 
   // Onboarding — customer exists but no exam enrolled
