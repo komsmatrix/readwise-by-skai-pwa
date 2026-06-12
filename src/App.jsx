@@ -17,6 +17,7 @@ export default function App() {
   const [customer,    setCustomer]    = useState(null)
   const [studentExam, setStudentExam] = useState(null)
   const [activeTab,   setActiveTab]   = useState('home')
+  const [selectedCourse, setSelectedCourse] = useState('LET')
 
   useEffect(() => { init() }, [])
 
@@ -95,8 +96,14 @@ export default function App() {
     }
     return (
       <LandingScreen
-        onGetAccess={() => window.location.href = '/buy'}
-        onTryFree={() => setScreen('activation_form')}
+        onGetAccess={(course) => {
+          setSelectedCourse(course)
+          window.location.href = `/buy?course=${course}`
+        }}
+        onTryFree={(course) => {
+          setSelectedCourse(course)
+          setScreen('activation_form')
+        }}
         onSignIn={() => setScreen('activation_form')}
       />
     )

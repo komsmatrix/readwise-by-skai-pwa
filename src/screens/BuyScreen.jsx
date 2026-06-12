@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+// Per-course pricing — students pay per exam, not all at once
 import { createClient } from '@supabase/supabase-js'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
@@ -10,6 +11,18 @@ const REGULAR_PRICE = 399
 const REFERRAL_DISC = 20
 
 export default function BuyScreen() {
+  // Get pre-selected course from URL param if coming from landing page
+  const urlParams   = new URLSearchParams(window.location.search)
+  const initCourse  = urlParams.get('course') || 'LET'
+
+  const COURSES = [
+    { id:'LET', name:'LET', full:'Licensure Exam for Teachers', price:249, available:true,  topics:12, questions:'1,200+' },
+    { id:'NLE', name:'NLE', full:'Nursing Licensure Exam',       price:249, available:false, topics:0,  questions:'Coming' },
+    { id:'CPA', name:'CPA', full:'CPA Board Exam',               price:249, available:false, topics:0,  questions:'Coming' },
+    { id:'BAR', name:'Bar', full:'Philippine Bar Exam',          price:249, available:false, topics:0,  questions:'Coming' },
+  ]
+
+  const [selectedCourse, setSelectedCourse] = useState(initCourse)
   const [name,         setName]         = useState('')
   const [email,        setEmail]        = useState('')
   const [referralCode, setReferralCode] = useState('')
@@ -39,7 +52,9 @@ export default function BuyScreen() {
     } catch(e) {}
   }
 
-  const finalPrice = codeStatus === 'valid' ? INTRO_PRICE - discountAmt : INTRO_PRICE
+  const activeCourse = COURSES.find(c => c.id === selectedCourse) || COURSES[0]
+  const basePrice    = activeCourse.price
+  const finalPrice   = codeStatus === 'valid' ? basePrice - discountAmt : basePrice
 
   async function checkReferralCode(code) {
     if (!code.trim()) { setCodeStatus('idle'); setAgentName(''); setDiscountAmt(REFERRAL_DISC); return }
@@ -71,7 +86,7 @@ export default function BuyScreen() {
       const res = await fetch('/api/create-payment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, referralCode, amount: finalPrice }),
+        body: JSON.stringify({ name, email, referralCode, amount: finalPrice, course: selectedCourse }),
       })
       const data = await res.json()
       if (data.checkoutUrl) {
@@ -111,6 +126,33 @@ export default function BuyScreen() {
             <div style={s.brandName}>Readwise</div>
             <div style={s.brandBy}>by Skai · Board Exam OS</div>
           </div>
+        </div>
+
+        {/* Course selector */}
+        <div style={{ marginBottom:24 }}>
+          <p style={{ fontSize:11, fontWeight:700, color:'var(--accent)', textTransform:'uppercase', letterSpacing:'.06em', marginBottom:10 }}>Select Your Exam</p>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
+            {COURSES.map(c => (
+              <button key={c.id}
+                onClick={() => c.available && setSelectedCourse(c.id)}
+                disabled={!c.available}
+                style={{
+                  background: selectedCourse === c.id ? 'var(--accent-dim)' : 'var(--bg-elevated)',
+                  border: selectedCourse === c.id ? '1.5px solid var(--accent)' : '1.5px solid var(--border)',
+                  borderRadius:10, padding:'12px 14px', cursor: c.available ? 'pointer' : 'not-allowed',
+                  textAlign:'left', opacity: c.available ? 1 : 0.4, fontFamily:'inherit',
+                  transition:'all .15s'
+                }}>
+                <div style={{ fontSize:16, fontWeight:800, color: selectedCourse === c.id ? 'var(--accent)' : 'var(--text-primary)', marginBottom:2 }}>{c.name}</div>
+                <div style={{ fontSize:11, color:'var(--text-muted)' }}>{c.available ? c.full : 'Coming Soon'}</div>
+              </button>
+            ))}
+          </div>
+          {activeCourse.available && (
+            <div style={{ marginTop:10, fontSize:12, color:'var(--text-muted)', background:'var(--bg-elevated)', borderRadius:8, padding:'8px 12px' }}>
+              {activeCourse.topics} topics · {activeCourse.questions} questions · Lifetime access
+            </div>
+          )}
         </div>
 
         {/* Hero */}
@@ -199,7 +241,7 @@ export default function BuyScreen() {
           <button style={{ ...s.btn, ...(status === 'loading' ? { opacity: 0.7, cursor: 'not-allowed' } : {}) }}
             onClick={handlePurchase}
             disabled={status === 'loading'}>
-            {status === 'loading' ? 'Setting up payment…' : `Get Access · ₱${finalPrice}`}
+            {status === 'loading' ? 'Setting up payment…' : `Get ${selectedCourse} Access · ₱${finalPrice}`}
           </button>
 
           <p style={s.payNote}>Secure payment via PayMongo · GCash · Card · Maya</p>

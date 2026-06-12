@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 
 export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
+  // onGetAccess(course), onTryFree(course)
 
   const gaugeRef    = useRef(null)
   const [pct, setPct]     = useState(0)
@@ -9,6 +10,7 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
   const [bars, setBars]   = useState({ b1: 0, b2: 0, b3: 0, b4: 0 })
   const [studentCount, setStudentCount] = useState(null)
   const [navOpen, setNavOpen] = useState(false)
+  const [selectedCourse, setSelectedCourse] = useState('LET')
 
   const LEVELS = [
     { min: 0,  max: 30,  label: 'Started',      color: '#6b6560' },
@@ -99,7 +101,7 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
           <a href="#courses" style={s.navLink}>Courses</a>
           <a href="#pricing" style={s.navLink}>Pricing</a>
           <button style={s.navSignIn} onClick={onSignIn}>Sign In</button>
-          <button style={s.navCta} onClick={onGetAccess}>Get Access · ₱249</button>
+          <button style={s.navCta} onClick={() => onGetAccess(selectedCourse)}>Get Access · ₱249</button>
         </div>
       </nav>
 
@@ -118,8 +120,8 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
           Readwise remembers what you forget, finds the gaps you can't see yourself, and tells you exactly what to do — every day until exam day.
         </p>
         <div style={s.heroActions}>
-          <button style={s.btnPrimary} onClick={onGetAccess}>Get Access · ₱249</button>
-          <button style={s.btnGhost}   onClick={onTryFree}>Try Free for 1 Hour →</button>
+          <button style={s.btnPrimary} onClick={() => onGetAccess(selectedCourse)}>Get Access · ₱249</button>
+          <button style={s.btnGhost}   onClick={() => onTryFree(selectedCourse)}>Try Free for 1 Hour →</button>
         </div>
         <div style={s.examBadges}>
           {['LET','NLE','CPA Board','Bar Exam'].map((e,i) => (
@@ -220,20 +222,40 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
               { code:'NLE',  full:'Nursing Licensure Examination',       live:false, stats:['500 questions · 5 sub-exams','Content in preparation'] },
               { code:'CPA',  full:'CPA Board Examination',               live:false, stats:['300 questions · 6 subjects','Content in preparation'] },
               { code:'Bar',  full:'Philippine Bar Examination',           live:false, stats:['Content in preparation'] },
-            ].map(c => (
-              <div key={c.code} style={{ ...s.courseCard, ...(c.live ? s.courseCardLive : {}) }}>
-                <div style={s.courseHeader}>
-                  <div style={s.courseCode}>{c.code}</div>
-                  <span style={{ ...s.courseStatus, ...(c.live ? s.courseStatusLive : s.courseStatusSoon) }}>
-                    {c.live ? 'Live Now' : 'Coming Soon'}
-                  </span>
+            ].map(c => {
+              const isSelected = selectedCourse === c.code
+              return (
+                <div key={c.code}
+                  onClick={() => c.live && setSelectedCourse(c.code)}
+                  style={{
+                    ...s.courseCard,
+                    ...(c.live ? s.courseCardLive : {}),
+                    ...(isSelected ? s.courseCardSelected : {}),
+                    cursor: c.live ? 'pointer' : 'default',
+                    opacity: c.live ? 1 : 0.5,
+                  }}>
+                  <div style={s.courseHeader}>
+                    <div style={s.courseCode}>{c.code}</div>
+                    <span style={{ ...s.courseStatus, ...(c.live ? s.courseStatusLive : s.courseStatusSoon) }}>
+                      {c.live ? 'Live Now' : 'Coming Soon'}
+                    </span>
+                  </div>
+                  <div style={s.courseFull}>{c.full}</div>
+                  <div style={s.courseStats}>
+                    {c.stats.map(st => <div key={st} style={s.courseStat}>{st}</div>)}
+                  </div>
+                  {c.live && (
+                    <div style={{ marginTop:14 }}>
+                      {isSelected ? (
+                        <div style={s.courseSelectedBadge}>✓ Selected</div>
+                      ) : (
+                        <div style={s.courseSelectHint}>Click to select</div>
+                      )}
+                    </div>
+                  )}
                 </div>
-                <div style={s.courseFull}>{c.full}</div>
-                <div style={s.courseStats}>
-                  {c.stats.map(st => <div key={st} style={s.courseStat}>{st}</div>)}
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       </section>
@@ -242,12 +264,12 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
       <section id="pricing" style={s.section}>
         <div style={{ ...s.container, textAlign:'center' }}>
           <div style={s.sectionEyebrow}>Pricing</div>
-          <h2 style={s.sectionTitle}>One price. All exams. Forever.</h2>
+          <h2 style={s.sectionTitle}>One course. One price. Yours forever.</h2>
           <div style={s.pricingCard}>
-            <div style={s.priceEyebrow}>Introductory Price</div>
+            <div style={s.priceEyebrow}>{selectedCourse} — Introductory Price</div>
             <div style={s.priceAmount}><span style={s.priceSup}>₱</span>249</div>
             <div style={s.priceOld}>Regular price: ₱399</div>
-            <div style={s.priceNote}>One-time payment · Lifetime access · All exams included</div>
+            <div style={s.priceNote}>One-time payment · Lifetime access to {selectedCourse} · Add more courses anytime</div>
             <div style={s.priceDivider}/>
             <div style={s.priceFeatures}>
               {[
@@ -264,7 +286,7 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
                 </div>
               ))}
             </div>
-            <button style={s.priceCta} onClick={onGetAccess}>Get Lifetime Access · ₱249</button>
+            <button style={s.priceCta} onClick={() => onGetAccess(selectedCourse)}>Get Access to {selectedCourse} · ₱249</button>
             <div style={s.priceSub}>Secure payment via GCash · Maya · Card · PayMongo</div>
           </div>
 
@@ -274,7 +296,7 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
               <h3 style={{ fontSize:20, fontWeight:700, color:'var(--text-primary)', marginBottom:6 }}>Not ready to buy? Try it free.</h3>
               <p style={{ fontSize:14, color:'var(--text-secondary)' }}>Register your email and get 1 hour of full access — no card required.</p>
             </div>
-            <button style={s.btnTrial} onClick={onTryFree}>Start Free Trial →</button>
+            <button style={s.btnTrial} onClick={() => onTryFree(selectedCourse)}>Start Free Trial →</button>
           </div>
         </div>
       </section>
@@ -315,8 +337,8 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
             Join students who are studying smarter — not longer — with a system that actually knows what they need.
           </p>
           <div style={{ display:'flex', gap:12, justifyContent:'center', flexWrap:'wrap' }}>
-            <button style={s.btnPrimary} onClick={onGetAccess}>Get Access · ₱249</button>
-            <button style={s.btnGhost}   onClick={onTryFree}>Try Free First →</button>
+            <button style={s.btnPrimary} onClick={() => onGetAccess(selectedCourse)}>Get Access · ₱249</button>
+            <button style={s.btnGhost}   onClick={() => onTryFree(selectedCourse)}>Try Free First →</button>
           </div>
         </div>
       </section>
@@ -405,6 +427,9 @@ const s = {
   stepDesc:         { fontSize:14, color:'var(--text-secondary)', lineHeight:1.7 },
 
   // Courses
+  courseCardSelected:  { borderColor:'var(--accent)', background:'var(--accent-dim)' },
+  courseSelectedBadge: { fontSize:12, fontWeight:700, color:'var(--accent)', background:'var(--accent-dim)', border:'1px solid rgba(201,169,110,0.3)', borderRadius:6, padding:'4px 10px', display:'inline-block' },
+  courseSelectHint:    { fontSize:12, color:'var(--text-muted)', fontStyle:'italic' },
   coursesGrid:      { display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(220px, 1fr))', gap:16, marginTop:48 },
   courseCard:       { background:'var(--bg-base)', border:'1px solid var(--border)', borderRadius:14, padding:24 },
   courseCardLive:   { borderColor:'rgba(201,169,110,0.3)' },
