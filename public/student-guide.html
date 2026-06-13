@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Student Guide — Readwise by Skai</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0d0d0d;
+      --surface: #1a1a1a;
+      --border: #2a2a2a;
+      --accent: #c9a96e;
+      --accent-dim: rgba(201,169,110,0.08);
+      --text: #ffffff;
+      --muted: #888;
+      --green: #10B981;
+    }
+    body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.6; }
+    .page { max-width: 680px; margin: 0 auto; padding: 48px 20px 80px; }
+    .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 48px; }
+    .brand-icon { width: 40px; height: 40px; background: var(--accent-dim); border: 1px solid var(--accent); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 800; color: var(--accent); }
+    .brand-name { font-size: 18px; font-weight: 700; color: var(--text); }
+    .brand-sub { font-size: 10px; color: var(--accent); letter-spacing: 0.06em; text-transform: uppercase; }
+    .hero-badge { display: inline-block; background: var(--accent-dim); border: 1px solid var(--accent); border-radius: 20px; padding: 4px 14px; font-size: 11px; font-weight: 700; color: var(--accent); letter-spacing: 0.06em; margin-bottom: 16px; }
+    h1 { font-size: 34px; font-weight: 800; color: var(--text); margin-bottom: 12px; line-height: 1.2; }
+    .hero-sub { font-size: 16px; color: var(--muted); margin-bottom: 40px; }
+    .section { margin-bottom: 40px; }
+    .section-eyebrow { font-size: 11px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; margin-bottom: 8px; }
+    h2 { font-size: 22px; font-weight: 700; color: var(--text); margin-bottom: 16px; }
+    p { font-size: 14px; color: var(--muted); line-height: 1.7; margin-bottom: 12px; }
+    .features { display: flex; flex-direction: column; gap: 12px; }
+    .feature { display: flex; gap: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+    .feature-icon { font-size: 24px; flex-shrink: 0; }
+    .feature-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+    .feature-desc { font-size: 13px; color: var(--muted); line-height: 1.6; }
+    .steps { display: flex; flex-direction: column; gap: 12px; }
+    .step { display: flex; gap: 12px; align-items: flex-start; }
+    .step-num { width: 28px; height: 28px; border-radius: 50%; background: var(--accent-dim); border: 1px solid var(--accent); color: var(--accent); font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .step-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+    .step-desc { font-size: 13px; color: var(--muted); line-height: 1.6; }
+    .price-box { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 28px; text-align: center; }
+    .price-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+    .price { font-size: 48px; font-weight: 800; color: var(--accent); line-height: 1; }
+    .price-old { font-size: 20px; color: var(--muted); text-decoration: line-through; margin-left: 8px; }
+    .price-note { font-size: 12px; color: var(--muted); margin-top: 8px; }
+    .cta-btn { display: block; background: var(--accent); color: #0d0d0d; text-decoration: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 700; text-align: center; margin-top: 20px; }
+    .divider { height: 1px; background: var(--border); margin: 40px 0; }
+    .faq { display: flex; flex-direction: column; gap: 10px; }
+    .faq-item { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+    .faq-q { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+    .faq-a { font-size: 13px; color: var(--muted); line-height: 1.6; }
+    @media (max-width: 480px) { h1 { font-size: 26px; } .price { font-size: 36px; } }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <div class="brand">
+    <div class="brand-icon">R</div>
+    <div>
+      <div class="brand-name">Readwise by Skai</div>
+      <div class="brand-sub">Board Exam Operating System</div>
+    </div>
+  </div>
+
+  <div class="hero-badge">STUDENT GUIDE</div>
+  <h1>Pass your board exam. Here's how Readwise helps.</h1>
+  <p class="hero-sub">Not another quiz app. Readwise is a system that tells you what to study, remembers what you forget, and predicts whether you'll pass.</p>
+
+  <div class="section">
+    <div class="section-eyebrow">Why Students Fail</div>
+    <h2>5 reasons — Readwise fixes all of them</h2>
+    <div class="features">
+      <div class="feature">
+        <div class="feature-icon">📋</div>
+        <div>
+          <div class="feature-title">They don't know what to study</div>
+          <div class="feature-desc">Readwise tells you your Next Best Action every day — the exact topic that will move your score the most.</div>
+        </div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🧠</div>
+        <div>
+          <div class="feature-title">They forget what they studied</div>
+          <div class="feature-desc">Spaced repetition brings back topics right before you're about to forget them. Science-backed. Proven to work.</div>
+        </div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">📊</div>
+        <div>
+          <div class="feature-title">They don't know if they're ready</div>
+          <div class="feature-desc">Your Readiness Score updates every day — weighted by actual board exam topics. You'll know exactly where you stand.</div>
+        </div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🎯</div>
+        <div>
+          <div class="feature-title">They study strong topics, avoid weak ones</div>
+          <div class="feature-desc">Topic Health flags your weak areas so you focus where it actually matters — not where you're already good.</div>
+        </div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">📝</div>
+        <div>
+          <div class="feature-title">They've never simulated the real exam</div>
+          <div class="feature-desc">Full mock board exams in the exact format of LET, NLE, CPA, and Bar — timed, confidence-tagged, scored.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="section">
+    <div class="section-eyebrow">Getting Started</div>
+    <h2>You'll be studying in under 5 minutes</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div>
+          <div class="step-title">Buy access (₱249 with referral code)</div>
+          <div class="step-desc">One-time payment. Lifetime access to your exam. No subscription.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div>
+          <div class="step-title">Check your email for your access key</div>
+          <div class="step-desc">You'll get a 12-character key (e.g. ABCD-1234-WXYZ) in your inbox within minutes.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div>
+          <div class="step-title">Activate at readwisebyskai.com</div>
+          <div class="step-desc">Enter your name, email, and key. Works on mobile, tablet, and desktop — no app download needed.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div>
+          <div class="step-title">Set up your exam and start studying</div>
+          <div class="step-desc">Pick your exam, study mode, and exam date. Your personalized plan is ready in under 2 minutes.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="section">
+    <div class="section-eyebrow">Pricing</div>
+    <h2>One-time. No subscription.</h2>
+    <div class="price-box">
+      <div class="price-label">With Referral Code</div>
+      <div>
+        <span class="price">₱229</span>
+        <span class="price-old">₱249</span>
+      </div>
+      <div class="price-note">One-time · Lifetime access · LET exam</div>
+      <a href="https://readwisebyskai.com/buy" class="cta-btn">Get Access Now →</a>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="section">
+    <div class="section-eyebrow">FAQ</div>
+    <h2>Common questions</h2>
+    <div class="faq">
+      <div class="faq-item">
+        <div class="faq-q">Which exams are supported?</div>
+        <div class="faq-a">LET (Licensure Exam for Teachers) is live now. NLE, CPA Board, and Bar Exam are coming soon.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Does it work on mobile?</div>
+        <div class="faq-a">Yes — it's a web app that works on any device. No download needed. Install to home screen for the best experience.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Is this a subscription?</div>
+        <div class="faq-a">No. One-time payment, lifetime access to your exam content.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">What if I already failed before?</div>
+        <div class="faq-a">Readwise is built specifically for retakers. The Recovery Flow and Topic Health features are designed to find and close the gaps that caused you to fail.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Can I try before buying?</div>
+        <div class="faq-a">Yes — there's a 1-hour free trial. No payment required. Go to readwisebyskai.com and click "Try Free."</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
