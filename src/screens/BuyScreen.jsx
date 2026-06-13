@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-// Per-course pricing — students pay per exam, not all at once
 import { createClient } from '@supabase/supabase-js'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
@@ -11,22 +10,22 @@ const REGULAR_PRICE = 399
 const REFERRAL_DISC = 20
 
 export default function BuyScreen() {
-  // Get pre-selected course from URL param if coming from landing page
-  const urlParams   = new URLSearchParams(window.location.search)
-  const initCourse  = urlParams.get('course') || 'LET'
+  const urlParams  = new URLSearchParams(window.location.search)
+  const initCourse = urlParams.get('course') || 'LET'
+  const initRef    = urlParams.get('ref') || ''
 
   const COURSES = [
     { id:'LET', name:'LET', full:'Licensure Exam for Teachers', price:249, available:true,  topics:12, questions:'1,200+' },
-    { id:'NLE', name:'NLE', full:'Nursing Licensure Exam',       price:249, available:false, topics:0,  questions:'Coming' },
-    { id:'CPA', name:'CPA', full:'CPA Board Exam',               price:249, available:false, topics:0,  questions:'Coming' },
-    { id:'BAR', name:'Bar', full:'Philippine Bar Exam',          price:249, available:false, topics:0,  questions:'Coming' },
+    { id:'NLE', name:'NLE', full:'Nursing Licensure Exam',       price:249, available:false },
+    { id:'CPA', name:'CPA', full:'CPA Board Exam',               price:249, available:false },
+    { id:'BAR', name:'Bar', full:'Philippine Bar Exam',          price:249, available:false },
   ]
 
   const [selectedCourse, setSelectedCourse] = useState(initCourse)
   const [name,         setName]         = useState('')
   const [email,        setEmail]        = useState('')
-  const [referralCode, setReferralCode] = useState('')
-  const [codeStatus,   setCodeStatus]   = useState('idle')
+  const [referralCode, setReferralCode] = useState(initRef)
+  const [codeStatus,   setCodeStatus]   = useState(initRef ? 'checking' : 'idle')
   const [agentName,    setAgentName]    = useState('')
   const [discountAmt,  setDiscountAmt]  = useState(REFERRAL_DISC)
   const [status,       setStatus]       = useState('idle')
@@ -37,9 +36,10 @@ export default function BuyScreen() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
-    if (params.get('success') === 'true')    setSuccess(true)
-    if (params.get('cancelled') === 'true')  setCancelled(true)
+    if (params.get('success') === 'true')   setSuccess(true)
+    if (params.get('cancelled') === 'true') setCancelled(true)
     loadStudentCount()
+    if (initRef) checkReferralCode(initRef)
   }, [])
 
   async function loadStudentCount() {
@@ -105,7 +105,7 @@ export default function BuyScreen() {
     return (
       <div style={s.root}>
         <div style={s.card}>
-          <div style={s.successIcon}>🎓</div>
+          <div style={{ fontSize: 48, textAlign: 'center', marginBottom: 16 }}>🎓</div>
           <h1 style={s.heading}>You're in.</h1>
           <p style={s.sub}>Check your email for your access key. You're one step closer to passing your board exam.</p>
           <a href="/" style={s.btn}>Open Readwise →</a>
@@ -123,72 +123,44 @@ export default function BuyScreen() {
         <div style={s.brand}>
           <div style={s.brandIcon}>R</div>
           <div>
-            <div style={s.brandName}>Readwise</div>
-            <div style={s.brandBy}>by Skai · Board Exam OS</div>
+            <div style={s.brandName}>Readwise by Skai</div>
+            <div style={s.brandBy}>Board Exam Operating System</div>
           </div>
         </div>
 
-        {/* Course selector */}
-        <div style={{ marginBottom:24 }}>
-          <p style={{ fontSize:11, fontWeight:700, color:'var(--accent)', textTransform:'uppercase', letterSpacing:'.06em', marginBottom:10 }}>Select Your Exam</p>
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
-            {COURSES.map(c => (
-              <button key={c.id}
-                onClick={() => c.available && setSelectedCourse(c.id)}
-                disabled={!c.available}
-                style={{
-                  background: selectedCourse === c.id ? 'var(--accent-dim)' : 'var(--bg-elevated)',
-                  border: selectedCourse === c.id ? '1.5px solid var(--accent)' : '1.5px solid var(--border)',
-                  borderRadius:10, padding:'12px 14px', cursor: c.available ? 'pointer' : 'not-allowed',
-                  textAlign:'left', opacity: c.available ? 1 : 0.4, fontFamily:'inherit',
-                  transition:'all .15s'
-                }}>
-                <div style={{ fontSize:16, fontWeight:800, color: selectedCourse === c.id ? 'var(--accent)' : 'var(--text-primary)', marginBottom:2 }}>{c.name}</div>
-                <div style={{ fontSize:11, color:'var(--text-muted)' }}>{c.available ? c.full : 'Coming Soon'}</div>
-              </button>
-            ))}
-          </div>
-          {activeCourse.available && (
-            <div style={{ marginTop:10, fontSize:12, color:'var(--text-muted)', background:'var(--bg-elevated)', borderRadius:8, padding:'8px 12px' }}>
-              {activeCourse.topics} topics · {activeCourse.questions} questions · Lifetime access
-            </div>
-          )}
-        </div>
-
-        {/* Hero */}
+        {/* Headline */}
         <h1 style={s.heading}>Pass your board exam.</h1>
         <p style={s.sub}>
-          Spaced repetition, readiness tracking, daily coaching — built specifically for Philippine licensure examinees.
+          Spaced repetition · Readiness Score · Daily Coaching — built for Philippine licensure examinees.
         </p>
 
-        {/* Exam badges */}
-        <div style={s.examRow}>
-          {['LET', 'NLE', 'CPA', 'Bar'].map(e => (
-            <span key={e} style={s.examBadge}>{e}</span>
+        {/* Course selector */}
+        <div style={s.courseGrid}>
+          {COURSES.map(c => (
+            <button key={c.id}
+              onClick={() => c.available && setSelectedCourse(c.id)}
+              disabled={!c.available}
+              style={{
+                background: selectedCourse === c.id ? 'var(--accent-dim)' : 'var(--bg-elevated)',
+                border: selectedCourse === c.id ? '1.5px solid var(--accent)' : '1.5px solid var(--border)',
+                borderRadius: 10, padding: '10px 12px', cursor: c.available ? 'pointer' : 'not-allowed',
+                textAlign: 'left', opacity: c.available ? 1 : 0.4, fontFamily: 'inherit', transition: 'all .15s'
+              }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: selectedCourse === c.id ? 'var(--accent)' : 'var(--text-primary)', marginBottom: 2 }}>{c.name}</div>
+              <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{c.available ? c.full : 'Coming Soon'}</div>
+            </button>
           ))}
         </div>
 
-        {/* Features */}
-        <div style={s.features}>
-          {[
-            { icon: '🧠', title: 'Spaced Repetition', desc: 'Platform remembers what you forget and brings it back at the right time' },
-            { icon: '📊', title: 'Readiness Score', desc: 'Know exactly where you stand vs. the passing mark — every day' },
-            { icon: '⚡', title: 'Daily Coaching', desc: 'Your Next Best Action — what to study, why, and how much it matters' },
-            { icon: '📖', title: 'Structured Lessons', desc: 'Board-weighted lessons with memory hooks, glossary, and mnemonics' },
-          ].map(f => (
-            <div key={f.title} style={s.feature}>
-              <span style={s.featureIcon}>{f.icon}</span>
-              <div>
-                <div style={s.featureTitle}>{f.title}</div>
-                <div style={s.featureDesc}>{f.desc}</div>
-              </div>
-            </div>
-          ))}
-        </div>
+        {activeCourse.available && (
+          <div style={s.courseNote}>
+            {activeCourse.topics} topics · {activeCourse.questions} questions · Lifetime access
+          </div>
+        )}
 
         <div style={s.divider} />
 
-        {/* Pricing */}
+        {/* Price */}
         <div style={s.priceRow}>
           <div>
             <div style={s.priceLabel}>Introductory Price</div>
@@ -196,10 +168,10 @@ export default function BuyScreen() {
               ₱{finalPrice}
               <span style={s.priceOld}>₱{REGULAR_PRICE}</span>
             </div>
-            <div style={s.priceNote}>One-time · Lifetime access · All exams included</div>
+            <div style={s.priceNote}>One-time · Lifetime access</div>
           </div>
           {studentCount > 0 && (
-            <div style={s.socialProof}>{studentCount} students enrolled</div>
+            <div style={s.socialProof}>{studentCount} enrolled</div>
           )}
         </div>
 
@@ -213,7 +185,7 @@ export default function BuyScreen() {
             <label style={s.label}>Full name</label>
             <input style={s.input} type="text" placeholder="e.g. Juan Dela Cruz"
               value={name} onChange={e => setName(e.target.value)}
-              autoComplete="name" />
+              autoComplete="name" autoFocus />
           </div>
           <div style={s.field}>
             <label style={s.label}>Email address</label>
@@ -222,23 +194,24 @@ export default function BuyScreen() {
               autoComplete="email" />
           </div>
           <div style={s.field}>
-            <label style={s.label}>Referral code <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span></label>
-            <div style={{ position: 'relative' }}>
-              <input style={s.input} type="text" placeholder="e.g. SKAI2025"
-                value={referralCode}
-                onChange={e => { setReferralCode(e.target.value.toUpperCase()); checkReferralCode(e.target.value) }} />
-              {codeStatus === 'valid' && (
-                <div style={s.codeValid}>✓ ₱{discountAmt} off {agentName ? `via ${agentName}` : ''}</div>
-              )}
-              {codeStatus === 'invalid' && (
-                <div style={s.codeInvalid}>Invalid code</div>
-              )}
-            </div>
+            <label style={s.label}>
+              Referral code <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional · saves ₱{REFERRAL_DISC})</span>
+            </label>
+            <input style={s.input} type="text" placeholder="e.g. SKAI2025"
+              value={referralCode}
+              onChange={e => { setReferralCode(e.target.value.toUpperCase()); checkReferralCode(e.target.value) }} />
+            {codeStatus === 'valid' && (
+              <div style={s.codeValid}>✓ ₱{discountAmt} off{agentName ? ` via ${agentName}` : ''}</div>
+            )}
+            {codeStatus === 'invalid' && (
+              <div style={s.codeInvalid}>Invalid code</div>
+            )}
           </div>
 
           {errorMsg && <div style={s.error}>{errorMsg}</div>}
 
-          <button style={{ ...s.btn, ...(status === 'loading' ? { opacity: 0.7, cursor: 'not-allowed' } : {}) }}
+          <button
+            style={{ ...s.btn, ...(status === 'loading' ? { opacity: 0.7, cursor: 'not-allowed' } : {}) }}
             onClick={handlePurchase}
             disabled={status === 'loading'}>
             {status === 'loading' ? 'Setting up payment…' : `Get ${selectedCourse} Access · ₱${finalPrice}`}
@@ -256,39 +229,34 @@ export default function BuyScreen() {
 }
 
 const s = {
-  root        : { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-base)', padding: '20px 16px', position: 'relative', overflow: 'hidden' },
-  bg          : { position: 'absolute', top: '-20%', left: '50%', transform: 'translateX(-50%)', width: 600, height: 600, borderRadius: '50%', background: 'radial-gradient(circle, var(--accent-dim) 0%, transparent 70%)', pointerEvents: 'none' },
-  card        : { width: '100%', maxWidth: 440, background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-xl)', padding: '36px 28px', position: 'relative', zIndex: 1 },
-  brand       : { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24 },
-  brandIcon   : { width: 36, height: 36, background: 'var(--accent-dim)', border: '1px solid var(--accent)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 18, color: 'var(--accent)' },
-  brandName   : { fontFamily: 'var(--font-display)', fontSize: 17, color: 'var(--text-primary)', lineHeight: 1.1 },
-  brandBy     : { fontSize: 10, color: 'var(--accent)', letterSpacing: '0.06em', textTransform: 'uppercase' },
-  heading     : { fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8, letterSpacing: '-0.02em', lineHeight: 1.2 },
-  sub         : { fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 16 },
-  examRow     : { display: 'flex', gap: 6, marginBottom: 20, flexWrap: 'wrap' },
-  examBadge   : { background: 'var(--accent-dim)', border: '1px solid var(--accent)', borderRadius: 20, padding: '3px 12px', fontSize: 11, fontWeight: 700, color: 'var(--accent)' },
-  features    : { display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 },
-  feature     : { display: 'flex', gap: 12, alignItems: 'flex-start' },
-  featureIcon : { fontSize: 18, flexShrink: 0, marginTop: 1 },
-  featureTitle: { fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 },
-  featureDesc : { fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 },
-  divider     : { height: 1, background: 'var(--border)', margin: '4px 0 16px' },
-  priceRow    : { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 20 },
-  priceLabel  : { fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 },
-  price       : { fontFamily: 'var(--font-display)', fontSize: 32, fontWeight: 700, color: 'var(--accent)', lineHeight: 1 },
-  priceOld    : { fontSize: 16, color: 'var(--text-muted)', textDecoration: 'line-through', marginLeft: 8, fontWeight: 400 },
-  priceNote   : { fontSize: 11, color: 'var(--text-muted)', marginTop: 4 },
-  socialProof : { fontSize: 12, color: 'var(--text-muted)', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 8, padding: '4px 10px' },
-  cancelNote  : { fontSize: 12, color: '#F59E0B', background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 8, padding: '8px 12px', marginBottom: 12 },
-  form        : { display: 'flex', flexDirection: 'column', gap: 14 },
-  field       : { display: 'flex', flexDirection: 'column', gap: 6 },
-  label       : { fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em' },
-  input       : { padding: '11px 14px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', color: 'var(--text-primary)', fontSize: 14, outline: 'none', width: '100%' },
-  codeValid   : { marginTop: 6, fontSize: 12, color: '#10B981', fontWeight: 600 },
-  codeInvalid : { marginTop: 6, fontSize: 12, color: '#e05c5c' },
-  error       : { fontSize: 13, color: '#e05c5c', background: 'rgba(224,92,92,0.08)', border: '1px solid rgba(224,92,92,0.2)', borderRadius: 8, padding: '10px 12px' },
-  btn         : { display: 'block', width: '100%', padding: '14px', background: 'var(--accent)', color: '#0d0d0d', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 15, fontWeight: 700, cursor: 'pointer', textAlign: 'center', textDecoration: 'none', transition: 'opacity 0.15s' },
-  payNote     : { fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', marginTop: -4 },
-  footer      : { marginTop: 20, fontSize: 12, color: 'var(--text-muted)', textAlign: 'center' },
-  successIcon : { fontSize: 48, textAlign: 'center', marginBottom: 16 },
+  // KEY FIX: use overflowY auto + alignItems flex-start so page scrolls properly on mobile
+  root       : { minHeight: '100vh', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', background: 'var(--bg-base)', padding: '24px 16px 48px', position: 'relative', overflowY: 'auto' },
+  bg         : { position: 'fixed', top: '-20%', left: '50%', transform: 'translateX(-50%)', width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle, var(--accent-dim) 0%, transparent 70%)', pointerEvents: 'none', zIndex: 0 },
+  card       : { width: '100%', maxWidth: 420, background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-xl)', padding: '28px 24px', position: 'relative', zIndex: 1 },
+  brand      : { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 },
+  brandIcon  : { width: 34, height: 34, background: 'var(--accent-dim)', border: '1px solid var(--accent)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 16, color: 'var(--accent)' },
+  brandName  : { fontFamily: 'var(--font-display)', fontSize: 15, color: 'var(--text-primary)', lineHeight: 1.1 },
+  brandBy    : { fontSize: 10, color: 'var(--accent)', letterSpacing: '0.06em', textTransform: 'uppercase' },
+  heading    : { fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6, letterSpacing: '-0.02em', lineHeight: 1.2 },
+  sub        : { fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 16 },
+  courseGrid : { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 8 },
+  courseNote : { fontSize: 11, color: 'var(--text-muted)', background: 'var(--bg-elevated)', borderRadius: 6, padding: '6px 10px', marginBottom: 4 },
+  divider    : { height: 1, background: 'var(--border)', margin: '14px 0' },
+  priceRow   : { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 16 },
+  priceLabel : { fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 3 },
+  price      : { fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 700, color: 'var(--accent)', lineHeight: 1 },
+  priceOld   : { fontSize: 15, color: 'var(--text-muted)', textDecoration: 'line-through', marginLeft: 8, fontWeight: 400 },
+  priceNote  : { fontSize: 10, color: 'var(--text-muted)', marginTop: 3 },
+  socialProof: { fontSize: 11, color: 'var(--text-muted)', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 6, padding: '3px 8px' },
+  cancelNote : { fontSize: 12, color: '#F59E0B', background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 8, padding: '8px 12px', marginBottom: 12 },
+  form       : { display: 'flex', flexDirection: 'column', gap: 12 },
+  field      : { display: 'flex', flexDirection: 'column', gap: 5 },
+  label      : { fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em' },
+  input      : { padding: '10px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', color: 'var(--text-primary)', fontSize: 14, outline: 'none', width: '100%', boxSizing: 'border-box', fontFamily: 'inherit' },
+  codeValid  : { marginTop: 4, fontSize: 12, color: '#10B981', fontWeight: 600 },
+  codeInvalid: { marginTop: 4, fontSize: 12, color: '#e05c5c' },
+  error      : { fontSize: 13, color: '#e05c5c', background: 'rgba(224,92,92,0.08)', border: '1px solid rgba(224,92,92,0.2)', borderRadius: 8, padding: '10px 12px' },
+  btn        : { display: 'block', width: '100%', padding: '13px', background: 'var(--accent)', color: '#0d0d0d', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 15, fontWeight: 700, cursor: 'pointer', textAlign: 'center', textDecoration: 'none', transition: 'opacity 0.15s', fontFamily: 'inherit' },
+  payNote    : { fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', marginTop: -4 },
+  footer     : { marginTop: 16, fontSize: 12, color: 'var(--text-muted)', textAlign: 'center' },
 }
