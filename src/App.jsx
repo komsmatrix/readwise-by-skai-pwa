@@ -172,7 +172,7 @@ export default function App() {
   // Landing / activation
   if (screen === 'activation' || (!customer && !trialData)) {
     if (screen === 'activation_form') {
-      return <ActivationScreen onActivated={handleActivated} />
+      return <ActivationScreen onActivated={handleActivated} onBack={() => setScreen('activation')} />
     }
     return (
       <LandingScreen

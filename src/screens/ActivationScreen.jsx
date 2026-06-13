@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { activateKey, getCustomer } from '../lib/supabase.js'
 
-export default function ActivationScreen({ onActivated }) {
+export default function ActivationScreen({ onActivated, onBack }) {
   const [tab,      setTab]      = useState('returning') // 'returning' | 'new'
   const [name,     setName]     = useState('')
   const [email,    setEmail]    = useState('')
@@ -89,6 +89,9 @@ export default function ActivationScreen({ onActivated }) {
           </div>
         </div>
 
+        {onBack && (
+          <button style={s.backBtn} onClick={onBack}>← Back</button>
+        )}
         <h1 style={s.heading}>Welcome.</h1>
         <p style={s.sub}>Your board exam operating system.</p>
 
@@ -107,7 +110,7 @@ export default function ActivationScreen({ onActivated }) {
         {/* Returning — email only */}
         {tab === 'returning' && (
           <div style={s.form} className="animate-in">
-            <p style={s.tabHint}>Already have an account? Enter your email to access your library on any device.</p>
+            <p style={s.tabHint}>Already have an account? Enter your email to continue studying.</p>
             <div style={s.field}>
               <label style={s.label}>Email address</label>
               <input style={s.input} type="email" placeholder="your@email.com"
@@ -167,7 +170,7 @@ export default function ActivationScreen({ onActivated }) {
 
         <p style={s.footer}>
           {tab === 'returning'
-            ? 'Your account is tied to your email — works on any device.'
+            ? 'Your account is tied to your email — sign in on any device anytime.'
             : 'Your key is personal and must be activated within 7 days of purchase.'}
         </p>
       </div>
@@ -197,6 +200,7 @@ const s = {
   btnLoading: { opacity:0.7, cursor:'not-allowed' },
   btnSuccess: { background:'#3a9a6a', color:'#fff' },
   spinner  : { width:14, height:14, border:'2px solid rgba(0,0,0,0.2)', borderTop:'2px solid #0d0d0d', borderRadius:'50%', animation:'spin 0.7s linear infinite' },
+  backBtn  : { display:'inline-flex', alignItems:'center', gap:6, background:'none', border:'none', color:'var(--text-muted)', fontSize:13, cursor:'pointer', padding:'0 0 16px', fontFamily:'inherit', transition:'color var(--transition)' },
   footer   : { marginTop:20, fontSize:12, color:'var(--text-muted)', textAlign:'center', lineHeight:1.7 },
 }
 
