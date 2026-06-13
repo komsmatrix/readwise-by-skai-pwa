@@ -3,7 +3,12 @@
 // Sends to owner email + stores for dashboard
 
 const { Resend } = require('resend')
-const resend = new Resend(process.env.RESEND_API_KEY)
+const { createClient } = require('@supabase/supabase-js')
+const resend  = new Resend(process.env.RESEND_API_KEY)
+const supabase = createClient(
+  process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY
+)
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).end()
@@ -22,6 +27,16 @@ module.exports = async (req, res) => {
 
   const typeLabel = typeLabels[type] || '💬 Feedback'
   const subject   = `[${typeLabel}] from ${name || 'Anonymous'}`
+
+  // Store in Supabase for dashboard
+  try {
+    await supabase.from('feedback').insert([{
+      name: name || null,
+      email: email || null,
+      type: type || 'feedback',
+      message: message.trim(),
+    }])
+  } catch (e) { console.error('Supabase feedback store error:', e) }
 
   try {
     await resend.emails.send({

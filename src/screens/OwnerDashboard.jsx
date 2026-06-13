@@ -15,6 +15,7 @@ const TABS = [
   { id: 'trials',        label: '⏱ Trials'          },
   { id: 'students',      label: '👥 Students'        },
   { id: 'keys',          label: '🔑 Keys'            },
+  { id: 'feedback',      label: '💬 Feedback'       },
 ]
 
 export default function OwnerDashboard({ isLoggedIn, onLogin }) {
@@ -92,6 +93,7 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
         {tab === 'trials'        && <TrialsTab />}
         {tab === 'students'      && <StudentsTab />}
         {tab === 'keys'          && <KeysTab />}
+        {tab === 'feedback'      && <FeedbackTab />}
       </div>
     </div>
   )
@@ -1188,6 +1190,153 @@ function SalesTab() {
     </div>
   )
 }
+
+// ── Feedback Tab ──────────────────────────────────────────────────────────────
+function FeedbackTab() {
+  const [items,   setItems]   = useState([])
+  const [loading, setLoading] = useState(true)
+  const [filter,  setFilter]  = useState('all') // all | feedback | bug | content
+  const [expanded, setExpanded] = useState(null)
+
+  useEffect(() => { loadFeedback() }, [])
+
+  async function loadFeedback() {
+    // Feedback is stored in a simple table we create below
+    // Falls back gracefully if table doesn't exist yet
+    try {
+      const { data } = await supabase
+        .from('feedback')
+        .select('*')
+        .order('created_at', { ascending: false })
+      setItems(data || [])
+    } catch {
+      setItems([])
+    }
+    setLoading(false)
+  }
+
+  async function markRead(id) {
+    await supabase.from('feedback').update({ read: true }).eq('id', id)
+    setItems(prev => prev.map(i => i.id === id ? { ...i, read: true } : i))
+  }
+
+  async function deleteItem(id) {
+    await supabase.from('feedback').delete().eq('id', id)
+    setItems(prev => prev.filter(i => i.id !== id))
+  }
+
+  const typeIcon = { feedback: '💬', bug: '🐛', content: '📝' }
+  const typeColor = { feedback: '#10B981', bug: '#ef4444', content: '#F59E0B' }
+
+  const filtered = filter === 'all' ? items : items.filter(i => i.type === filter)
+  const unread = items.filter(i => !i.read).length
+
+  return (
+    <div style={s.section}>
+      {/* Stats */}
+      <div style={ow.grid}>
+        {[
+          { label: 'Total',    val: items.length,                                    color: 'var(--accent)' },
+          { label: 'Unread',   val: unread,                                          color: unread > 0 ? '#ef4444' : '#10B981' },
+          { label: 'Bugs',     val: items.filter(i => i.type === 'bug').length,      color: '#ef4444' },
+          { label: 'Content',  val: items.filter(i => i.type === 'content').length,  color: '#F59E0B' },
+          { label: 'Feedback', val: items.filter(i => i.type === 'feedback').length, color: '#10B981' },
+        ].map(stat => (
+          <div key={stat.label} style={ow.statCard}>
+            <div style={{ ...ow.statVal, color: stat.color }}>{stat.val}</div>
+            <div style={ow.statLabel}>{stat.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Filter */}
+      <div style={s.subtabBar}>
+        {['all','feedback','bug','content'].map(f => (
+          <button key={f}
+            style={{ ...s.subtabBtn, ...(filter === f ? s.subtabBtnActive : {}) }}
+            onClick={() => setFilter(f)}>
+            {f === 'all' ? 'All' : f === 'feedback' ? '💬 Feedback' : f === 'bug' ? '🐛 Bugs' : '📝 Content'}
+          </button>
+        ))}
+      </div>
+
+      {loading ? <Loading /> : filtered.length === 0 ? (
+        <div style={s.empty}>
+          {items.length === 0
+            ? 'No feedback yet. Students submit via Profile → Feedback.'
+            : 'No items in this category.'}
+        </div>
+      ) : (
+        <div style={s.cardList}>
+          {filtered.map(item => (
+            <div key={item.id} style={{
+              ...s.cardRow,
+              flexDirection: 'column',
+              alignItems: 'stretch',
+              gap: 0,
+              opacity: item.read ? 0.7 : 1,
+              borderColor: item.read ? 'var(--border)' : typeColor[item.type] || 'var(--border)',
+            }}>
+              {/* Header row */}
+              <div style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer', padding:'2px 0' }}
+                onClick={() => { setExpanded(expanded === item.id ? null : item.id); if (!item.read) markRead(item.id) }}>
+                <span style={{ fontSize:16 }}>{typeIcon[item.type] || '💬'}</span>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:13, fontWeight:600, color:'var(--text-primary)' }}>
+                    {item.name || 'Anonymous'}
+                    {!item.read && <span style={{ marginLeft:6, fontSize:9, background:'#ef4444', color:'#fff', padding:'1px 5px', borderRadius:10, fontWeight:700 }}>NEW</span>}
+                  </div>
+                  <div style={{ fontSize:11, color:'var(--text-muted)' }}>
+                    {item.email || 'No email'} · {new Date(item.created_at).toLocaleDateString('en-PH', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' })}
+                  </div>
+                </div>
+                <span style={{ fontSize:11, color: typeColor[item.type], fontWeight:600 }}>
+                  {item.type}
+                </span>
+                <span style={{ fontSize:12, color:'var(--text-muted)' }}>{expanded === item.id ? '▲' : '▼'}</span>
+              </div>
+
+              {/* Expanded content */}
+              {expanded === item.id && (
+                <div style={{ marginTop:10, paddingTop:10, borderTop:'1px solid var(--border)' }}>
+                  <div style={{ fontSize:13, color:'var(--text-secondary)', lineHeight:1.7, marginBottom:10, whiteSpace:'pre-wrap' }}>
+                    {item.message}
+                  </div>
+                  <div style={{ display:'flex', gap:8 }}>
+                    {item.email && (
+                      <a href={`mailto:${item.email}?subject=Re: Your Readwise Feedback`}
+                        style={{ fontSize:12, color:'var(--accent)', textDecoration:'none', padding:'5px 12px', border:'1px solid var(--accent)', borderRadius:6 }}>
+                        Reply →
+                      </a>
+                    )}
+                    <button style={{ ...s.deleteBtn, fontSize:11 }} onClick={() => deleteItem(item.id)}>Delete</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* SQL to create feedback table */}
+      <div style={{ marginTop:16, padding:'12px', background:'var(--bg-elevated)', borderRadius:8, fontSize:11, color:'var(--text-muted)', lineHeight:1.6 }}>
+        <strong style={{ color:'var(--text-primary)' }}>Note:</strong> Feedback is sent to your email via Resend.
+        To also store it here, run this SQL in Supabase once:
+        <pre style={{ marginTop:6, fontSize:10, color:'var(--accent)', whiteSpace:'pre-wrap' }}>
+{`create table if not exists feedback (
+  id uuid primary key default gen_random_uuid(),
+  name text, email text, type text, message text,
+  read boolean default false,
+  created_at timestamptz default now()
+);
+alter table feedback enable row level security;
+create policy "Service role" on feedback for all using (true);`}
+        </pre>
+      </div>
+    </div>
+  )
+}
+
 
 const ag = {
   agentCard   : { background:'var(--bg-surface)', border:'1px solid var(--border)', borderRadius:12, padding:'14px', marginBottom:8 },

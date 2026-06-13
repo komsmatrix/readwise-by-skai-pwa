@@ -22,20 +22,106 @@ async function sbFetch(path, options = {}) {
 
 // ─── Markdown renderer ────────────────────────────────────────────────────────
 function renderMarkdown(text) {
-  if (!text) return "";
+  if (!text) return ""
+
+  const lines = text.split("\n")
+  let html = ""
+  let i = 0
+
+  while (i < lines.length) {
+    const line = lines[i]
+
+    // Blank line
+    if (!line.trim()) { i++; continue }
+
+    // Headings
+    if (line.startsWith("### ")) { html += `<h3 style="font-size:16px;font-weight:700;color:var(--text-primary);margin:20px 0 8px;line-height:1.3">${inlineFormat(line.slice(4))}</h3>`; i++; continue }
+    if (line.startsWith("## "))  { html += `<h2 style="font-size:19px;font-weight:700;color:var(--text-primary);margin:24px 0 10px;line-height:1.3">${inlineFormat(line.slice(3))}</h2>`; i++; continue }
+    if (line.startsWith("# "))   { html += `<h1 style="font-size:22px;font-weight:800;color:var(--text-primary);margin:28px 0 12px;line-height:1.3">${inlineFormat(line.slice(2))}</h1>`; i++; continue }
+
+    // Horizontal rule
+    if (line.trim() === "---" || line.trim() === "***") { html += `<hr style="border:none;border-top:1px solid var(--border);margin:20px 0"/>`; i++; continue }
+
+    // Blockquote
+    if (line.startsWith("> ")) {
+      let bq = ""
+      while (i < lines.length && lines[i].startsWith("> ")) { bq += inlineFormat(lines[i].slice(2)) + " "; i++ }
+      html += `<blockquote style="border-left:3px solid var(--accent);padding:8px 14px;margin:12px 0;color:var(--text-secondary);font-style:italic;background:var(--bg-elevated);border-radius:0 8px 8px 0">${bq.trim()}</blockquote>`
+      continue
+    }
+
+    // Code block
+    if (line.startsWith("```")) {
+      i++
+      let code = ""
+      while (i < lines.length && !lines[i].startsWith("```")) { code += lines[i] + "\n"; i++ }
+      i++ // skip closing ```
+      html += `<pre style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px;padding:14px;overflow-x:auto;margin:12px 0"><code style="font-size:12px;color:var(--text-primary);line-height:1.6;white-space:pre;font-family:monospace">${escHtml(code.trimEnd())}</code></pre>`
+      continue
+    }
+
+    // Unordered list
+    if (line.match(/^[-*+] /)) {
+      let items = ""
+      while (i < lines.length && lines[i].match(/^[-*+] /)) {
+        items += `<li style="margin:4px 0;line-height:1.7">${inlineFormat(lines[i].slice(2))}</li>`
+        i++
+      }
+      html += `<ul style="margin:10px 0;padding-left:20px;color:var(--text-secondary)">${items}</ul>`
+      continue
+    }
+
+    // Numbered list
+    if (line.match(/^\d+\. /)) {
+      let items = ""
+      while (i < lines.length && lines[i].match(/^\d+\. /)) {
+        items += `<li style="margin:4px 0;line-height:1.7">${inlineFormat(lines[i].replace(/^\d+\. /, ""))}</li>`
+        i++
+      }
+      html += `<ol style="margin:10px 0;padding-left:20px;color:var(--text-secondary)">${items}</ol>`
+      continue
+    }
+
+    // Table
+    if (line.includes("|") && line.trim().startsWith("|")) {
+      const tableLines = []
+      while (i < lines.length && lines[i].includes("|")) { tableLines.push(lines[i]); i++ }
+      const rows = tableLines.filter(r => !r.match(/^[|\s-:]+$/))
+      let tableHtml = `<div style="overflow-x:auto;margin:12px 0"><table style="width:100%;border-collapse:collapse;font-size:13px">`
+      rows.forEach((row, ri) => {
+        const cells = row.split("|").filter((_,ci) => ci > 0 && ci < row.split("|").length - 1)
+        const tag = ri === 0 ? "th" : "td"
+        const rowStyle = ri === 0 ? "background:var(--bg-elevated)" : ri % 2 === 0 ? "background:var(--bg-surface)" : ""
+        tableHtml += `<tr style="${rowStyle}">${cells.map(c => `<${tag} style="padding:8px 12px;border:1px solid var(--border);text-align:left;color:var(--text-primary)">${inlineFormat(c.trim())}</${tag}>`).join("")}</tr>`
+      })
+      tableHtml += "</table></div>"
+      html += tableHtml
+      continue
+    }
+
+    // Regular paragraph
+    let para = ""
+    while (i < lines.length && lines[i].trim() && !lines[i].match(/^[#>\-*+\d`|]/) && lines[i].trim() !== "---") {
+      para += (para ? " " : "") + lines[i]
+      i++
+    }
+    if (para) html += `<p style="margin:10px 0;line-height:1.8;color:var(--text-secondary)">${inlineFormat(para)}</p>`
+  }
+
+  return html
+}
+
+function inlineFormat(text) {
   return text
-    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/^---$/gm, '<hr/>')
-    .replace(/^- (.+)$/gm, '<li>$1</li>')
-    .replace(/(<li>.*<\/li>\n?)+/g, s => `<ul>${s}</ul>`)
-    .replace(/\n{2,}/g, '</p><p>')
-    .replace(/^(?!<[hul]|<hr)(.+)$/gm, '$1')
-    .replace(/^<\/p><p>$/, '')
-    .split('\n').join('<br/>');
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/\*\*\*(.+?)\*\*\*/g, "<strong><em>$1</em></strong>")
+    .replace(/\*\*(.+?)\*\*/g, "<strong style=\"color:var(--text-primary)\">$1</strong>")
+    .replace(/\*(.+?)\*/g, "<em>$1</em>")
+    .replace(/`(.+?)`/g, "<code style=\"background:var(--bg-elevated);padding:2px 6px;border-radius:4px;font-size:12px;font-family:monospace;color:var(--accent)\">$1</code>")
+}
+
+function escHtml(text) {
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
 }
 
 function freqColor(freq) {
@@ -271,7 +357,7 @@ export default function LessonScreen({ session, onBack }) {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const s = {
-  screen:         { minHeight: "100vh", background: "#0f0f0f", color: "#f0ede6", fontFamily: "'Inter', sans-serif", paddingBottom: 80 },
+  screen:         { minHeight: "100vh", background: "var(--bg-base)", color: "var(--text-primary)", fontFamily: "var(--font-ui)", paddingBottom: 80 },
   header:         { display: "flex", alignItems: "center", gap: 12, padding: "16px 20px", borderBottom: "1px solid #1e1e1e" },
   readerHeader:   { display: "flex", alignItems: "center", gap: 12, padding: "16px 20px", borderBottom: "1px solid #1e1e1e", position: "sticky", top: 0, background: "#0f0f0f", zIndex: 10 },
   headerTitle:    { fontSize: 18, fontWeight: 700, color: "#f0ede6", flex: 1 },
@@ -319,7 +405,7 @@ const s = {
   readerMeta:     { padding: "20px 20px 0" },
   lessonTitle:    { fontSize: 24, fontWeight: 800, color: "#f0ede6", marginBottom: 6, lineHeight: 1.3 },
   readTime:       { fontSize: 12, color: "#666" },
-  lessonContent:  { padding: "20px", fontSize: 15, lineHeight: 1.8, color: "#d0cdc6" },
+  lessonContent:  { padding: "20px", fontSize: 15, lineHeight: 1.8, color: "var(--text-secondary)" },
   memoryHook:     { margin: "0 20px 20px", background: "rgba(201,168,76,0.08)", border: "1px solid rgba(201,168,76,0.25)", borderRadius: 12, padding: 16 },
   memoryHookLabel:{ fontSize: 12, fontWeight: 700, color: "#c9a84c", marginBottom: 10, letterSpacing: 1, textTransform: "uppercase" },
   memoryHookText: { fontSize: 13, color: "#f0ede6", lineHeight: 1.8, whiteSpace: "pre-wrap", fontFamily: "'DM Mono', monospace", margin: 0 },
