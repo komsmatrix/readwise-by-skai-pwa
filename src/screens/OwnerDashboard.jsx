@@ -839,6 +839,10 @@ function AgentsTab() {
   const [payoutModal, setPayoutModal] = useState(null) // agent object
   const [payout,    setPayout]    = useState({ period_start:'', period_end:'', gcash_ref:'', screenshot_url:'' })
   const [paying,    setPaying]    = useState(false)
+  const [showBlast, setShowBlast] = useState(false)
+  const [blast,     setBlast]     = useState({ subject:"", message:"", resource_url:"", resource_label:"" })
+  const [blasting,  setBlasting]  = useState(false)
+  const [blastMsg,  setBlastMsg]  = useState("")
   const screenshotRef = useRef(null)
 
   useEffect(() => { loadAgents() }, [])
@@ -856,6 +860,26 @@ function AgentsTab() {
     const base = name.toUpperCase().replace(/[^A-Z]/g,'').slice(0,4).padEnd(4,'X')
     const rand  = Math.floor(1000 + Math.random() * 9000)
     return `${base}${rand}`
+  }
+
+  async function sendBlast() {
+    if (!blast.subject.trim() || !blast.message.trim()) return
+    setBlasting(true)
+    setBlastMsg("")
+    const res = await fetch("/api/send-agent-blast", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(blast),
+    })
+    const data = await res.json()
+    if (data.success) {
+      setBlastMsg(`Sent to ${data.sent} agent${data.sent !== 1 ? "s" : ""}${data.failed > 0 ? ` (${data.failed} failed)` : ""}.`)
+      setBlast({ subject:"", message:"", resource_url:"", resource_label:"" })
+      setShowBlast(false)
+    } else {
+      setBlastMsg("Failed to send. Try again.")
+    }
+    setBlasting(false)
   }
 
   async function enrollAgent() {
@@ -950,10 +974,28 @@ function AgentsTab() {
 
   return (
     <div style={s.section}>
-      {savedMsg && <div style={{ ...s.msg, color: '#10B981' }}>{savedMsg}</div>}
+      {savedMsg && <div style={{ ...s.msg, color: "#10B981" }}>{savedMsg}</div>}
+      {blastMsg && <div style={{ ...s.msg, color: "#10B981" }}>{blastMsg}</div>}
+
+      {showBlast && (
+        <div style={s.formCard}>
+          <div style={s.sectionLabel}>Email All Agents</div>
+          <div style={s.field}><label style={s.label}>Subject</label><input style={s.input} placeholder="e.g. New resources available!" value={blast.subject} onChange={e => setBlast(p => ({ ...p, subject: e.target.value }))} /></div>
+          <div style={s.field}><label style={s.label}>Message</label><textarea style={s.textarea} rows={6} placeholder="Write your update here..." value={blast.message} onChange={e => setBlast(p => ({ ...p, message: e.target.value }))} /></div>
+          <div style={s.field}><label style={s.label}>Resource Link (optional)</label><input style={s.input} placeholder="https://..." value={blast.resource_url} onChange={e => setBlast(p => ({ ...p, resource_url: e.target.value }))} /></div>
+          <div style={s.field}><label style={s.label}>Link Button Label (optional)</label><input style={s.input} placeholder="e.g. View New Resources →" value={blast.resource_label} onChange={e => setBlast(p => ({ ...p, resource_label: e.target.value }))} /></div>
+          <div style={{ display:"flex", gap:8 }}>
+            <button style={s.btn} onClick={sendBlast} disabled={blasting}>{blasting ? "Sending..." : "Send to All Agents"}</button>
+            <button style={s.ghostBtn} onClick={() => setShowBlast(false)}>Cancel</button>
+          </div>
+        </div>
+      )}
 
       {!showForm ? (
-        <button style={s.btn} onClick={() => setShowForm(true)}>+ Enroll New Agent</button>
+        <div style={{ display:"flex", gap:8 }}>
+          <button style={s.btn} onClick={() => setShowForm(true)}>+ Enroll New Agent</button>
+          <button style={s.ghostBtn} onClick={() => setShowBlast(true)}>📣 Email All Agents</button>
+        </div>
       ) : (
         <div style={s.formCard}>
           <div style={s.sectionLabel}>New Agent</div>
