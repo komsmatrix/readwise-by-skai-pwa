@@ -10,6 +10,8 @@ const TABS = [
   { id: 'questions',     label: '❓ Questions'      },
   { id: 'lessons',       label: '📚 Lessons'        },
   { id: 'announcements', label: '📢 Announcements'  },
+  { id: 'agents',        label: '🤝 Agents'         },
+  { id: 'sales',         label: '💰 Sales'          },
   { id: 'trials',        label: '⏱ Trials'          },
   { id: 'students',      label: '👥 Students'        },
   { id: 'keys',          label: '🔑 Keys'            },
@@ -85,6 +87,8 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
         {tab === 'questions'     && <QuestionsTab />}
         {tab === 'lessons'       && <LessonsTab />}
         {tab === 'announcements' && <AnnouncementsTab />}
+        {tab === 'agents'        && <AgentsTab />}
+        {tab === 'sales'         && <SalesTab />}
         {tab === 'trials'        && <TrialsTab />}
         {tab === 'students'      && <StudentsTab />}
         {tab === 'keys'          && <KeysTab />}
@@ -822,4 +826,340 @@ const s = {
   keyDisplay      : { fontFamily: 'monospace', fontSize: 22, color: 'var(--accent)', fontWeight: 700, letterSpacing: '0.1em' },
   resultNote      : { fontSize: 12, color: 'var(--text-muted)' },
   empty           : { fontSize: 13, color: 'var(--text-muted)', textAlign: 'center', padding: '24px 0' },
+}
+
+// ── Agents Tab ────────────────────────────────────────────────────────────────
+function AgentsTab() {
+  const [agents,    setAgents]    = useState([])
+  const [loading,   setLoading]   = useState(true)
+  const [showForm,  setShowForm]  = useState(false)
+  const [form,      setForm]      = useState({ name:'', email:'', gcash_number:'' })
+  const [saving,    setSaving]    = useState(false)
+  const [savedMsg,  setSavedMsg]  = useState('')
+  const [payoutModal, setPayoutModal] = useState(null) // agent object
+  const [payout,    setPayout]    = useState({ period_start:'', period_end:'', gcash_ref:'', screenshot_url:'' })
+  const [paying,    setPaying]    = useState(false)
+  const screenshotRef = useRef(null)
+
+  useEffect(() => { loadAgents() }, [])
+
+  async function loadAgents() {
+    const { data } = await supabase
+      .from('agents')
+      .select('*, agent_payouts(id,amount,paid,paid_at,period_start,period_end)')
+      .order('created_at', { ascending: false })
+    setAgents(data || [])
+    setLoading(false)
+  }
+
+  function generateCode(name) {
+    const base = name.toUpperCase().replace(/[^A-Z]/g,'').slice(0,4).padEnd(4,'X')
+    const rand  = Math.floor(1000 + Math.random() * 9000)
+    return `${base}${rand}`
+  }
+
+  async function enrollAgent() {
+    if (!form.name.trim() || !form.email.trim() || !form.gcash_number.trim()) return
+    setSaving(true)
+    setSavedMsg('')
+    const code = generateCode(form.name)
+    const { data, error } = await supabase.from('agents').insert([{
+      name: form.name.trim(),
+      email: form.email.trim().toLowerCase(),
+      gcash_number: form.gcash_number.trim(),
+      referral_code: code,
+    }]).select().single()
+
+    if (!error && data) {
+      // Send welcome email
+      await fetch('/api/send-agent-welcome', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          name: form.name,
+          email: form.email,
+          referral_code: code,
+          gcash_number: form.gcash_number,
+        }),
+      })
+      setSavedMsg(`Agent enrolled! Code: ${code} — Welcome email sent.`)
+      setForm({ name:'', email:'', gcash_number:'' })
+      setShowForm(false)
+      loadAgents()
+    }
+    setSaving(false)
+  }
+
+  async function uploadScreenshot(file) {
+    const ext  = file.name.split('.').pop()
+    const path = `payouts/${Date.now()}.${ext}`
+    const { error } = await supabase.storage.from('payout-screenshots').upload(path, file)
+    if (error) return null
+    const { data } = supabase.storage.from('payout-screenshots').getPublicUrl(path)
+    return data.publicUrl
+  }
+
+  async function markPaid(agent) {
+    if (!payout.period_start || !payout.period_end) return
+    setPaying(true)
+
+    // Upload screenshot if selected
+    let screenshotUrl = ''
+    if (screenshotRef.current?.files?.[0]) {
+      screenshotUrl = await uploadScreenshot(screenshotRef.current.files[0]) || ''
+    }
+
+    const referralCount = agent.total_referrals || 0
+    const amount = referralCount * 50
+
+    // Insert payout record
+    await supabase.from('agent_payouts').insert([{
+      agent_id:       agent.id,
+      amount,
+      referral_count: referralCount,
+      period_start:   payout.period_start,
+      period_end:     payout.period_end,
+      paid:           true,
+      paid_at:        new Date().toISOString(),
+      gcash_ref:      payout.gcash_ref,
+      screenshot_url: screenshotUrl,
+      email_sent:     true,
+    }])
+
+    // Send payout email
+    await fetch('/api/send-payout-confirmation', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        agent_name:    agent.name,
+        agent_email:   agent.email,
+        amount,
+        referral_count: referralCount,
+        gcash_ref:      payout.gcash_ref,
+        screenshot_url: screenshotUrl,
+        period_start:   payout.period_start,
+        period_end:     payout.period_end,
+      }),
+    })
+
+    setPaying(false)
+    setPayoutModal(null)
+    setPayout({ period_start:'', period_end:'', gcash_ref:'', screenshot_url:'' })
+    loadAgents()
+  }
+
+  return (
+    <div style={s.section}>
+      {savedMsg && <div style={{ ...s.msg, color: '#10B981' }}>{savedMsg}</div>}
+
+      {!showForm ? (
+        <button style={s.btn} onClick={() => setShowForm(true)}>+ Enroll New Agent</button>
+      ) : (
+        <div style={s.formCard}>
+          <div style={s.sectionLabel}>New Agent</div>
+          {[
+            { label:'Full Name',     key:'name',         type:'text',  ph:'Maria Santos' },
+            { label:'Email',         key:'email',        type:'email', ph:'maria@email.com' },
+            { label:'GCash Number',  key:'gcash_number', type:'text',  ph:'09XX XXX XXXX' },
+          ].map(f => (
+            <div key={f.key} style={s.field}>
+              <label style={s.label}>{f.label}</label>
+              <input style={s.input} type={f.type} placeholder={f.ph}
+                value={form[f.key]} onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))} />
+            </div>
+          ))}
+          <div style={{ display:'flex', gap:8 }}>
+            <button style={s.btn} onClick={enrollAgent} disabled={saving}>
+              {saving ? 'Enrolling…' : 'Enroll + Send Email'}
+            </button>
+            <button style={s.ghostBtn} onClick={() => setShowForm(false)}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {loading ? <Loading /> : agents.length === 0 ? (
+        <div style={s.empty}>No agents yet.</div>
+      ) : agents.map(agent => {
+        const unpaidReferrals = agent.total_referrals -
+          (agent.agent_payouts?.filter(p => p.paid).reduce((sum, p) => sum + p.referral_count, 0) || 0)
+        const owedAmount = Math.max(0, unpaidReferrals) * 50
+
+        return (
+          <div key={agent.id} style={ag.agentCard}>
+            <div style={ag.agentHeader}>
+              <div style={ow.avatar}>{agent.name?.[0]?.toUpperCase()}</div>
+              <div style={{ flex:1 }}>
+                <div style={ag.agentName}>{agent.name}</div>
+                <div style={ag.agentMeta}>{agent.email} · GCash: {agent.gcash_number}</div>
+              </div>
+              <div style={ag.codeBox}>{agent.referral_code}</div>
+            </div>
+
+            <div style={ag.statsRow}>
+              <div style={ag.stat}>
+                <div style={ag.statVal}>{agent.total_referrals}</div>
+                <div style={ag.statLabel}>Total Referrals</div>
+              </div>
+              <div style={ag.stat}>
+                <div style={{ ...ag.statVal, color: owedAmount > 0 ? '#F59E0B' : '#10B981' }}>
+                  ₱{owedAmount}
+                </div>
+                <div style={ag.statLabel}>Owed This Week</div>
+              </div>
+              <div style={ag.stat}>
+                <div style={ag.statVal}>₱{agent.total_commission}</div>
+                <div style={ag.statLabel}>Total Earned</div>
+              </div>
+            </div>
+
+            {owedAmount > 0 && (
+              <button style={ag.payBtn} onClick={() => setPayoutModal(agent)}>
+                💸 Mark Paid — ₱{owedAmount}
+              </button>
+            )}
+          </div>
+        )
+      })}
+
+      {/* Payout modal */}
+      {payoutModal && (
+        <div style={ag.modalOverlay}>
+          <div style={ag.modal}>
+            <div style={s.sectionLabel}>Pay {payoutModal.name}</div>
+            <div style={ag.modalAmount}>₱{payoutModal.total_referrals * 50}</div>
+            <div style={ag.modalSub}>{payoutModal.total_referrals} referrals × ₱50</div>
+
+            <div style={s.field}>
+              <label style={s.label}>Period Start</label>
+              <input style={s.input} type="date"
+                value={payout.period_start}
+                onChange={e => setPayout(p => ({ ...p, period_start: e.target.value }))} />
+            </div>
+            <div style={s.field}>
+              <label style={s.label}>Period End</label>
+              <input style={s.input} type="date"
+                value={payout.period_end}
+                onChange={e => setPayout(p => ({ ...p, period_end: e.target.value }))} />
+            </div>
+            <div style={s.field}>
+              <label style={s.label}>GCash Reference Number</label>
+              <input style={s.input} placeholder="e.g. 1234567890"
+                value={payout.gcash_ref}
+                onChange={e => setPayout(p => ({ ...p, gcash_ref: e.target.value }))} />
+            </div>
+            <div style={s.field}>
+              <label style={s.label}>GCash Screenshot</label>
+              <input type="file" accept="image/*" ref={screenshotRef} style={{ color:'var(--text-muted)', fontSize:13 }} />
+              <div style={s.hint}>Screenshot will be included in the email to the agent.</div>
+            </div>
+
+            <div style={{ display:'flex', gap:8, marginTop:8 }}>
+              <button style={s.btn} onClick={() => markPaid(payoutModal)} disabled={paying}>
+                {paying ? 'Sending…' : 'Confirm + Send Email'}
+              </button>
+              <button style={s.ghostBtn} onClick={() => setPayoutModal(null)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Sales Tab ─────────────────────────────────────────────────────────────────
+function SalesTab() {
+  const [sales,   setSales]   = useState([])
+  const [loading, setLoading] = useState(true)
+  const [filter,  setFilter]  = useState('')
+
+  useEffect(() => { loadSales() }, [])
+
+  async function loadSales() {
+    const { data } = await supabase
+      .from('customers')
+      .select('id, name, email, created_at, agent_code')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+    setSales(data || [])
+    setLoading(false)
+  }
+
+  const filtered = sales.filter(s =>
+    !filter ||
+    s.name?.toLowerCase().includes(filter.toLowerCase()) ||
+    s.email?.toLowerCase().includes(filter.toLowerCase()) ||
+    s.agent_code?.toLowerCase().includes(filter.toLowerCase())
+  )
+
+  const totalRevenue   = sales.length * 249
+  const withAgent      = sales.filter(s => s.agent_code).length
+  const commissions    = withAgent * 50
+  const discounts      = withAgent * 20
+  const netRevenue     = totalRevenue - discounts
+
+  return (
+    <div style={s.section}>
+      <div style={ow.grid}>
+        {[
+          { label:'Total Sales',     val: sales.length,             color:'var(--accent)' },
+          { label:'Gross Revenue',   val:`₱${totalRevenue.toLocaleString()}`, color:'#10B981' },
+          { label:'Net Revenue',     val:`₱${netRevenue.toLocaleString()}`,   color:'#10B981' },
+          { label:'Agent Sales',     val: withAgent,                color:'#8B5CF6' },
+          { label:'Commissions',     val:`₱${commissions.toLocaleString()}`,  color:'#F59E0B' },
+          { label:'Discounts Given', val:`₱${discounts.toLocaleString()}`,    color:'#e05c5c' },
+        ].map(stat => (
+          <div key={stat.label} style={ow.statCard}>
+            <div style={{ ...ow.statVal, color:stat.color }}>{stat.val}</div>
+            <div style={ow.statLabel}>{stat.label}</div>
+          </div>
+        ))}
+      </div>
+
+      <input style={s.searchInput} placeholder="Search by name, email, or agent code…"
+        value={filter} onChange={e => setFilter(e.target.value)} />
+      <div style={s.listCount}>{filtered.length} sales</div>
+
+      {loading ? <Loading /> : (
+        <div style={s.cardList}>
+          {filtered.map(sale => (
+            <div key={sale.id} style={s.cardRow}>
+              <div style={ow.avatar}>{sale.name?.[0]?.toUpperCase() || '?'}</div>
+              <div style={{ flex:1 }}>
+                <div style={s.cardQ}>{sale.name}</div>
+                <div style={s.cardMeta}>
+                  <span style={s.chip}>{sale.email}</span>
+                  {sale.agent_code && <span style={{ ...s.chip, color:'#8B5CF6', borderColor:'#8B5CF6' }}>ref: {sale.agent_code}</span>}
+                </div>
+              </div>
+              <div style={{ textAlign:'right' }}>
+                <div style={{ fontSize:14, fontWeight:700, color:'#10B981' }}>
+                  ₱{sale.agent_code ? '229' : '249'}
+                </div>
+                <div style={{ fontSize:10, color:'var(--text-muted)', marginTop:2 }}>
+                  {new Date(sale.created_at).toLocaleDateString('en-PH', { month:'short', day:'numeric', year:'numeric' })}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+const ag = {
+  agentCard   : { background:'var(--bg-surface)', border:'1px solid var(--border)', borderRadius:12, padding:'14px', marginBottom:8 },
+  agentHeader : { display:'flex', alignItems:'center', gap:10, marginBottom:12 },
+  agentName   : { fontSize:14, fontWeight:600, color:'var(--text-primary)' },
+  agentMeta   : { fontSize:11, color:'var(--text-muted)' },
+  codeBox     : { fontFamily:'monospace', fontSize:14, fontWeight:700, color:'var(--accent)', background:'var(--accent-dim)', border:'1px solid var(--accent)', borderRadius:8, padding:'4px 10px' },
+  statsRow    : { display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8, marginBottom:10 },
+  stat        : { background:'var(--bg-elevated)', borderRadius:8, padding:'10px', textAlign:'center' },
+  statVal     : { fontSize:16, fontWeight:700, color:'var(--text-primary)', fontFamily:'var(--font-display)' },
+  statLabel   : { fontSize:9, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'.04em', marginTop:3 },
+  payBtn      : { width:'100%', padding:'10px', background:'rgba(16,185,129,0.1)', border:'1px solid #10B981', borderRadius:8, color:'#10B981', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'inherit' },
+  modalOverlay: { position:'fixed', inset:0, background:'rgba(0,0,0,0.7)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, padding:16 },
+  modal       : { background:'var(--bg-surface)', border:'1px solid var(--border)', borderRadius:16, padding:'24px', width:'100%', maxWidth:420, display:'flex', flexDirection:'column', gap:14 },
+  modalAmount : { fontFamily:'var(--font-display)', fontSize:40, fontWeight:800, color:'#10B981', lineHeight:1 },
+  modalSub    : { fontSize:12, color:'var(--text-muted)', marginTop:-8 },
 }
