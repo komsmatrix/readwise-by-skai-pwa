@@ -12,6 +12,7 @@ export default function TrialScreen({ onTrialStart }) {
   const [course, setCourse] = useState("LET");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [alreadyUsed, setAlreadyUsed] = useState(false);
 
   const handleStart = async () => {
     if (!name.trim() || !email.trim()) {
@@ -25,8 +26,28 @@ export default function TrialScreen({ onTrialStart }) {
 
     setLoading(true);
     setError("");
+    setAlreadyUsed(false);
 
     try {
+      // Check if this email already used a trial
+      const { data: existing } = await supabase
+        .from("trial_sessions")
+        .select("id, converted")
+        .eq("email", email.trim().toLowerCase())
+        .limit(1)
+        .maybeSingle();
+
+      if (existing) {
+        if (existing.converted) {
+          setError("You already have full access. Sign in at the home page.");
+        } else {
+          setAlreadyUsed(true);
+          setError("You've already used your free trial.");
+        }
+        setLoading(false);
+        return;
+      }
+
       const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
 
       const { data, error: insertError } = await supabase
@@ -46,7 +67,6 @@ export default function TrialScreen({ onTrialStart }) {
 
       if (insertError) throw insertError;
 
-      // Store trial info locally
       localStorage.setItem(
         "trial_session",
         JSON.stringify({
@@ -77,7 +97,6 @@ export default function TrialScreen({ onTrialStart }) {
   return (
     <div className="trial-screen">
       <div className="trial-card">
-        {/* Header */}
         <div className="trial-header">
           <div className="trial-badge">FREE · 1 HOUR</div>
           <h1 className="trial-title">Try Readwise free</h1>
@@ -87,7 +106,6 @@ export default function TrialScreen({ onTrialStart }) {
           </p>
         </div>
 
-        {/* Form */}
         <div className="trial-form">
           <div className="trial-field">
             <label className="trial-label">Your name</label>
@@ -109,7 +127,7 @@ export default function TrialScreen({ onTrialStart }) {
               type="email"
               placeholder="juan@email.com"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => { setEmail(e.target.value); setAlreadyUsed(false); setError(""); }}
               onKeyDown={(e) => e.key === "Enter" && handleStart()}
             />
             <p className="trial-field-hint">
@@ -138,7 +156,16 @@ export default function TrialScreen({ onTrialStart }) {
             </div>
           </div>
 
-          {error && <p className="trial-error">{error}</p>}
+          {error && (
+            <div className="trial-error-block">
+              <p className="trial-error">{error}</p>
+              {alreadyUsed && (
+                <a href="/buy" className="trial-buy-link">
+                  Get full access · ₱249 →
+                </a>
+              )}
+            </div>
+          )}
 
           <button
             className="trial-start-btn"
@@ -161,19 +188,16 @@ export default function TrialScreen({ onTrialStart }) {
           align-items: center;
           justify-content: center;
           padding: 24px 16px;
-          background: var(--bg);
+          background: var(--bg-base);
         }
-
         .trial-card {
           width: 100%;
           max-width: 420px;
         }
-
         .trial-header {
           margin-bottom: 32px;
           text-align: center;
         }
-
         .trial-badge {
           display: inline-block;
           padding: 4px 12px;
@@ -185,79 +209,69 @@ export default function TrialScreen({ onTrialStart }) {
           letter-spacing: 0.08em;
           margin-bottom: 16px;
         }
-
         .trial-title {
           font-size: 28px;
           font-weight: 700;
-          color: var(--text);
+          color: var(--text-primary);
           margin: 0 0 12px;
           line-height: 1.2;
         }
-
         .trial-subtitle {
           font-size: 15px;
-          color: var(--text-muted);
+          color: var(--text-secondary);
           margin: 0;
           line-height: 1.5;
         }
-
         .trial-form {
           display: flex;
           flex-direction: column;
           gap: 20px;
         }
-
         .trial-field {
           display: flex;
           flex-direction: column;
           gap: 8px;
         }
-
         .trial-label {
-          font-size: 13px;
+          font-size: 11px;
           font-weight: 600;
-          color: var(--text-muted);
+          color: var(--text-secondary);
           text-transform: uppercase;
-          letter-spacing: 0.05em;
+          letter-spacing: 0.07em;
         }
-
         .trial-input {
-          background: var(--card);
+          background: var(--bg-elevated);
           border: 1px solid var(--border);
           border-radius: 10px;
           padding: 14px 16px;
           font-size: 16px;
-          color: var(--text);
+          color: var(--text-primary);
           outline: none;
           transition: border-color 0.15s;
           width: 100%;
           box-sizing: border-box;
+          font-family: inherit;
         }
-
         .trial-input:focus {
           border-color: var(--accent);
         }
-
         .trial-input::placeholder {
           color: var(--text-muted);
           opacity: 0.5;
         }
-
         .trial-field-hint {
           font-size: 12px;
           color: var(--text-muted);
           margin: 0;
           opacity: 0.7;
         }
-
         .trial-course-grid {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
           gap: 8px;
         }
-
         .trial-course-btn {
-          background: var(--card);
+          background: var(--bg-elevated);
           border: 1px solid var(--border);
           border-radius: 10px;
           padding: 12px 8px;
@@ -267,30 +281,31 @@ export default function TrialScreen({ onTrialStart }) {
           align-items: center;
           gap: 4px;
           transition: all 0.15s;
+          font-family: inherit;
         }
-
         .trial-course-btn.active {
           border-color: var(--accent);
-          background: var(--accent-soft, rgba(99,102,241,0.08));
+          background: var(--accent-dim);
         }
-
         .trial-course-btn.disabled {
           opacity: 0.4;
           cursor: not-allowed;
         }
-
         .trial-course-name {
           font-size: 15px;
           font-weight: 700;
-          color: var(--text);
+          color: var(--text-primary);
         }
-
         .trial-course-sub {
           font-size: 10px;
           color: var(--text-muted);
           text-align: center;
         }
-
+        .trial-error-block {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
         .trial-error {
           font-size: 13px;
           color: #ef4444;
@@ -300,10 +315,25 @@ export default function TrialScreen({ onTrialStart }) {
           border-radius: 8px;
           border: 1px solid rgba(239,68,68,0.2);
         }
-
+        .trial-buy-link {
+          display: block;
+          text-align: center;
+          font-size: 13px;
+          font-weight: 700;
+          color: var(--accent);
+          text-decoration: none;
+          padding: 10px;
+          border: 1px solid var(--accent);
+          border-radius: 8px;
+          background: var(--accent-dim);
+          transition: opacity 0.15s;
+        }
+        .trial-buy-link:hover {
+          opacity: 0.85;
+        }
         .trial-start-btn {
           background: var(--accent);
-          color: white;
+          color: #0d0d0d;
           border: none;
           border-radius: 12px;
           padding: 16px;
@@ -312,18 +342,16 @@ export default function TrialScreen({ onTrialStart }) {
           cursor: pointer;
           transition: opacity 0.15s, transform 0.1s;
           width: 100%;
+          font-family: inherit;
         }
-
         .trial-start-btn:hover:not(:disabled) {
           opacity: 0.9;
           transform: translateY(-1px);
         }
-
         .trial-start-btn:disabled {
           opacity: 0.6;
           cursor: not-allowed;
         }
-
         .trial-fine-print {
           font-size: 12px;
           color: var(--text-muted);
