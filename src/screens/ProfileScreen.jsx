@@ -17,6 +17,10 @@ const MILESTONES = [
 
 export default function ProfileScreen({ customer, studentExam, onSignOut, onExamUpdated }) {
   const [theme, setTheme] = useState(() => localStorage.getItem('rbs_theme') || 'dark')
+  const [showFeedback,   setShowFeedback]   = useState(false)
+  const [feedback,       setFeedback]       = useState('')
+  const [feedbackType,   setFeedbackType]   = useState('feedback')
+  const [feedbackStatus, setFeedbackStatus] = useState('idle')
   const [mode,       setMode]       = useState(studentExam?.study_mode || 'Standard')
   const [saving,     setSaving]     = useState(false)
   const [showSignOut,setShowSignOut]= useState(false)
@@ -25,6 +29,28 @@ export default function ProfileScreen({ customer, studentExam, onSignOut, onExam
     setTheme(t)
     localStorage.setItem('rbs_theme', t)
     document.documentElement.setAttribute('data-theme', t === 'dark' ? '' : t)
+  }
+
+  async function submitFeedback() {
+    if (!feedback.trim()) return
+    setFeedbackStatus('loading')
+    try {
+      await fetch('/api/send-feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: customer?.name,
+          email: customer?.email,
+          message: feedback.trim(),
+          type: feedbackType,
+        }),
+      })
+      setFeedbackStatus('success')
+      setFeedback('')
+      setTimeout(() => { setFeedbackStatus('idle'); setShowFeedback(false) }, 2000)
+    } catch {
+      setFeedbackStatus('error')
+    }
   }
 
   const initials = customer?.name
@@ -75,12 +101,14 @@ export default function ProfileScreen({ customer, studentExam, onSignOut, onExam
 
         {/* Appearance */}
         <div style={s.sectionLabel}>Appearance</div>
-        <div style={{ padding:'0 20px', display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:8 }}>
+        <div style={{ padding:'0 20px', display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, marginBottom:8 }}>
           {[
-            { id:'dark',  label:'🌑 Dark',       sub:'Default' },
-            { id:'warm',  label:'🌙 Warm Dark',   sub:'Easy on eyes' },
-            { id:'sepia', label:'📜 Sepia',       sub:'Best for long sessions' },
-            { id:'light', label:'☀️ Light',       sub:'Daytime' },
+            { id:'dark',     label:'🌑 Dark',       sub:'Default' },
+            { id:'sepia',    label:'📜 Sepia',       sub:'Warm & easy on eyes' },
+            { id:'blue',     label:'💼 Blue Light',  sub:'Clean professional' },
+            { id:'midnight', label:'🌌 Midnight',    sub:'Dark blue focus' },
+            { id:'ocean',    label:'🌊 Ocean',       sub:'Teal & orange' },
+            { id:'pastel',   label:'🌸 Pastel',      sub:'Blue & pink' },
           ].map(t => (
             <button key={t.id}
               onClick={() => applyTheme(t.id)}
@@ -125,6 +153,55 @@ export default function ProfileScreen({ customer, studentExam, onSignOut, onExam
             <div style={s.settingRow}>
               <span>Exam date</span>
               <span style={s.settingVal}>{new Date(studentExam.exam_date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Feedback */}
+        <div style={s.sectionLabel}>Feedback & Bug Reports</div>
+        <div style={{ padding:'0 20px', marginBottom:8 }}>
+          {!showFeedback ? (
+            <button style={s.feedbackBtn} onClick={() => setShowFeedback(true)}>
+              💬 Send Feedback or Report a Bug
+            </button>
+          ) : (
+            <div style={s.feedbackCard}>
+              <div style={{ display:'flex', gap:6, marginBottom:10 }}>
+                {[
+                  { id:'feedback', label:'💬 Feedback' },
+                  { id:'bug',      label:'🐛 Bug Report' },
+                  { id:'content',  label:'📝 Content Error' },
+                ].map(t => (
+                  <button key={t.id}
+                    style={{ ...s.feedbackTypeBtn, ...(feedbackType === t.id ? s.feedbackTypeBtnActive : {}) }}
+                    onClick={() => setFeedbackType(t.id)}>
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+              <textarea
+                style={s.feedbackInput}
+                rows={4}
+                placeholder={
+                  feedbackType === 'bug' ? 'Describe the bug — what happened, what screen, what you expected...' :
+                  feedbackType === 'content' ? 'Which topic/question has an error? What should it say?' :
+                  'What would make Readwise better for you?'
+                }
+                value={feedback}
+                onChange={e => setFeedback(e.target.value)}
+              />
+              {feedbackStatus === 'success' && (
+                <div style={{ fontSize:12, color:'#10B981', marginBottom:8 }}>✓ Sent! Thank you for your feedback.</div>
+              )}
+              {feedbackStatus === 'error' && (
+                <div style={{ fontSize:12, color:'#ef4444', marginBottom:8 }}>Something went wrong. Please try again.</div>
+              )}
+              <div style={{ display:'flex', gap:8 }}>
+                <button style={s.feedbackSubmit} onClick={submitFeedback} disabled={feedbackStatus === 'loading'}>
+                  {feedbackStatus === 'loading' ? 'Sending…' : 'Send →'}
+                </button>
+                <button style={s.feedbackCancel} onClick={() => { setShowFeedback(false); setFeedback('') }}>Cancel</button>
+              </div>
             </div>
           )}
         </div>
@@ -182,6 +259,13 @@ const s = {
   settingsList   : { padding: '0 20px', display: 'flex', flexDirection: 'column', gap: 6 },
   settingRow     : { background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '11px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, color: 'var(--text-primary)' },
   settingVal     : { fontSize: 12, color: 'var(--accent)' },
+  feedbackBtn    : { display:'block', width:'100%', padding:'11px 14px', background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', color:'var(--text-secondary)', fontSize:13, cursor:'pointer', fontFamily:'inherit', textAlign:'left', transition:'all 0.15s' },
+  feedbackCard   : { background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', padding:'14px', display:'flex', flexDirection:'column', gap:8 },
+  feedbackTypeBtn: { flex:1, padding:'6px 8px', background:'var(--bg-surface)', border:'1px solid var(--border)', borderRadius:6, color:'var(--text-muted)', fontSize:11, cursor:'pointer', fontFamily:'inherit', transition:'all 0.15s' },
+  feedbackTypeBtnActive: { background:'var(--accent-dim)', border:'1px solid var(--accent)', color:'var(--accent)' },
+  feedbackInput  : { padding:'10px 12px', background:'var(--bg-surface)', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', color:'var(--text-primary)', fontSize:13, outline:'none', resize:'vertical', fontFamily:'inherit', lineHeight:1.5 },
+  feedbackSubmit : { flex:1, padding:'9px', background:'var(--accent)', color:'#0d0d0d', border:'none', borderRadius:'var(--radius-md)', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'inherit' },
+  feedbackCancel : { padding:'9px 14px', background:'none', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', color:'var(--text-muted)', fontSize:13, cursor:'pointer', fontFamily:'inherit' },
   signOutBtn     : { display: 'block', margin: '16px 20px 0', width: 'calc(100% - 40px)', padding: 12, background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', color: 'var(--text-muted)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' },
   signOutConfirm : { margin: '16px 20px 0', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '14px' },
   signOutQ       : { fontSize: 13, color: 'var(--text-primary)', marginBottom: 12 },
