@@ -850,11 +850,31 @@ function AgentsTab() {
   useEffect(() => { loadAgents() }, [])
 
   async function loadAgents() {
-    const { data } = await supabase
-      .from('agents')
-      .select('*, agent_payouts(id,amount,paid,paid_at,period_start,period_end)')
-      .order('created_at', { ascending: false })
-    setAgents(data || [])
+    try {
+      const { data: agentData } = await supabase
+        .from('agents')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      const agents = agentData || []
+
+      // Fetch payouts separately for each agent
+      if (agents.length > 0) {
+        const { data: payoutData } = await supabase
+          .from('agent_payouts')
+          .select('*')
+          .in('agent_id', agents.map(a => a.id))
+
+        const payouts = payoutData || []
+        agents.forEach(a => {
+          a.agent_payouts = payouts.filter(p => p.agent_id === a.id)
+        })
+      }
+
+      setAgents(agents)
+    } catch(e) {
+      console.error('loadAgents error:', e)
+    }
     setLoading(false)
   }
 
