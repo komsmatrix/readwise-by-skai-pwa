@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { getCustomer, getStudentExam } from './lib/supabase.js'
-import ActivationScreen from './screens/ActivationScreen.jsx'
+import ActivationScreen  from './screens/ActivationScreen.jsx'
 import OnboardingScreen  from './screens/OnboardingScreen.jsx'
 import HomeScreen        from './screens/HomeScreen.jsx'
 import StudyScreen       from './screens/StudyScreen.jsx'
@@ -11,6 +11,9 @@ import OwnerDashboard    from './screens/OwnerDashboard.jsx'
 import BuyScreen         from './screens/BuyScreen.jsx'
 import LoadingScreen     from './screens/LoadingScreen.jsx'
 import LandingScreen     from './screens/LandingScreen.jsx'
+import TrialScreen       from './screens/TrialScreen.jsx'
+import TrialExpiredScreen from './screens/TrialExpiredScreen.jsx'
+import TrialTimer        from './components/TrialTimer.jsx'
 
 // Apply saved theme on startup
 const savedTheme = localStorage.getItem('rbs_theme') || 'dark'
@@ -18,16 +21,34 @@ if (savedTheme !== 'dark') {
   document.documentElement.setAttribute('data-theme', savedTheme)
 }
 
+// ─── Trial helpers ────────────────────────────────────────────────────────────
+function getSavedTrial() {
+  try {
+    const raw = localStorage.getItem('trial_session')
+    if (!raw) return null
+    const t = JSON.parse(raw)
+    // If already expired, don't restore it as an active trial
+    if (new Date(t.expires_at).getTime() < Date.now()) return { ...t, expired: true }
+    return t
+  } catch {
+    return null
+  }
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 export default function App() {
-  const [screen,      setScreen]      = useState('loading')
-  const [customer,    setCustomer]    = useState(null)
-  const [studentExam, setStudentExam] = useState(null)
-  const [activeTab,   setActiveTab]   = useState('home')
+  const [screen,        setScreen]        = useState('loading')
+  const [customer,      setCustomer]      = useState(null)
+  const [studentExam,   setStudentExam]   = useState(null)
+  const [activeTab,     setActiveTab]     = useState('home')
   const [selectedCourse, setSelectedCourse] = useState('LET')
+  const [trialData,     setTrialData]     = useState(null)   // active trial session
+  const [trialExpired,  setTrialExpired]  = useState(false)  // show expired paywall
 
   useEffect(() => { init() }, [])
 
   async function init() {
+    // Owner / buy routes — unchanged
     if (window.location.pathname === '/owner') {
       const ownerPass = sessionStorage.getItem('owner_auth')
       setScreen(ownerPass ? 'owner' : 'owner_login')
@@ -37,6 +58,8 @@ export default function App() {
       setScreen('buy')
       return
     }
+
+    // ── Paid session ──────────────────────────────────────────────────────────
     const savedSession = localStorage.getItem('rbs_session')
     if (savedSession) {
       try {
@@ -54,21 +77,44 @@ export default function App() {
       } catch {}
       localStorage.removeItem('rbs_session')
     }
+
+    // ── Trial session ─────────────────────────────────────────────────────────
+    const savedTrial = getSavedTrial()
+    if (savedTrial) {
+      if (savedTrial.expired) {
+        // Trial ran out — show paywall immediately
+        setTrialData(savedTrial)
+        setTrialExpired(true)
+        setScreen('trial_expired')
+        return
+      }
+      // Active trial — drop straight into app
+      setTrialData(savedTrial)
+      setScreen('app')
+      return
+    }
+
+    // ── No session → landing ──────────────────────────────────────────────────
     setScreen('activation')
   }
 
+  // ── Handlers ─────────────────────────────────────────────────────────────────
+
   async function handleActivated(result) {
     const cust = {
-      id           : result.customerId,
-      name         : result.name,
-      email        : result.email,
-      is_active    : true,
+      id:            result.customerId,
+      name:          result.name,
+      email:         result.email,
+      is_active:     true,
       referral_code: result.referral_code || null,
     }
     setCustomer(cust)
+    // Clear any leftover trial data when a real account activates
+    localStorage.removeItem('trial_session')
+    setTrialData(null)
     localStorage.setItem('rbs_session', JSON.stringify({
       customerId: result.customerId,
-      email     : result.email,
+      email:      result.email,
     }))
     const enrollment = await getStudentExam(result.customerId)
     setStudentExam(enrollment)
@@ -82,21 +128,49 @@ export default function App() {
 
   function handleSignOut() {
     localStorage.removeItem('rbs_session')
+    localStorage.removeItem('trial_session')
     setCustomer(null)
     setStudentExam(null)
+    setTrialData(null)
+    setTrialExpired(false)
     setActiveTab('home')
     setScreen('activation')
   }
 
-  // Always check loading/owner/buy first
+  // Called by TrialScreen when the student submits name + email
+  function handleTrialStart(trial) {
+    setTrialData(trial)
+    setTrialExpired(false)
+    setScreen('app')
+  }
+
+  // Called by TrialTimer when the countdown hits 0
+  function handleTrialExpire() {
+    setTrialExpired(true)
+    setScreen('trial_expired')
+  }
+
+  // ── Render ────────────────────────────────────────────────────────────────────
+
+  // Owner / system screens
   if (screen === 'owner' || screen === 'owner_login') {
     return <OwnerDashboard isLoggedIn={screen === 'owner'} onLogin={() => setScreen('owner')} />
   }
   if (screen === 'buy')     return <BuyScreen />
   if (screen === 'loading') return <LoadingScreen />
 
-  // Landing page — show to non-logged-in visitors
-  if (screen === 'activation' || !customer) {
+  // Trial expired paywall
+  if (screen === 'trial_expired') {
+    return <TrialExpiredScreen trialData={trialData} readinessScore={null} />
+  }
+
+  // Trial signup screen
+  if (screen === 'trial') {
+    return <TrialScreen onTrialStart={handleTrialStart} />
+  }
+
+  // Landing / activation
+  if (screen === 'activation' || (!customer && !trialData)) {
     if (screen === 'activation_form') {
       return <ActivationScreen onActivated={handleActivated} />
     }
@@ -108,14 +182,14 @@ export default function App() {
         }}
         onTryFree={(course) => {
           setSelectedCourse(course)
-          setScreen('activation_form')
+          setScreen('trial')          // ← now goes to TrialScreen, not activation
         }}
         onSignIn={() => setScreen('activation_form')}
       />
     )
   }
 
-  // Onboarding — customer exists but no exam enrolled
+  // Onboarding — paid customer, no exam yet
   if (screen === 'onboarding') {
     return (
       <OnboardingScreen
@@ -125,13 +199,23 @@ export default function App() {
     )
   }
 
-  // Main app
+  // ── Main app (paid OR trial) ──────────────────────────────────────────────────
+  // Build a unified "session user" so child screens don't need to care
+  const sessionUser = customer || {
+    id:            trialData?.id,
+    name:          trialData?.name,
+    email:         trialData?.email,
+    is_active:     true,
+    is_trial:      true,
+    course_id:     trialData?.course_id,
+  }
+
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--bg-base)' }}>
       <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         {activeTab === 'home' && (
           <HomeScreen
-            customer={customer}
+            customer={sessionUser}
             studentExam={studentExam}
             onStartStudy={() => setActiveTab('study')}
             onViewTopics={() => setActiveTab('topics')}
@@ -139,33 +223,42 @@ export default function App() {
         )}
         {activeTab === 'study' && (
           <StudyScreen
-            customer={customer}
+            customer={sessionUser}
             studentExam={studentExam}
             onDone={() => setActiveTab('home')}
           />
         )}
         {activeTab === 'topics' && (
           <TopicsScreen
-            customer={customer}
+            customer={sessionUser}
             studentExam={studentExam}
           />
         )}
         {activeTab === 'lessons' && (
           <LessonScreen
-            session={{ customerId: customer.id }}
+            session={{ customerId: sessionUser.id }}
             onBack={() => setActiveTab('home')}
           />
         )}
         {activeTab === 'profile' && (
           <ProfileScreen
-            customer={customer}
+            customer={sessionUser}
             studentExam={studentExam}
             onSignOut={handleSignOut}
             onExamUpdated={setStudentExam}
           />
         )}
       </div>
+
       <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
+
+      {/* Trial countdown — only shown during active trial */}
+      {trialData && !trialExpired && (
+        <TrialTimer
+          expiresAt={trialData.expires_at}
+          onExpire={handleTrialExpire}
+        />
+      )}
     </div>
   )
 }
