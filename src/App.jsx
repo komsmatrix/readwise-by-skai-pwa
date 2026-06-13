@@ -12,6 +12,12 @@ import BuyScreen         from './screens/BuyScreen.jsx'
 import LoadingScreen     from './screens/LoadingScreen.jsx'
 import LandingScreen     from './screens/LandingScreen.jsx'
 
+// Apply saved theme on startup
+const savedTheme = localStorage.getItem('rbs_theme') || 'dark'
+if (savedTheme !== 'dark') {
+  document.documentElement.setAttribute('data-theme', savedTheme)
+}
+
 export default function App() {
   const [screen,      setScreen]      = useState('loading')
   const [customer,    setCustomer]    = useState(null)

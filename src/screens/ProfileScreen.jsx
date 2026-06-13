@@ -16,9 +16,16 @@ const MILESTONES = [
 ]
 
 export default function ProfileScreen({ customer, studentExam, onSignOut, onExamUpdated }) {
+  const [theme, setTheme] = useState(() => localStorage.getItem('rbs_theme') || 'dark')
   const [mode,       setMode]       = useState(studentExam?.study_mode || 'Standard')
   const [saving,     setSaving]     = useState(false)
   const [showSignOut,setShowSignOut]= useState(false)
+
+  function applyTheme(t) {
+    setTheme(t)
+    localStorage.setItem('rbs_theme', t)
+    document.documentElement.setAttribute('data-theme', t === 'dark' ? '' : t)
+  }
 
   const initials = customer?.name
     ? customer.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
@@ -64,6 +71,30 @@ export default function ProfileScreen({ customer, studentExam, onSignOut, onExam
               </div>
             )
           })}
+        </div>
+
+        {/* Appearance */}
+        <div style={s.sectionLabel}>Appearance</div>
+        <div style={{ padding:'0 20px', display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:8 }}>
+          {[
+            { id:'dark',  label:'🌑 Dark',       sub:'Default' },
+            { id:'warm',  label:'🌙 Warm Dark',   sub:'Easy on eyes' },
+            { id:'sepia', label:'📜 Sepia',       sub:'Best for long sessions' },
+            { id:'light', label:'☀️ Light',       sub:'Daytime' },
+          ].map(t => (
+            <button key={t.id}
+              onClick={() => applyTheme(t.id)}
+              style={{
+                background: theme === t.id ? 'var(--accent-dim)' : 'var(--bg-elevated)',
+                border: theme === t.id ? '1.5px solid var(--accent)' : '1px solid var(--border)',
+                borderRadius:'var(--radius-md)', padding:'10px 12px',
+                cursor:'pointer', textAlign:'left', fontFamily:'inherit',
+                transition:'all 0.15s',
+              }}>
+              <div style={{ fontSize:13, fontWeight:600, color:'var(--text-primary)', marginBottom:2 }}>{t.label}</div>
+              <div style={{ fontSize:10, color:'var(--text-muted)' }}>{t.sub}</div>
+            </button>
+          ))}
         </div>
 
         {/* Study Mode */}
