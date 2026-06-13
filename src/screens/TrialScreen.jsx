@@ -12,7 +12,7 @@ export default function TrialScreen({ onTrialStart }) {
   const [course, setCourse] = useState("LET");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [alreadyUsed, setAlreadyUsed] = useState(false);
+  const [errorType, setErrorType] = useState(""); // "paid" | "trial" | ""
 
   const handleStart = async () => {
     if (!name.trim() || !email.trim()) {
@@ -26,28 +26,45 @@ export default function TrialScreen({ onTrialStart }) {
 
     setLoading(true);
     setError("");
-    setAlreadyUsed(false);
+    setErrorType("");
 
     try {
-      // Check if this email already used a trial
+      const cleanEmail = email.trim().toLowerCase();
+
+      // Check 1 — already a paid customer?
+      const { data: customer } = await supabase
+        .from("customers")
+        .select("id, is_active")
+        .eq("email", cleanEmail)
+        .maybeSingle();
+
+      if (customer && customer.is_active) {
+        setError("You already have full access with this email.");
+        setErrorType("paid");
+        setLoading(false);
+        return;
+      }
+
+      // Check 2 — already used a trial?
       const { data: existing } = await supabase
         .from("trial_sessions")
         .select("id, converted")
-        .eq("email", email.trim().toLowerCase())
-        .limit(1)
+        .eq("email", cleanEmail)
         .maybeSingle();
 
       if (existing) {
         if (existing.converted) {
-          setError("You already have full access. Sign in at the home page.");
+          setError("You already have full access with this email.");
+          setErrorType("paid");
         } else {
-          setAlreadyUsed(true);
-          setError("You've already used your free trial.");
+          setError("You've already used your free trial with this email.");
+          setErrorType("trial");
         }
         setLoading(false);
         return;
       }
 
+      // All clear — create trial
       const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
 
       const { data, error: insertError } = await supabase
@@ -55,7 +72,7 @@ export default function TrialScreen({ onTrialStart }) {
         .insert([
           {
             name: name.trim(),
-            email: email.trim().toLowerCase(),
+            email: cleanEmail,
             course_id: course,
             started_at: new Date().toISOString(),
             expires_at: expiresAt,
@@ -72,7 +89,7 @@ export default function TrialScreen({ onTrialStart }) {
         JSON.stringify({
           id: data.id,
           name: name.trim(),
-          email: email.trim().toLowerCase(),
+          email: cleanEmail,
           course_id: course,
           expires_at: expiresAt,
         })
@@ -81,7 +98,7 @@ export default function TrialScreen({ onTrialStart }) {
       onTrialStart({
         id: data.id,
         name: name.trim(),
-        email: email.trim().toLowerCase(),
+        email: cleanEmail,
         course_id: course,
         expires_at: expiresAt,
         is_trial: true,
@@ -127,7 +144,11 @@ export default function TrialScreen({ onTrialStart }) {
               type="email"
               placeholder="juan@email.com"
               value={email}
-              onChange={(e) => { setEmail(e.target.value); setAlreadyUsed(false); setError(""); }}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setError("");
+                setErrorType("");
+              }}
               onKeyDown={(e) => e.key === "Enter" && handleStart()}
             />
             <p className="trial-field-hint">
@@ -159,8 +180,13 @@ export default function TrialScreen({ onTrialStart }) {
           {error && (
             <div className="trial-error-block">
               <p className="trial-error">{error}</p>
-              {alreadyUsed && (
-                <a href="/buy" className="trial-buy-link">
+              {errorType === "paid" && (
+                <a href="/" className="trial-action-link">
+                  Sign in to your account →
+                </a>
+              )}
+              {errorType === "trial" && (
+                <a href="/buy" className="trial-action-link">
                   Get full access · ₱249 →
                 </a>
               )}
@@ -172,7 +198,7 @@ export default function TrialScreen({ onTrialStart }) {
             onClick={handleStart}
             disabled={loading}
           >
-            {loading ? "Starting your trial…" : "Start free trial →"}
+            {loading ? "Checking…" : "Start free trial →"}
           </button>
 
           <p className="trial-fine-print">
@@ -252,13 +278,8 @@ export default function TrialScreen({ onTrialStart }) {
           box-sizing: border-box;
           font-family: inherit;
         }
-        .trial-input:focus {
-          border-color: var(--accent);
-        }
-        .trial-input::placeholder {
-          color: var(--text-muted);
-          opacity: 0.5;
-        }
+        .trial-input:focus { border-color: var(--accent); }
+        .trial-input::placeholder { color: var(--text-muted); opacity: 0.5; }
         .trial-field-hint {
           font-size: 12px;
           color: var(--text-muted);
@@ -287,25 +308,10 @@ export default function TrialScreen({ onTrialStart }) {
           border-color: var(--accent);
           background: var(--accent-dim);
         }
-        .trial-course-btn.disabled {
-          opacity: 0.4;
-          cursor: not-allowed;
-        }
-        .trial-course-name {
-          font-size: 15px;
-          font-weight: 700;
-          color: var(--text-primary);
-        }
-        .trial-course-sub {
-          font-size: 10px;
-          color: var(--text-muted);
-          text-align: center;
-        }
-        .trial-error-block {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
+        .trial-course-btn.disabled { opacity: 0.4; cursor: not-allowed; }
+        .trial-course-name { font-size: 15px; font-weight: 700; color: var(--text-primary); }
+        .trial-course-sub { font-size: 10px; color: var(--text-muted); text-align: center; }
+        .trial-error-block { display: flex; flex-direction: column; gap: 8px; }
         .trial-error {
           font-size: 13px;
           color: #ef4444;
@@ -315,7 +321,7 @@ export default function TrialScreen({ onTrialStart }) {
           border-radius: 8px;
           border: 1px solid rgba(239,68,68,0.2);
         }
-        .trial-buy-link {
+        .trial-action-link {
           display: block;
           text-align: center;
           font-size: 13px;
@@ -328,9 +334,7 @@ export default function TrialScreen({ onTrialStart }) {
           background: var(--accent-dim);
           transition: opacity 0.15s;
         }
-        .trial-buy-link:hover {
-          opacity: 0.85;
-        }
+        .trial-action-link:hover { opacity: 0.85; }
         .trial-start-btn {
           background: var(--accent);
           color: #0d0d0d;
@@ -344,14 +348,8 @@ export default function TrialScreen({ onTrialStart }) {
           width: 100%;
           font-family: inherit;
         }
-        .trial-start-btn:hover:not(:disabled) {
-          opacity: 0.9;
-          transform: translateY(-1px);
-        }
-        .trial-start-btn:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
+        .trial-start-btn:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+        .trial-start-btn:disabled { opacity: 0.6; cursor: not-allowed; }
         .trial-fine-print {
           font-size: 12px;
           color: var(--text-muted);
