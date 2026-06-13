@@ -100,6 +100,7 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
           <a href="#how" style={s.navLink}>How it works</a>
           <a href="#courses" style={s.navLink}>Courses</a>
           <a href="#pricing" style={s.navLink}>Pricing</a>
+          <a href="#updates" style={s.navLink}>Updates</a>
           <button style={s.navSignIn} onClick={onSignIn}>Sign In</button>
           <button style={s.navCta} onClick={() => onGetAccess(selectedCourse)}>Get Access · ₱249</button>
         </div>
@@ -302,7 +303,7 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
       </section>
 
       {/* UPDATES */}
-      <section style={{ ...s.section, background:'#141414' }}>
+      <section id="updates" style={{ ...s.section, background:'#141414' }}>
         <div style={s.container}>
           <div style={s.sectionEyebrow}>Platform Updates</div>
           <h2 style={s.sectionTitle}>What's new</h2>
@@ -349,10 +350,10 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
         <div style={s.footerSub}>Board Exam Operating System · Philippines</div>
         <div style={s.footerLinks}>
           {['How it works','Courses','Pricing','Updates'].map(l => (
-            <a key={l} href={`#${l.toLowerCase().replace(' ','-')}`} style={s.footerLink}>{l}</a>
+            <a key={l} href={l === 'How it works' ? '#how' : l === 'Updates' ? '#updates' : `#${l.toLowerCase()}`} style={s.footerLink}>{l}</a>
           ))}
           <button style={{ ...s.footerLink, background:'none', border:'none', cursor:'pointer' }} onClick={onSignIn}>Sign In</button>
-          <button style={{ ...s.footerLink, background:'none', border:'none', cursor:'pointer' }} onClick={onGetAccess}>Buy Access</button>
+          <button style={{ ...s.footerLink, background:'none', border:'none', cursor:'pointer' }} onClick={() => onGetAccess(selectedCourse)}>Buy Access</button>
         </div>
         <div style={s.footerCopy}>© 2026 Readwise by Skai · All rights reserved</div>
       </footer>
