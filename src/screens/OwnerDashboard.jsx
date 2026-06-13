@@ -1,93 +1,31 @@
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@supabase/supabase-js'
-import AgentsTab from './AgentsTab.jsx'
 
 const SUPABASE_URL = 'https://tizegwvlksgqtvlkiwvb.supabase.co'
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRpemVnd3Zsa3NncXR2bGtpd3ZiIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDI0NTg3MCwiZXhwIjoyMDk1ODIxODcwfQ.Qn4rIczVEwa6Y_8ABlac6oByv3PioE1Q24Fc2ZTvnUA'
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 
+const TABS = [
+  { id: 'overview',      label: '📊 Overview'      },
+  { id: 'questions',     label: '❓ Questions'      },
+  { id: 'lessons',       label: '📚 Lessons'        },
+  { id: 'announcements', label: '📢 Announcements'  },
+  { id: 'trials',        label: '⏱ Trials'          },
+  { id: 'students',      label: '👥 Students'        },
+  { id: 'keys',          label: '🔑 Keys'            },
+]
+
 export default function OwnerDashboard({ isLoggedIn, onLogin }) {
-  const [password,    setPassword]    = useState('')
-  const [authError,   setAuthError]   = useState('')
-  const [tab,         setTab]         = useState('generate')
-
-  // Edit Book state
-  const [editBooks,     setEditBooks]     = useState([])
-  const [editLoading,   setEditLoading]   = useState(false)
-  const [editBook,      setEditBook]      = useState(null)   // currently editing
-  const [editTitle,     setEditTitle]     = useState('')
-  const [editAuthor,    setEditAuthor]    = useState('')
-  const [editCategory,  setEditCategory]  = useState('Self-Help')
-  const [editDesc,      setEditDesc]      = useState('')
-  const [editCoverFile, setEditCoverFile] = useState(null)
-  const [editStatus,    setEditStatus]    = useState('idle')
-  const [editError,     setEditError]     = useState('')
-  const [editBookType,  setEditBookType]  = useState('original') // 'original' | 'light'
-  const [deleteConfirm, setDeleteConfirm] = useState(false)
-  const [refreshStatus, setRefreshStatus] = useState('idle') // idle|loading|success|error|not_found
-  const [refreshSource, setRefreshSource] = useState(null)
-  const editCoverRef = useRef(null)
-  const [customers,   setCustomers]   = useState([])
-  const [loading,     setLoading]     = useState(false)
-
-  // Generate key state
-  const [genName,     setGenName]     = useState('')
-  const [genEmail,    setGenEmail]    = useState('')
-  const [genResult,   setGenResult]   = useState(null)
-  const [genStatus,   setGenStatus]   = useState('idle')
-
-  // Send update state
-  const [updSubject,  setUpdSubject]  = useState('')
-  const [updBooks,    setUpdBooks]    = useState('')
-  const [updMessage,  setUpdMessage]  = useState('')
-  const [updStatus,   setUpdStatus]   = useState('idle')
-  const [updResult,   setUpdResult]   = useState(null)
-  const [updPreview,  setUpdPreview]  = useState(false)
-  const [lastSent,    setLastSent]    = useState(() => localStorage.getItem('rws_last_update_sent') || null)
-
-  // Feedback state
-  const [feedbackList, setFeedbackList] = useState([])
-  const [fbLoading,    setFbLoading]   = useState(false)
-
-  // Add book state
-  const [bookTitle,   setBookTitle]   = useState('')
-  const [bookAuthor,  setBookAuthor]  = useState('')
-  const [bookCategory,setBookCategory]= useState('Self-Help')
-  const [bookType,    setBookType]    = useState('original') // 'original' | 'light'
-  const [bookTags,    setBookTags]    = useState('')
-  const [bookMode,    setBookMode]    = useState('text')
-  const [bookPages,   setBookPages]   = useState('')
-  const [bookDesc,    setBookDesc]    = useState('')
-  const [pdfFile,     setPdfFile]     = useState(null)
-  const [textFile,    setTextFile]    = useState(null)
-  const [coverFile,   setCoverFile]   = useState(null)
-  const [addStatus,   setAddStatus]   = useState('idle')
-  const [addError,    setAddError]    = useState('')
-  const [addProgress,      setAddProgress]      = useState('')
-  const [addTextSource,    setAddTextSource]    = useState(null) // null | 'standardebooks' | 'gutenberg' | 'pdf' | 'manual'
-  const [reextractStatus,  setReextractStatus]  = useState('idle')  // idle | loading | done | error
-  const [reextractLog,     setReextractLog]     = useState([])
-  const [reextractCount,   setReextractCount]   = useState({ done:0, total:0 })
-  const pdfRef   = useRef(null)
-  const textRef  = useRef(null)
-  const coverRef = useRef(null)
-
-  // Sales state
-  const [sales,       setSales]       = useState([])
-  const [salesLoading,setSalesLoading]= useState(false)
-
-  const savedPass = () => sessionStorage.getItem('owner_auth')
-
-  useEffect(() => {
-    if (isLoggedIn) { loadCustomers(); loadSales() }
-  }, [isLoggedIn])
+  const [password, setPassword] = useState('')
+  const [authError, setAuthError] = useState('')
+  const [tab, setTab] = useState('overview')
 
   async function handleLogin() {
     if (!password) return setAuthError('Enter password')
-    const res  = await fetch('/api/generate-key', {
-      method : 'POST',
+    const res = await fetch('/api/generate-key', {
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body   : JSON.stringify({ name: 'test', email: 'test@test.com', password, isOwnerKey: false }),
+      body: JSON.stringify({ name: 'test', email: 'test@test.com', password, isOwnerKey: false }),
     })
     const data = await res.json()
     if (data.error === 'Unauthorized') { setAuthError('Wrong password'); return }
@@ -95,1229 +33,793 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
     onLogin()
   }
 
-  async function loadCustomers() {
-    setLoading(true)
-    const res  = await fetch('/api/get-customers', {
-      method : 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body   : JSON.stringify({ password: savedPass() }),
-    })
-    const data = await res.json()
-    if (data.customers) setCustomers(data.customers)
-    setLoading(false)
-  }
-
-  async function loadSales() {
-    setSalesLoading(true)
-    try {
-      const { data, error } = await supabase
-        .from('customers')
-        .select('name, email, activated_at, amount_paid, referral_code')
-        .order('activated_at', { ascending: false })
-      if (!error && data) setSales(data)
-    } catch(e) {}
-    setSalesLoading(false)
-  }
-
-  async function handleGenerate() {
-    if (!genName.trim() || !genEmail.trim()) return
-    setGenStatus('loading'); setGenResult(null)
-    const res  = await fetch('/api/generate-key', {
-      method : 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body   : JSON.stringify({ name: genName.trim(), email: genEmail.trim(), password: savedPass() }),
-    })
-    const data = await res.json()
-    if (data.success) {
-      setGenResult(data); setGenStatus('success')
-      setGenName(''); setGenEmail('')
-      loadCustomers(); loadSales()
-    } else {
-      setGenStatus('error'); setGenResult({ error: data.error || 'Failed' })
-    }
-  }
-
-  async function handleSendUpdate() {
-    const bookList = updBooks.split('\n').map(b => b.trim()).filter(Boolean)
-    if (!updSubject.trim()) return
-    setUpdStatus('loading'); setUpdResult(null); setUpdPreview(false)
-    const res  = await fetch('/api/send-update', {
-      method : 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body   : JSON.stringify({ password: savedPass(), subject: updSubject, newBooks: bookList, message: updMessage }),
-    })
-    const data = await res.json()
-    setUpdResult(data)
-    if (data.success) {
-      const now = new Date().toISOString()
-      localStorage.setItem('rws_last_update_sent', now)
-      setLastSent(now)
-      setUpdSubject(''); setUpdBooks(''); setUpdMessage('')
-    }
-    setUpdStatus(data.success ? 'success' : 'error')
-  }
-
-  // ── Add Content ──────────────────────────────────────────────────────────────
-  async function handleAddBook() {
-    if (!bookTitle.trim() || !pdfFile) return
-    setAddStatus('uploading'); setAddError(''); setAddProgress(''); setAddTextSource(null)
-
-    try {
-      // ── PART 1: Duplicate Prevention ──────────────────────────────────────
-      setAddProgress('Checking for duplicates…')
-
-      function normTitle(t) {
-        if (!t) return ''
-        return t.split(/[;:,—–]/, 1)[0].toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim()
-      }
-      function normAuthor(a) {
-        if (!a) return ''
-        const parts = a.split(',')
-        let str = parts.length > 1 ? `${parts[1].trim()} ${parts[0].trim()}` : a
-        return str.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim()
-      }
-
-      const { data: existingBooks } = await supabase
-        .from('books')
-        .select('id, title, author')
-        .eq('is_active', true)
-
-      const normNew   = normTitle(bookTitle)
-      const normAuth  = normAuthor(bookAuthor)
-
-      const duplicate = (existingBooks || []).find(b => {
-        const titleMatch  = normTitle(b.title) === normNew
-        const authorMatch = !normAuth || !normAuthor(b.author) || normAuthor(b.author) === normAuth
-        return titleMatch && authorMatch
-      })
-
-      if (duplicate) {
-        setAddStatus('error')
-        setAddError(`"${bookTitle}" by ${bookAuthor || 'this author'} already exists in the content.`)
-        return
-      }
-
-      const slug = bookTitle.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
-      const cat  = bookCategory.toLowerCase().replace(/\s+/g, '-')
-
-      setAddProgress('Uploading PDF…')
-      const pdfPath = `${cat}/${slug}.pdf`
-      const { error: pdfErr } = await supabase.storage.from('books').upload(pdfPath, pdfFile, { upsert: true, contentType: 'application/pdf' })
-      if (pdfErr) throw new Error('PDF upload failed: ' + pdfErr.message)
-
-      let textPath = null
-      if (textFile) {
-        setAddProgress('Uploading text file…')
-        textPath = `${cat}/${slug}.html`
-        const { error: txtErr } = await supabase.storage.from('books').upload(textPath, textFile, { upsert: true, contentType: 'text/html' })
-        if (txtErr) throw new Error('Text file upload failed: ' + txtErr.message)
-        setAddTextSource('uploaded')
-      }
-
-      let coverPath = null
-      if (coverFile) {
-        setAddProgress('Uploading cover…')
-        const ext = coverFile.name.split('.').pop()
-        coverPath = `${cat}/${slug}.${ext}`
-        const { error: covErr } = await supabase.storage.from('covers').upload(coverPath, coverFile, { upsert: true, contentType: coverFile.type })
-        if (covErr) throw new Error('Cover upload failed: ' + covErr.message)
-      }
-
-      setAddProgress('Saving to library…')
-      const tags = bookTags.split(',').map(t => t.trim()).filter(Boolean)
-      const preferred_mode = textPath ? 'text' : 'pdf'
-
-      const { data: insertedBook, error: dbErr } = await supabase.from('books').insert({
-        title          : bookTitle.trim(),
-        author         : bookAuthor.trim() || null,
-        category       : bookCategory,
-        tags,
-        file_path      : pdfPath,
-        text_path      : textPath,
-        cover_path     : coverPath,
-        preferred_mode,
-        pages          : bookPages ? parseInt(bookPages) : null,
-        description    : bookDesc.trim() || null,
-        book_type      : bookType,
-      }).select('id').single()
-      if (dbErr) throw new Error('Database insert failed: ' + dbErr.message)
-
-      const newBookId = insertedBook?.id
-
-      // ── PART 2: Auto-fetch text from Standard Ebooks / Gutenberg ──────────
-      if (!textFile && newBookId) {
-        setAddProgress('Searching for clean text online…')
-        try {
-          const fetchRes = await fetch('/api/fetch-book-text', {
-            method : 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body   : JSON.stringify({
-              bookId      : newBookId,
-              title       : bookTitle.trim(),
-              author      : bookAuthor.trim(),
-              textPathBase: `${cat}/${slug}`,
-            }),
-          })
-          const fetchData = await fetchRes.json()
-          if (fetchData.success) {
-            setAddTextSource(fetchData.source) // 'standardebooks' or 'gutenberg'
-            setAddProgress(`✓ Text found on ${fetchData.source === 'standardebooks' ? 'Standard Ebooks' : 'Project Gutenberg'}!`)
-          } else if (fetchData.reason === 'not_found') {
-            // Fall back to PDF extraction
-            setAddProgress('Not found online — extracting from PDF…')
-            const extractRes = await fetch('/api/extract-text', {
-              method : 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body   : JSON.stringify({
-                bookId  : newBookId,
-                pdfPath,
-                textPath: `${cat}/${slug}.html`,
-                title   : bookTitle.trim(),
-                author  : bookAuthor.trim(),
-              }),
-            })
-            const extractData = await extractRes.json()
-            if (extractData.success) {
-              setAddTextSource('pdf')
-            } else {
-              setAddTextSource('manual')
-            }
-          }
-        } catch(e) {
-          // Silent fallback — book is still added
-          console.warn('Auto text fetch error (book still added):', e)
-        }
-      }
-
-      setAddStatus('success')
-      setAddProgress('')
-      setBookTitle(''); setBookAuthor(''); setBookTags(''); setBookPages(''); setBookDesc('')
-      setBookCategory('Self-Help'); setBookMode('text'); setBookType('original')
-      setPdfFile(null); setTextFile(null); setCoverFile(null)
-      if (pdfRef.current)   pdfRef.current.value   = ''
-      if (textRef.current)  textRef.current.value  = ''
-      if (coverRef.current) coverRef.current.value = ''
-
-    } catch (err) {
-      setAddStatus('error')
-      setAddError(err.message)
-      setAddProgress('')
-    }
-  }
-
-  // ── Re-extract All Books ───────────────────────────────────────────────────
-  async function handleReextractAll() {
-    setReextractStatus('loading')
-    setReextractLog([])
-    setReextractCount({ done:0, total:0 })
-    try {
-      const res      = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/books?select=id,title,author,file_path&is_active=eq.true&order=created_at.asc`, {
-        headers: {
-          'apikey'       : import.meta.env.VITE_SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-        }
-      })
-      const allBooks    = await res.json()
-      const booksWithPdf = allBooks.filter(b => b.file_path)
-      setReextractCount({ done:0, total: booksWithPdf.length })
-      const log = []; let done = 0
-      for (const book of booksWithPdf) {
-        const slug     = book.file_path.replace(/\.pdf$/i, '')
-        const textPath = slug + '.html'
-        try {
-          const r    = await fetch('/api/extract-text', {
-            method : 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body   : JSON.stringify({ bookId: book.id, pdfPath: book.file_path, textPath, title: book.title || '', author: book.author || '' }),
-          })
-          const data = await r.json()
-          done++; setReextractCount({ done, total: booksWithPdf.length })
-          log.push({ title: book.title, ok: data.success, msg: data.success ? '✓ Done' : (data.error || 'Failed') })
-        } catch(e) {
-          done++; setReextractCount({ done, total: booksWithPdf.length })
-          log.push({ title: book.title, ok: false, msg: 'Network error' })
-        }
-        setReextractLog([...log])
-      }
-      setReextractStatus('done')
-    } catch(e) {
-      setReextractStatus('error')
-      setReextractLog([{ title:'—', ok:false, msg: e.message }])
-    }
-  }
-
-  function copyEmails() {
-    const emails = customers.map(c => c.email).filter(Boolean).join(', ')
-    navigator.clipboard.writeText(emails)
-  }
-
-  async function loadEditBooks() {
-    setEditLoading(true)
-    try {
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/books?select=id,title,author,category,description,cover_path&is_active=eq.true&order=title.asc`, {
-        headers: { 'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY, 'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}` }
-      })
-      const data = await res.json()
-      setEditBooks(Array.isArray(data) ? data : [])
-    } catch { setEditBooks([]) }
-    setEditLoading(false)
-  }
-
-  function startEdit(book) {
-    setEditBook(book)
-    setEditTitle(book.title || '')
-    setEditAuthor(book.author || '')
-    const isLight = ['Isekai','Action','Slice of Life','Romance','Horror'].includes(book.category)
-    setEditBookType(isLight ? 'light' : 'original')
-    setEditCategory(book.category || 'Self-Help')
-    setEditDesc(book.description || '')
-    setEditCoverFile(null)
-    setEditStatus('idle')
-    setEditError('')
-    setRefreshStatus('idle')
-    setRefreshSource(null)
-    if (editCoverRef.current) editCoverRef.current.value = ''
-  }
-
-  async function handleSaveEdit() {
-    if (!editBook) return
-    setEditStatus('saving')
-    setEditError('')
-    try {
-      let coverPath = editBook.cover_path
-
-      // Upload new cover if provided
-      if (editCoverFile) {
-        const ext  = editCoverFile.name.split('.').pop()
-        const cat  = editCategory.toLowerCase().replace(/\s+/g, '-')
-        const slug = editTitle.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40)
-        coverPath  = `${cat}/${slug}.${ext}`
-        const { error: covErr } = await supabase.storage
-          .from('covers').upload(coverPath, editCoverFile, { upsert: true, contentType: editCoverFile.type })
-        if (covErr) throw new Error('Cover upload failed: ' + covErr.message)
-      }
-
-      // Update book record
-      const { error: dbErr } = await supabase
-        .from('books')
-        .update({
-          title      : editTitle.trim(),
-          author     : editAuthor.trim() || null,
-          category   : editCategory,
-          description: editDesc.trim() || null,
-          cover_path : coverPath,
-        })
-        .eq('id', editBook.id)
-
-      if (dbErr) throw new Error('Update failed: ' + dbErr.message)
-
-      // Refresh list
-      setEditBooks(prev => prev.map(b => b.id === editBook.id
-        ? { ...b, title: editTitle.trim(), author: editAuthor.trim(), category: editCategory, description: editDesc.trim(), cover_path: coverPath }
-        : b
-      ))
-      setEditStatus('success')
-      setTimeout(() => { setEditBook(null); setEditStatus('idle') }, 1500)
-    } catch(err) {
-      setEditStatus('error')
-      setEditError(err.message)
-    }
-  }
-
-  async function handleDeleteBook() {
-    if (!editBook) return
-    setEditStatus('saving')
-    setEditError('')
-    try {
-      // Soft delete — set is_active to false (book disappears from library but data preserved)
-      const { error } = await supabase
-        .from('books')
-        .update({ is_active: false })
-        .eq('id', editBook.id)
-      if (error) throw new Error('Delete failed: ' + error.message)
-
-      // Remove from local list
-      setEditBooks(prev => prev.filter(b => b.id !== editBook.id))
-      setDeleteConfirm(false)
-      setEditStatus('idle')
-      setEditBook(null)
-    } catch(err) {
-      setEditStatus('error')
-      setEditError(err.message)
-      setDeleteConfirm(false)
-    }
-  }
-
-  async function handleRefreshText() {
-    if (!editBook) return
-    setRefreshStatus('loading')
-    setRefreshSource(null)
-    try {
-      const cat  = editCategory.toLowerCase().replace(/\s+/g, '-')
-      const slug = editTitle.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
-      const res  = await fetch('/api/fetch-book-text', {
-        method : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body   : JSON.stringify({
-          bookId      : editBook.id,
-          title       : editTitle.trim(),
-          author      : editAuthor.trim(),
-          textPathBase: `${cat}/${slug}`,
-        }),
-      })
-      const data = await res.json()
-      if (data.success) {
-        setRefreshStatus('success')
-        setRefreshSource(data.source)
-        // Update local book list to show it now has text
-        setEditBooks(prev => prev.map(b => b.id === editBook.id
-          ? { ...b, text_path: data.textPath }
-          : b
-        ))
-      } else if (data.reason === 'not_found') {
-        setRefreshStatus('not_found')
-      } else {
-        setRefreshStatus('error')
-      }
-    } catch {
-      setRefreshStatus('error')
-    }
-  }
-
-  async function loadFeedback() {
-    setFbLoading(true)
-    try {
-      const res  = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/feedback?select=*&order=created_at.desc&limit=50`, {
-        headers: { 'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY, 'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}` }
-      })
-      const data = await res.json()
-      setFeedbackList(Array.isArray(data) ? data : [])
-    } catch { setFeedbackList([]) }
-    setFbLoading(false)
-  }
-
-  // ── Sales calculations ────────────────────────────────────────────────────
-  const totalRevenue    = sales.reduce((sum, s) => sum + (s.amount_paid || 249), 0)
-  const salesWithRef    = sales.filter(s => s.referral_code)
-  const salesWithoutRef = sales.filter(s => !s.referral_code)
-  const today           = new Date().toDateString()
-  const salesToday      = sales.filter(s => new Date(s.activated_at).toDateString() === today).length
-
-  const originalCategories  = ['Self-Help','Finance','Business','Fiction','Philosophy','Health','Biography','Other']
-  const lightNovelCategories = ['Isekai','Action','Slice of Life','Romance','Horror','Other']
-  const categories = bookType === 'original' ? originalCategories : lightNovelCategories
-  const editOriginalCategories  = ['Self-Help','Finance','Business','Fiction','Philosophy','Health','Biography','Other']
-  const editLightCategories      = ['Isekai','Action','Slice of Life','Romance','Horror','Other']
-  const canAdd = bookTitle.trim() && pdfFile && addStatus !== 'uploading'
-
-  // ── Login screen ──────────────────────────────────────────────────────────
   if (!isLoggedIn) {
     return (
       <div style={s.root}>
-        <div style={s.loginCard} className="animate-up">
+        <div style={s.loginCard}>
           <div style={s.brand}>
-            <svg width="32" height="32" viewBox="0 0 36 36" fill="none">
-              <rect width="36" height="36" rx="10" fill="var(--accent)" fillOpacity="0.15"/>
-              <path d="M10 27V10h10a7 7 0 0 1 0 14H10" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M10 24h14" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round"/>
-            </svg>
+            <div style={s.brandIcon}>R</div>
             <div>
-              <div style={s.brandName}>Readwise by Skai</div>
-              <div style={s.brandBy}>Owner Dashboard</div>
+              <div style={s.brandName}>Readwise Owner</div>
+              <div style={s.brandBy}>Dashboard · Private</div>
             </div>
           </div>
-          <div style={s.field}>
-            <label style={s.label}>Owner password</label>
-            <input style={s.input} type="password" placeholder="Enter password" value={password}
-              onChange={e => setPassword(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleLogin()} autoFocus/>
-          </div>
-          {authError && <p style={s.error}>{authError}</p>}
+          <input style={s.input} type="password" placeholder="Password"
+            value={password} onChange={e => setPassword(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleLogin()} autoFocus />
+          {authError && <div style={s.error}>{authError}</div>}
           <button style={s.btn} onClick={handleLogin}>Enter Dashboard</button>
         </div>
       </div>
     )
   }
 
-  // ── Dashboard ─────────────────────────────────────────────────────────────
   return (
     <div style={s.dashboard}>
       {/* Header */}
       <div style={s.dashHeader}>
-        <div>
-          <div style={s.brandName}>Readwise by Skai</div>
-          <div style={s.brandBy}>Owner Dashboard</div>
+        <div style={s.brand}>
+          <div style={s.brandIcon}>R</div>
+          <div>
+            <div style={s.brandName}>Readwise</div>
+            <div style={s.brandBy}>Owner Dashboard</div>
+          </div>
         </div>
-        <div style={s.statPill}>{customers.length} customers · ₱{totalRevenue.toLocaleString()}</div>
+        <a href="/" style={s.exitBtn}>← Back to app</a>
       </div>
 
-      {/* Tabs */}
-      <div style={s.tabs}>
-        {[
-          ['generate', '🔑 Generate Key'],
-          ['addbook',  '📚 Add Content'],
-          ['editbook', '✏️ Edit Book'],
-          ['sales',    '💰 Sales'],
-          ['agents',   '🤝 Agents'],
-          ['customers','👥 Customers'],
-          ['update',   '📢 Send Update'],
-          ['feedback', '💬 Feedback'],
-        ].map(([id, label]) => (
-          <button key={id} style={{ ...s.tab, ...(tab === id ? s.tabActive : {}) }}
-            onClick={() => { setTab(id); setAddStatus('idle'); setAddError('') }}>
-            {label}
+      {/* Tab bar */}
+      <div style={s.tabBar}>
+        {TABS.map(t => (
+          <button key={t.id}
+            style={{ ...s.tabBtn, ...(tab === t.id ? s.tabBtnActive : {}) }}
+            onClick={() => setTab(t.id)}>
+            {t.label}
           </button>
         ))}
       </div>
 
+      {/* Tab content */}
       <div style={s.tabContent}>
-
-        {/* ── Generate Key ── */}
-        {tab === 'generate' && (
-          <div style={s.section}>
-            <p style={s.sectionDesc}>Generate a new access key and send it to the customer automatically.</p>
-            <div style={s.field}><label style={s.label}>Customer full name</label>
-              <input style={s.input} placeholder="Juan Dela Cruz" value={genName} onChange={e => setGenName(e.target.value)}/>
-            </div>
-            <div style={s.field}><label style={s.label}>Customer email</label>
-              <input style={s.input} type="email" placeholder="juan@gmail.com" value={genEmail} onChange={e => setGenEmail(e.target.value)}/>
-            </div>
-            <button
-              style={{ ...s.btn, ...(!genName.trim() || !genEmail.trim() || genStatus === 'loading' ? s.btnDisabled : {}) }}
-              onClick={handleGenerate}
-              disabled={!genName.trim() || !genEmail.trim() || genStatus === 'loading'}
-            >
-              {genStatus === 'loading' ? <><span style={s.spinner}/> Generating…</> : genStatus === 'success' ? '✓ Key Generated & Sent!' : 'Generate Key & Send Email'}
-            </button>
-            {genResult?.success && (
-              <div style={s.resultBox} className="animate-in">
-                <p style={s.resultLabel}>Key generated</p>
-                <p style={s.keyDisplay}>{genResult.key}</p>
-                <p style={s.resultNote}>Email sent to {genEmail} ✓</p>
-                <p style={s.resultNote}>Expires: {genResult.expiresAt ? new Date(genResult.expiresAt).toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' }) : 'Never'}</p>
-              </div>
-            )}
-            {genResult?.error && <p style={s.error}>{genResult.error}</p>}
-          </div>
-        )}
-
-        {/* ── Add Content ── */}
-        {tab === 'addbook' && (
-          <div style={s.section}>
-            <p style={s.sectionDesc}>Upload a new book to the shared library. It appears instantly for all customers.</p>
-
-            {/* Book Type selector */}
-            <div style={s.field}>
-              <label style={s.label}>Book Type <span style={{ color:'#e05c5c' }}>*</span></label>
-              <div style={ab.typeToggle}>
-                {[['original','📚 Original Book Novel'],['light','⚡ Light Novel']].map(([val,label]) => (
-                  <button key={val}
-                    style={{ ...ab.typeBtn, ...(bookType === val ? ab.typeBtnActive : {}) }}
-                    onClick={() => { setBookType(val); setBookCategory(val === 'original' ? 'Self-Help' : 'Isekai') }}>
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div style={s.field}>
-              <label style={s.label}>PDF File <span style={{ color:'#e05c5c' }}>*</span></label>
-              {pdfFile ? (
-                <div style={ab.fileChosen}>
-                  <span style={ab.tag}>PDF</span>
-                  <span style={ab.fileName}>{pdfFile.name}</span>
-                  <button style={ab.changeBtn} onClick={() => { setPdfFile(null); pdfRef.current.value = '' }}>✕</button>
-                </div>
-              ) : (
-                <button style={ab.pickBtn} onClick={() => pdfRef.current?.click()}>
-                  <span style={{ fontSize:22 }}>📄</span><span>Tap to select PDF</span>
-                </button>
-              )}
-              <input ref={pdfRef} type="file" accept=".pdf" style={{ display:'none' }} onChange={e => setPdfFile(e.target.files[0] || null)}/>
-            </div>
-            <div style={s.field}>
-              <label style={s.label}>Text File <span style={{ color:'var(--text-muted)', fontSize:11 }}>(optional — enables Text Mode)</span></label>
-              {textFile ? (
-                <div style={ab.fileChosen}>
-                  <span style={{ ...ab.tag, color:'#7ab87a' }}>HTML</span>
-                  <span style={ab.fileName}>{textFile.name}</span>
-                  <button style={ab.changeBtn} onClick={() => { setTextFile(null); textRef.current.value = '' }}>✕</button>
-                </div>
-              ) : (
-                <button style={{ ...ab.pickBtn, minHeight:52 }} onClick={() => textRef.current?.click()}>
-                  <span style={{ fontSize:18 }}>📝</span><span>Tap to select .html text file</span>
-                </button>
-              )}
-              <input ref={textRef} type="file" accept=".html,.htm,.txt" style={{ display:'none' }} onChange={e => setTextFile(e.target.files[0] || null)}/>
-            </div>
-            <div style={s.field}>
-              <label style={s.label}>Cover Image <span style={{ color:'var(--text-muted)', fontSize:11 }}>(optional)</span></label>
-              {coverFile ? (
-                <div style={ab.fileChosen}>
-                  <span style={{ fontSize:14 }}>🖼️</span>
-                  <span style={ab.fileName}>{coverFile.name}</span>
-                  <button style={ab.changeBtn} onClick={() => { setCoverFile(null); coverRef.current.value = '' }}>✕</button>
-                </div>
-              ) : (
-                <button style={{ ...ab.pickBtn, minHeight:52 }} onClick={() => coverRef.current?.click()}>
-                  <span style={{ fontSize:18 }}>🖼️</span><span>Tap to add cover image</span>
-                </button>
-              )}
-              <input ref={coverRef} type="file" accept="image/*" style={{ display:'none' }} onChange={e => setCoverFile(e.target.files[0] || null)}/>
-            </div>
-            <div style={s.field}><label style={s.label}>Content Title <span style={{ color:'#e05c5c' }}>*</span></label>
-              <input style={s.input} placeholder="e.g. Atomic Habits" value={bookTitle} onChange={e => setBookTitle(e.target.value)}/>
-            </div>
-            <div style={s.field}><label style={s.label}>Author</label>
-              <input style={s.input} placeholder="e.g. James Clear" value={bookAuthor} onChange={e => setBookAuthor(e.target.value)}/>
-            </div>
-            <div style={s.field}><label style={s.label}>Category</label>
-              <select style={{ ...s.input, cursor:'pointer' }} value={bookCategory} onChange={e => setBookCategory(e.target.value)}>
-                {categories.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </div>
-            <div style={s.field}><label style={s.label}>Tags <span style={{ color:'var(--text-muted)', fontSize:11 }}>(comma separated)</span></label>
-              <input style={s.input} placeholder="e.g. habits, productivity, mindset" value={bookTags} onChange={e => setBookTags(e.target.value)}/>
-            </div>
-            <div style={s.field}><label style={s.label}>Page count <span style={{ color:'var(--text-muted)', fontSize:11 }}>(optional)</span></label>
-              <input style={s.input} type="number" placeholder="e.g. 256" value={bookPages} onChange={e => setBookPages(e.target.value)}/>
-            </div>
-            <div style={s.field}><label style={s.label}>Description <span style={{ color:'var(--text-muted)', fontSize:11 }}>(optional)</span></label>
-              <textarea style={{ ...s.input, resize:'vertical', minHeight:80, lineHeight:1.6 }}
-                placeholder="Short description shown on the book card…" value={bookDesc} onChange={e => setBookDesc(e.target.value)}/>
-            </div>
-            {addStatus === 'uploading' && addProgress && (
-              <div style={ab.progressRow}><span style={s.spinner}/><span style={{ fontSize:13, color:'var(--text-muted)' }}>{addProgress}</span></div>
-            )}
-            {addStatus === 'success' && (
-              <div style={ab.successBox} className="animate-in">
-                <span style={{ fontSize:22 }}>✅</span>
-                <div>
-                  <p style={{ fontSize:14, color:'#3a9a6a', fontWeight:500 }}>Book added successfully!</p>
-                  {addTextSource === 'standardebooks' && (
-                    <p style={{ fontSize:12, color:'var(--text-muted)', marginTop:3 }}>📖 Text source: <strong style={{ color:'#3a9a6a' }}>Standard Ebooks</strong> — high quality, professionally formatted.</p>
-                  )}
-                  {addTextSource === 'gutenberg' && (
-                    <p style={{ fontSize:12, color:'var(--text-muted)', marginTop:3 }}>📖 Text source: <strong style={{ color:'#3a9a6a' }}>Project Gutenberg</strong> — clean text extracted successfully.</p>
-                  )}
-                  {addTextSource === 'pdf' && (
-                    <p style={{ fontSize:12, color:'var(--text-muted)', marginTop:3 }}>📄 Text source: <strong style={{ color:'#c9a96e' }}>PDF extraction</strong> — not found online. Check Text Mode quality and re-extract if needed.</p>
-                  )}
-                  {addTextSource === 'manual' && (
-                    <p style={{ fontSize:12, color:'#e05c5c', marginTop:3 }}>⚠️ <strong>Text extraction failed</strong> — Text Mode may not work. Consider uploading an HTML text file manually.</p>
-                  )}
-                  {addTextSource === 'uploaded' && (
-                    <p style={{ fontSize:12, color:'var(--text-muted)', marginTop:3 }}>📎 Text source: <strong style={{ color:'#3a9a6a' }}>Manually uploaded</strong> — your file is live.</p>
-                  )}
-                  {!addTextSource && (
-                    <p style={{ fontSize:12, color:'var(--text-muted)', marginTop:3 }}>It's now live in the content for all customers.</p>
-                  )}
-                </div>
-              </div>
-            )}
-            {addError && <p style={s.error}>{addError}</p>}
-            <button
-              style={{ ...s.btn, ...(!canAdd ? s.btnDisabled : {}), ...(addStatus === 'success' ? { background:'#3a9a6a' } : {}) }}
-              onClick={handleAddBook} disabled={!canAdd}>
-              {addStatus === 'uploading' ? <><span style={{ ...s.spinner, borderTopColor:'#0d0d0d' }}/> Uploading…</>
-                : addStatus === 'success' ? '✓ Added to Library!' : '📚 Add Content to Library'}
-            </button>
-            {addStatus === 'success' && (
-              <button style={{ ...s.btn, background:'transparent', border:'1px solid var(--border)', color:'var(--text-secondary)' }}
-                onClick={() => { setAddStatus('idle'); setAddTextSource(null) }}>Add Another Book</button>
-            )}
-
-            {/* ── Re-extract All Books ── */}
-            <div style={ab.reextractBox}>
-              <p style={ab.reextractTitle}>🔄 Re-extract All Books</p>
-              <p style={ab.reextractDesc}>Regenerates the Text Mode HTML for all existing books using the improved formatter. Fixes formatting on books already in the content.</p>
-              {reextractStatus === 'loading' && (
-                <div style={ab.reextractProgress} className="animate-in">
-                  <span style={s.spinner}/>
-                  <span style={{ fontSize:13, color:'var(--text-muted)' }}>Processing {reextractCount.done} of {reextractCount.total} books…</span>
-                </div>
-              )}
-              {reextractLog.length > 0 && (
-                <div style={ab.reextractLog}>
-                  {reextractLog.map((entry, i) => (
-                    <div key={i} style={ab.reextractLogRow}>
-                      <span style={{ color: entry.ok ? '#3a9a6a' : '#e05c5c', fontSize:12 }}>{entry.ok ? '✓' : '✗'}</span>
-                      <span style={{ fontSize:12, color:'var(--text-secondary)', flex:1 }}>{entry.title}</span>
-                      <span style={{ fontSize:11, color: entry.ok ? 'var(--text-muted)' : '#e05c5c' }}>{entry.msg}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {reextractStatus === 'done' && (
-                <p style={{ fontSize:13, color:'#3a9a6a', margin:'4px 0 0' }}>✅ All done! {reextractCount.done} books re-extracted.</p>
-              )}
-              <button
-                style={{ ...s.btn, background:'transparent', border:'1px solid var(--border)', color:'var(--text-secondary)', marginTop:4, ...(reextractStatus === 'loading' ? s.btnDisabled : {}) }}
-                onClick={handleReextractAll}
-                disabled={reextractStatus === 'loading'}>
-                {reextractStatus === 'loading'
-                  ? <><span style={s.spinner}/> Re-extracting {reextractCount.done}/{reextractCount.total}…</>
-                  : reextractStatus === 'done' ? '🔄 Re-extract Again' : '🔄 Re-extract All Books'}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ── Sales ── */}
-        {/* ── Edit Book Tab ── */}
-        {tab === 'editbook' && (
-          <div style={s.section}>
-            <p style={s.sectionDesc}>Edit title, author, category, description, or cover photo of any existing book.</p>
-
-            {/* Book not selected yet — show list */}
-            {!editBook && (
-              <>
-                <button style={s.btn} onClick={loadEditBooks} disabled={editLoading}>
-                  {editLoading ? <><span style={s.spinner}/> Loading books…</> : '📚 Load Books to Edit'}
-                </button>
-                <div style={{ display:'flex', flexDirection:'column', gap:8, marginTop:12 }}>
-                  {editBooks.map(book => (
-                    <div key={book.id} style={ebS.bookRow}>
-                      <div style={{ flex:1, minWidth:0 }}>
-                        <p style={ebS.bookTitle}>{book.title}</p>
-                        <p style={ebS.bookMeta}>{book.author || '—'} · {book.category}</p>
-                      </div>
-                      <button style={ebS.editBtn} onClick={() => startEdit(book)}>✏️ Edit</button>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-
-            {/* Edit form */}
-            {editBook && (
-              <div className="animate-in">
-                <div style={ebS.editHeader}>
-                  <button style={ebS.backBtn} onClick={() => { setEditBook(null); setEditStatus('idle') }}>← Back</button>
-                  <p style={ebS.editTitle}>Editing: {editBook.title}</p>
-                </div>
-
-                {/* Title */}
-                <div style={s.field}>
-                  <label style={s.label}>Title</label>
-                  <input style={s.input} value={editTitle} onChange={e => setEditTitle(e.target.value)} placeholder="Book title"/>
-                </div>
-
-                {/* Author */}
-                <div style={s.field}>
-                  <label style={s.label}>Author</label>
-                  <input style={s.input} value={editAuthor} onChange={e => setEditAuthor(e.target.value)} placeholder="Author name"/>
-                </div>
-
-                {/* Category */}
-                <div style={s.field}>
-                  <label style={s.label}>Book Type</label>
-                  <div style={ab.typeToggle}>
-                    {[['original','📚 Original Book Novel'],['light','⚡ Light Novel']].map(([val,label]) => (
-                      <button key={val}
-                        style={{ ...ab.typeBtn, ...(editBookType === val ? ab.typeBtnActive : {}) }}
-                        onClick={() => {
-                          setEditBookType(val)
-                          setEditCategory(val === 'original' ? 'Self-Help' : 'Isekai')
-                        }}>
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div style={s.field}>
-                  <label style={s.label}>Category</label>
-                  <select style={s.input} value={editCategory} onChange={e => setEditCategory(e.target.value)}>
-                    {(editBookType === 'original' ? editOriginalCategories : editLightCategories).map(c => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Description */}
-                <div style={s.field}>
-                  <label style={s.label}>Description <span style={{ color:'var(--text-muted)', fontSize:11 }}>(optional)</span></label>
-                  <textarea style={{ ...s.input, resize:'vertical', minHeight:80, lineHeight:1.6 }}
-                    placeholder="Short description shown on the book card…"
-                    value={editDesc} onChange={e => setEditDesc(e.target.value)}/>
-                </div>
-
-                {/* Cover Photo */}
-                <div style={s.field}>
-                  <label style={s.label}>Cover Photo <span style={{ color:'var(--text-muted)', fontSize:11 }}>(leave empty to keep current)</span></label>
-                  {editBook.cover_path && (
-                    <p style={{ fontSize:12, color:'var(--text-muted)', marginBottom:6 }}>
-                      Current: <span style={{ color:'var(--accent)' }}>{editBook.cover_path}</span>
-                    </p>
-                  )}
-                  <input ref={editCoverRef} type="file" accept="image/*" style={{ display:'none' }}
-                    onChange={e => setEditCoverFile(e.target.files[0] || null)}/>
-                  {!editCoverFile ? (
-                    <button style={ab.pickBtn} onClick={() => editCoverRef.current?.click()}>
-                      🖼️ {editBook.cover_path ? 'Replace Cover Photo' : 'Upload Cover Photo'}
-                    </button>
-                  ) : (
-                    <div style={ab.fileChosen}>
-                      <span style={ab.tag}>IMG</span>
-                      <span style={ab.fileName}>{editCoverFile.name}</span>
-                      <button style={ab.changeBtn} onClick={() => { setEditCoverFile(null); if (editCoverRef.current) editCoverRef.current.value = '' }}>Remove</button>
-                    </div>
-                  )}
-                </div>
-
-                {editStatus === 'error' && <p style={{ fontSize:13, color:'#e05c5c', margin:'8px 0' }}>✗ {editError}</p>}
-                {editStatus === 'success' && <p style={{ fontSize:13, color:'#3a9a6a', margin:'8px 0' }}>✅ Book updated successfully!</p>}
-
-                <button
-                  style={{ ...s.btn, ...(editStatus === 'saving' ? s.btnDisabled : {}) }}
-                  onClick={handleSaveEdit}
-                  disabled={editStatus === 'saving' || !editTitle.trim()}>
-                  {editStatus === 'saving' ? <><span style={s.spinner}/> Saving…</> : '💾 Save Changes'}
-                </button>
-
-                {/* Refresh text from Standard Ebooks / Gutenberg */}
-                <div style={ebS.refreshSection}>
-                  <p style={ebS.refreshLabel}>🔄 Refresh Text Source</p>
-                  <p style={ebS.refreshDesc}>Re-fetch clean text from Standard Ebooks or Project Gutenberg. Replaces the current text file with a higher quality version if found.</p>
-                  {refreshStatus === 'success' && (
-                    <p style={{ fontSize:12, color:'#3a9a6a', margin:'6px 0' }}>
-                      ✅ Text refreshed from <strong>{refreshSource === 'standardebooks' ? 'Standard Ebooks' : 'Project Gutenberg'}</strong>
-                    </p>
-                  )}
-                  {refreshStatus === 'not_found' && (
-                    <p style={{ fontSize:12, color:'#c9a96e', margin:'6px 0' }}>
-                      ⚠️ Not found on Standard Ebooks or Gutenberg — text file unchanged.
-                    </p>
-                  )}
-                  {refreshStatus === 'error' && (
-                    <p style={{ fontSize:12, color:'#e05c5c', margin:'6px 0' }}>
-                      ✗ Refresh failed. Try again.
-                    </p>
-                  )}
-                  <button style={ebS.refreshBtn}
-                    onClick={handleRefreshText}
-                    disabled={refreshStatus === 'loading'}>
-                    {refreshStatus === 'loading'
-                      ? <><span style={s.spinner}/> Searching…</>
-                      : '🔄 Refresh from Standard Ebooks / Gutenberg'}
-                  </button>
-                </div>
-
-                {/* Delete section */}
-                <div style={ebS.deleteSection}>
-                  {!deleteConfirm ? (
-                    <button style={ebS.deleteBtn} onClick={() => setDeleteConfirm(true)}>
-                      🗑️ Delete This Book
-                    </button>
-                  ) : (
-                    <div style={ebS.deleteConfirmBox} className="animate-in">
-                      <p style={ebS.deleteWarning}>⚠️ Are you sure you want to delete <strong>"{editBook.title}"</strong>? It will be removed from the content for all customers.</p>
-                      <div style={{ display:'flex', gap:10, marginTop:12 }}>
-                        <button style={ebS.deleteConfirmBtn} onClick={handleDeleteBook} disabled={editStatus === 'saving'}>
-                          {editStatus === 'saving' ? <><span style={s.spinner}/> Deleting…</> : 'Yes, Delete'}
-                        </button>
-                        <button style={ebS.deleteCancelBtn} onClick={() => setDeleteConfirm(false)}>
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {tab === 'sales' && (
-          <div style={{ ...s.section, maxWidth:640 }}>
-
-            {/* KPI cards */}
-            <div style={st.kpiRow}>
-              <div style={st.kpiCard}>
-                <p style={st.kpiLabel}>Total Revenue</p>
-                <p style={st.kpiValue}>₱{totalRevenue.toLocaleString()}</p>
-              </div>
-              <div style={st.kpiCard}>
-                <p style={st.kpiLabel}>Total Sales</p>
-                <p style={st.kpiValue}>{sales.length}</p>
-              </div>
-              <div style={st.kpiCard}>
-                <p style={st.kpiLabel}>Sales Today</p>
-                <p style={st.kpiValue}>{salesToday}</p>
-              </div>
-              <div style={st.kpiCard}>
-                <p style={st.kpiLabel}>With Referral</p>
-                <p style={st.kpiValue}>{salesWithRef.length}</p>
-              </div>
-            </div>
-
-            <div style={s.sectionRow}>
-              <p style={s.sectionDesc}>{sales.length} total sales — all channels</p>
-              <button style={s.smallBtn} onClick={loadSales}>↻ Refresh</button>
-            </div>
-
-            {salesLoading ? (
-              <div style={s.loading}><div style={s.spinner}/></div>
-            ) : sales.length === 0 ? (
-              <p style={{ color:'var(--text-muted)', fontSize:13, textAlign:'center', padding:'32px 0' }}>No sales yet. First sale incoming! 🚀</p>
-            ) : (
-              <div style={s.customerList}>
-                {sales.map((sale, i) => (
-                  <div key={i} style={st.saleRow}>
-                    <div style={s.customerAvatar}>{sale.name?.[0]?.toUpperCase() || '?'}</div>
-                    <div style={s.customerInfo}>
-                      <p style={s.customerName}>{sale.name}</p>
-                      <p style={s.customerEmail}>{sale.email}</p>
-                    </div>
-                    <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4, flexShrink:0 }}>
-                      <span style={st.amount}>₱{sale.amount_paid || 249}</span>
-                      {sale.referral_code
-                        ? <span style={st.refBadge}>🤝 {sale.referral_code}</span>
-                        : <span style={st.directBadge}>Direct</span>
-                      }
-                      <span style={s.customerDate}>
-                        {new Date(sale.activated_at).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' })}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ── Agents ── */}
-        {tab === 'agents' && <AgentsTab savedPass={savedPass}/>}
-
-        {/* ── Customers ── */}
-        {tab === 'customers' && (
-          <div style={s.section}>
-            <div style={s.sectionRow}>
-              <p style={s.sectionDesc}>{customers.length} total customers</p>
-              <button style={s.smallBtn} onClick={copyEmails}>Copy all emails</button>
-            </div>
-            {loading ? (
-              <div style={s.loading}><div style={s.spinner}/></div>
-            ) : customers.length === 0 ? (
-              <p style={{ color:'var(--text-muted)', fontSize:13, textAlign:'center', padding:'32px 0' }}>No customers yet.</p>
-            ) : (
-              <div style={s.customerList}>
-                {customers.map((c, i) => (
-                  <div key={i} style={s.customerRow}>
-                    <div style={s.customerAvatar}>{c.name?.[0]?.toUpperCase() || '?'}</div>
-                    <div style={s.customerInfo}>
-                      <p style={s.customerName}>{c.name}</p>
-                      <p style={s.customerEmail}>{c.email}</p>
-                    </div>
-                    <div style={s.customerDate}>{new Date(c.activated_at).toLocaleDateString('en-US', { month:'short', day:'numeric' })}</div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ── Send Update ── */}
-        {tab === 'update' && (
-          <div style={s.section}>
-
-            {/* Last sent indicator */}
-            {lastSent && (
-              <div style={su.lastSentBar}>
-                <span style={su.lastSentDot}/>
-                <span style={su.lastSentText}>
-                  Last update sent: {(() => {
-                    const d = new Date(lastSent)
-                    const now = new Date()
-                    const diffMs = now - d
-                    const diffDays = Math.floor(diffMs / 86400000)
-                    if (diffDays === 0) return 'Today at ' + d.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' })
-                    if (diffDays === 1) return 'Yesterday'
-                    return `${diffDays} days ago`
-                  })()}
-                </span>
-              </div>
-            )}
-
-            <p style={s.sectionDesc}>
-              Announce new books to all <strong style={{ color:'var(--text-primary)' }}>{customers.length} customers</strong>. Each email is personalized with their first name.
-            </p>
-
-            {/* Subject */}
-            <div style={s.field}>
-              <label style={s.label}>Email Subject</label>
-              <input
-                style={s.input}
-                placeholder="📚 New books just dropped in your library!"
-                value={updSubject}
-                onChange={e => { setUpdSubject(e.target.value); setUpdStatus('idle') }}
-              />
-            </div>
-
-            {/* Books */}
-            <div style={s.field}>
-              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                <label style={s.label}>New content titles <span style={{ color:'var(--text-muted)', fontSize:10, textTransform:'none', letterSpacing:0 }}>(one per line)</span></label>
-                {updBooks.trim() && (
-                  <span style={su.bookCount}>
-                    {updBooks.split('\n').filter(b => b.trim()).length} book{updBooks.split('\n').filter(b => b.trim()).length !== 1 ? 's' : ''}
-                  </span>
-                )}
-              </div>
-              <textarea
-                style={{ ...s.input, resize:'vertical', minHeight:110, lineHeight:1.8 }}
-                placeholder={"Think and Grow Rich\nThe Richest Man in Babylon\nMeditations"}
-                value={updBooks}
-                onChange={e => { setUpdBooks(e.target.value); setUpdStatus('idle') }}
-              />
-            </div>
-
-            {/* Personal message */}
-            <div style={s.field}>
-              <label style={s.label}>Personal message <span style={{ color:'var(--text-muted)', fontSize:10, textTransform:'none', letterSpacing:0 }}>(optional — shown as a quote)</span></label>
-              <input
-                style={s.input}
-                placeholder="e.g. Meditations is my personal favorite. Try it!"
-                value={updMessage}
-                onChange={e => { setUpdMessage(e.target.value); setUpdStatus('idle') }}
-              />
-            </div>
-
-            {/* Preview toggle */}
-            {(updSubject.trim() || updBooks.trim()) && updStatus !== 'success' && (
-              <button
-                style={su.previewBtn}
-                onClick={() => setUpdPreview(p => !p)}>
-                {updPreview ? '▲ Hide Preview' : '👁 Preview Email'}
-              </button>
-            )}
-
-            {/* Preview panel */}
-            {updPreview && (
-              <div style={su.previewPanel} className="animate-in">
-                <div style={su.previewLabel}>EMAIL PREVIEW</div>
-                <div style={su.previewSubject}>Subject: {updSubject || '(no subject yet)'}</div>
-                <div style={su.previewDivider}/>
-                <p style={su.previewGreeting}>Hi [Customer Name], your library just got bigger. We've added new books — open the app and they're already waiting for you.</p>
-                {updBooks.trim() && (
-                  <div style={su.previewBooks}>
-                    <div style={su.previewBooksLabel}>ADDED TO YOUR LIBRARY</div>
-                    {updBooks.split('\n').filter(b => b.trim()).map((book, i) => (
-                      <div key={i} style={su.previewBookRow}>
-                        <span style={su.previewDot}/>
-                        <span>{book.trim()}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {updMessage.trim() && (
-                  <p style={su.previewMessage}>"{updMessage}"</p>
-                )}
-                <div style={su.previewCta}>Open Your Library →</div>
-                <p style={su.previewFooter}>Books are added regularly. Your content grows — your price stays the same. 🙌</p>
-              </div>
-            )}
-
-            {/* Success state */}
-            {updStatus === 'success' && updResult?.success && (
-              <div style={su.successBox} className="animate-in">
-                <span style={{ fontSize:28 }}>🎉</span>
-                <div>
-                  <p style={su.successTitle}>Update sent to {updResult.sent} customer{updResult.sent !== 1 ? 's' : ''}!</p>
-                  <p style={su.successSub}>Everyone has been notified about the new books.</p>
-                </div>
-              </div>
-            )}
-
-            {/* Error */}
-            {updStatus === 'error' && updResult?.error && (
-              <p style={s.error}>{updResult.error}</p>
-            )}
-
-            {/* Buttons */}
-            {updStatus === 'success' ? (
-              <button
-                style={{ ...s.btn, background:'transparent', border:'1px solid var(--border)', color:'var(--text-secondary)' }}
-                onClick={() => { setUpdStatus('idle'); setUpdResult(null) }}>
-                Send Another Update
-              </button>
-            ) : (
-              <button
-                style={{
-                  ...s.btn,
-                  ...(!updSubject.trim() || updStatus === 'loading' ? s.btnDisabled : {}),
-                  ...(updStatus === 'loading' ? {} : { background: customers.length > 0 ? 'var(--accent)' : 'var(--bg-elevated)' })
-                }}
-                onClick={handleSendUpdate}
-                disabled={!updSubject.trim() || updStatus === 'loading' || customers.length === 0}>
-                {updStatus === 'loading'
-                  ? <><span style={s.spinner}/> Sending to {customers.length} customers…</>
-                  : customers.length === 0
-                    ? 'No customers yet'
-                    : `📢 Send to ${customers.length} customer${customers.length !== 1 ? 's' : ''}`}
-              </button>
-            )}
-
-            {customers.length === 0 && (
-              <p style={{ fontSize:12, color:'var(--text-muted)', textAlign:'center' }}>
-                You'll be able to send updates once you have customers.
-              </p>
-            )}
-
-          </div>
-        )}
-
-        {/* ── Feedback Tab ── */}
-        {tab === 'feedback' && (
-          <div style={s.section}>
-            <p style={s.sectionDesc}>Customer feedback submitted from inside the app.</p>
-            <button style={{ ...s.btn, marginBottom:16 }} onClick={loadFeedback} disabled={fbLoading}>
-              {fbLoading ? <><span style={s.spinner}/> Loading…</> : '🔄 Load Feedback'}
-            </button>
-            {feedbackList.length === 0 && !fbLoading && (
-              <p style={{ fontSize:13, color:'var(--text-muted)', textAlign:'center', padding:'24px 0' }}>
-                No feedback yet. Tap Load Feedback to check.
-              </p>
-            )}
-            {feedbackList.map((fb, i) => (
-              <div key={fb.id || i} style={fbS.card}>
-                <div style={fbS.cardHeader}>
-                  <span style={{ fontSize:20 }}>{fb.mood || '💬'}</span>
-                  <div style={{ flex:1 }}>
-                    <p style={fbS.cardName}>{fb.name || 'Anonymous'}{fb.email ? ` · ${fb.email}` : ''}</p>
-                    <p style={fbS.cardMeta}>{fb.mood_label || ''} · {fb.created_at ? new Date(fb.created_at).toLocaleDateString('en-PH', { month:'short', day:'numeric', year:'numeric' }) : ''}</p>
-                  </div>
-                </div>
-                <p style={fbS.cardMsg}>{fb.message}</p>
-              </div>
-            ))}
-          </div>
-        )}
-
+        {tab === 'overview'      && <OverviewTab />}
+        {tab === 'questions'     && <QuestionsTab />}
+        {tab === 'lessons'       && <LessonsTab />}
+        {tab === 'announcements' && <AnnouncementsTab />}
+        {tab === 'trials'        && <TrialsTab />}
+        {tab === 'students'      && <StudentsTab />}
+        {tab === 'keys'          && <KeysTab />}
       </div>
     </div>
   )
 }
 
-// ── Sales tab styles ──────────────────────────────────────────────────────────
-const st = {
-  kpiRow    : { display:'grid', gridTemplateColumns:'repeat(2, 1fr)', gap:10, marginBottom:4 },
-  kpiCard   : { background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', padding:'14px 16px' },
-  kpiLabel  : { margin:'0 0 6px', fontSize:11, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.07em' },
-  kpiValue  : { margin:0, fontSize:22, fontWeight:700, color:'var(--accent)' },
-  saleRow   : { display:'flex', alignItems:'center', gap:12, padding:'12px', background:'var(--bg-elevated)', borderRadius:'var(--radius-md)', border:'1px solid var(--border)' },
-  amount    : { fontSize:14, fontWeight:700, color:'#3a9a6a' },
-  refBadge  : { fontSize:10, color:'#c9a96e', background:'rgba(201,169,110,0.1)', border:'1px solid rgba(201,169,110,0.2)', padding:'2px 6px', borderRadius:99 },
-  directBadge:{ fontSize:10, color:'var(--text-muted)', background:'var(--bg-overlay)', padding:'2px 6px', borderRadius:99 },
+// ── Overview Tab ──────────────────────────────────────────────────────────────
+function OverviewTab() {
+  const [stats, setStats] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => { loadStats() }, [])
+
+  async function loadStats() {
+    const [
+      { count: students },
+      { count: cards },
+      { count: lessons },
+      { count: trials },
+      { count: trialConverted },
+      { data: recentStudents },
+    ] = await Promise.all([
+      supabase.from('customers').select('*', { count: 'exact', head: true }).eq('is_active', true),
+      supabase.from('cards').select('*', { count: 'exact', head: true }),
+      supabase.from('lessons').select('*', { count: 'exact', head: true }),
+      supabase.from('trial_sessions').select('*', { count: 'exact', head: true }),
+      supabase.from('trial_sessions').select('*', { count: 'exact', head: true }).eq('converted', true),
+      supabase.from('customers').select('name, email, created_at').eq('is_active', true).order('created_at', { ascending: false }).limit(5),
+    ])
+    setStats({ students, cards, lessons, trials, trialConverted, recentStudents: recentStudents || [] })
+    setLoading(false)
+  }
+
+  if (loading) return <Loading />
+
+  const convRate = stats.trials > 0
+    ? Math.round((stats.trialConverted / stats.trials) * 100)
+    : 0
+
+  return (
+    <div style={s.section}>
+      <div style={ow.grid}>
+        {[
+          { label: 'Active Students', val: stats.students,   color: '#10B981' },
+          { label: 'Total Cards',     val: stats.cards,      color: 'var(--accent)' },
+          { label: 'Lessons',         val: stats.lessons,    color: '#06B6D4' },
+          { label: 'Trials Started',  val: stats.trials,     color: '#8B5CF6' },
+          { label: 'Converted',       val: stats.trialConverted, color: '#F59E0B' },
+          { label: 'Conv. Rate',      val: `${convRate}%`,   color: '#F59E0B' },
+        ].map(stat => (
+          <div key={stat.label} style={ow.statCard}>
+            <div style={{ ...ow.statVal, color: stat.color }}>{stat.val ?? '—'}</div>
+            <div style={ow.statLabel}>{stat.label}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={s.sectionLabel}>Recent Students</div>
+      {stats.recentStudents.map((c, i) => (
+        <div key={i} style={ow.studentRow}>
+          <div style={ow.avatar}>{c.name?.[0]?.toUpperCase() || '?'}</div>
+          <div style={{ flex: 1 }}>
+            <div style={ow.studentName}>{c.name}</div>
+            <div style={ow.studentEmail}>{c.email}</div>
+          </div>
+          <div style={ow.studentDate}>{new Date(c.created_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}</div>
+        </div>
+      ))}
+    </div>
+  )
 }
 
-// ── Add Content styles ───────────────────────────────────────────────────────────
-const ab = {
-  typeToggle     : { display:'flex', gap:4, background:'var(--bg-elevated)', borderRadius:'var(--radius-md)', padding:4 },
-  typeBtn        : { flex:1, padding:'10px 8px', border:'none', borderRadius:8, fontSize:13, fontWeight:500, cursor:'pointer', background:'transparent', color:'var(--text-muted)', transition:'all var(--transition)', fontFamily:'inherit' },
-  typeBtnActive  : { background:'var(--bg-surface)', color:'var(--accent)', boxShadow:'0 1px 4px rgba(0,0,0,0.2)', border:'1px solid var(--border)' },
-  pickBtn        : { display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:6, width:'100%', padding:'18px 12px', background:'var(--bg-elevated)', border:'2px dashed var(--border)', borderRadius:'var(--radius-md)', color:'var(--text-muted)', fontSize:13, cursor:'pointer', minHeight:72 },
-  fileChosen     : { display:'flex', alignItems:'center', gap:8, padding:'10px 12px', background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:'var(--radius-md)' },
-  fileName       : { flex:1, fontSize:12, color:'var(--text-primary)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' },
-  tag            : { fontSize:9, fontWeight:700, color:'var(--accent)', background:'var(--accent-dim)', padding:'2px 5px', borderRadius:3, flexShrink:0 },
-  changeBtn      : { padding:'3px 8px', background:'transparent', border:'1px solid var(--border)', borderRadius:4, color:'var(--text-secondary)', fontSize:11, cursor:'pointer', flexShrink:0 },
-  progressRow    : { display:'flex', alignItems:'center', gap:10, padding:'10px 12px', background:'var(--bg-elevated)', borderRadius:'var(--radius-md)' },
-  successBox     : { display:'flex', alignItems:'center', gap:12, padding:'14px', background:'rgba(58,154,106,0.08)', border:'1px solid rgba(58,154,106,0.25)', borderRadius:'var(--radius-md)' },
-  reextractBox   : { marginTop:24, padding:'18px', background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', display:'flex', flexDirection:'column', gap:10 },
-  reextractHeader: { display:'flex', flexDirection:'column', gap:4 },
-  reextractTitle : { fontSize:14, fontWeight:600, color:'var(--text-primary)', margin:0 },
-  reextractDesc  : { fontSize:12, color:'var(--text-muted)', margin:'4px 0 0', lineHeight:1.6 },
-  reextractProgress: { display:'flex', alignItems:'center', gap:10, padding:'8px 0' },
-  reextractLog   : { display:'flex', flexDirection:'column', gap:4, maxHeight:180, overflowY:'auto', background:'var(--bg-base)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 12px' },
-  reextractLogRow: { display:'flex', alignItems:'center', gap:8 },
+// ── Questions Tab ─────────────────────────────────────────────────────────────
+function QuestionsTab() {
+  const [subtab, setSubtab] = useState('overview')
+  const [topics, setTopics] = useState([])
+  const [cards, setCards] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [sql, setSql] = useState('')
+  const [sqlStatus, setSqlStatus] = useState('idle')
+  const [sqlMsg, setSqlMsg] = useState('')
+  const [filterTopic, setFilterTopic] = useState('')
+  const [search, setSearch] = useState('')
+
+  useEffect(() => { loadData() }, [])
+
+  async function loadData() {
+    const [{ data: t }, { data: c }] = await Promise.all([
+      supabase.from('topics').select('id, name, subject_id').order('name'),
+      supabase.from('cards').select('id, question, topic_id, difficulty, board_frequency').order('created_at', { ascending: false }),
+    ])
+    setTopics(t || [])
+    setCards(c || [])
+    setLoading(false)
+  }
+
+  async function runSQL() {
+    if (!sql.trim()) return
+    setSqlStatus('loading')
+    try {
+      const { error } = await supabase.rpc('exec_sql', { query: sql })
+      if (error) throw error
+      setSqlStatus('success')
+      setSqlMsg('SQL ran successfully.')
+      loadData()
+    } catch (e) {
+      setSqlStatus('error')
+      setSqlMsg(e.message || 'SQL error.')
+    }
+  }
+
+  async function deleteCard(id) {
+    await supabase.from('cards').delete().eq('id', id)
+    setCards(prev => prev.filter(c => c.id !== id))
+  }
+
+  const topicMap = Object.fromEntries(topics.map(t => [t.id, t.name]))
+
+  const filtered = cards.filter(c => {
+    const matchTopic = !filterTopic || c.topic_id === filterTopic
+    const matchSearch = !search || c.question?.toLowerCase().includes(search.toLowerCase())
+    return matchTopic && matchSearch
+  })
+
+  // Per-topic count
+  const topicCounts = topics.map(t => ({
+    ...t,
+    count: cards.filter(c => c.topic_id === t.id).length,
+  }))
+
+  return (
+    <div style={s.section}>
+      <div style={s.subtabBar}>
+        {['overview', 'import', 'browse'].map(st => (
+          <button key={st} style={{ ...s.subtabBtn, ...(subtab === st ? s.subtabBtnActive : {}) }}
+            onClick={() => setSubtab(st)}>
+            {st.charAt(0).toUpperCase() + st.slice(1)}
+          </button>
+        ))}
+      </div>
+
+      {subtab === 'overview' && (
+        <>
+          <div style={s.statRow}>
+            <div style={s.bigStat}>{cards.length}</div>
+            <div style={s.bigStatLabel}>Total Questions</div>
+          </div>
+          {loading ? <Loading /> : (
+            <div style={s.topicBars}>
+              {topicCounts.map(t => (
+                <div key={t.id} style={s.topicBarRow}>
+                  <div style={s.topicBarName}>{t.name}</div>
+                  <div style={s.topicBarWrap}>
+                    <div style={{ ...s.topicBarFill, width: `${Math.min(100, (t.count / Math.max(1, cards.length)) * 100 * topicCounts.length)}%` }} />
+                  </div>
+                  <div style={s.topicBarCount}>{t.count}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {subtab === 'import' && (
+        <>
+          <div style={s.sectionLabel}>Paste SQL</div>
+          <textarea style={s.textarea} rows={10}
+            placeholder="Paste INSERT SQL here…"
+            value={sql} onChange={e => setSql(e.target.value)} />
+          {sqlMsg && (
+            <div style={{ ...s.msg, color: sqlStatus === 'error' ? '#e05c5c' : '#10B981' }}>{sqlMsg}</div>
+          )}
+          <button style={s.btn} onClick={runSQL} disabled={sqlStatus === 'loading'}>
+            {sqlStatus === 'loading' ? 'Running…' : 'Run SQL →'}
+          </button>
+          <div style={s.hint}>
+            After importing, switch to Browse to verify cards loaded correctly.
+          </div>
+        </>
+      )}
+
+      {subtab === 'browse' && (
+        <>
+          <div style={s.filterRow}>
+            <select style={s.select} value={filterTopic} onChange={e => setFilterTopic(e.target.value)}>
+              <option value="">All topics</option>
+              {topics.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+            <input style={s.searchInput} placeholder="Search questions…"
+              value={search} onChange={e => setSearch(e.target.value)} />
+          </div>
+          <div style={s.listCount}>{filtered.length} questions</div>
+          <div style={s.cardList}>
+            {filtered.slice(0, 100).map(c => (
+              <div key={c.id} style={s.cardRow}>
+                <div style={s.cardQ}>{c.question}</div>
+                <div style={s.cardMeta}>
+                  <span style={s.chip}>{topicMap[c.topic_id] || 'Unknown'}</span>
+                  <span style={s.chip}>{c.difficulty}</span>
+                  <span style={s.chip}>{c.board_frequency}</span>
+                </div>
+                <button style={s.deleteBtn} onClick={() => deleteCard(c.id)}>✕</button>
+              </div>
+            ))}
+            {filtered.length > 100 && (
+              <div style={s.hint}>Showing first 100. Use topic filter to narrow down.</div>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  )
 }
 
-// ── Send Update styles ────────────────────────────────────────────────────────
-const su = {
-  lastSentBar    : { display:'flex', alignItems:'center', gap:8, padding:'10px 14px', background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:'var(--radius-md)' },
-  lastSentDot    : { width:7, height:7, borderRadius:'50%', background:'#3a9a6a', flexShrink:0 },
-  lastSentText   : { fontSize:12, color:'var(--text-muted)' },
-  bookCount      : { fontSize:11, color:'var(--accent)', background:'var(--accent-dim)', padding:'2px 8px', borderRadius:99, fontWeight:600 },
-  previewBtn     : { display:'flex', alignItems:'center', justifyContent:'center', gap:6, padding:'10px 14px', background:'transparent', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', color:'var(--text-secondary)', fontSize:13, cursor:'pointer', transition:'all var(--transition)' },
-  previewPanel   : { background:'#111', border:'1px solid rgba(201,169,110,0.2)', borderRadius:'var(--radius-md)', padding:'20px', display:'flex', flexDirection:'column', gap:12 },
-  previewLabel   : { fontSize:10, fontWeight:700, letterSpacing:'0.1em', color:'var(--accent)', textTransform:'uppercase' },
-  previewSubject : { fontSize:14, fontWeight:600, color:'var(--text-primary)' },
-  previewDivider : { height:1, background:'rgba(255,255,255,0.06)' },
-  previewGreeting: { fontSize:13, color:'var(--text-muted)', lineHeight:1.6, margin:0 },
-  previewBooks   : { background:'rgba(201,169,110,0.05)', border:'1px solid rgba(201,169,110,0.15)', borderRadius:8, padding:'14px 16px', display:'flex', flexDirection:'column', gap:8 },
-  previewBooksLabel: { fontSize:10, fontWeight:700, letterSpacing:'0.08em', color:'var(--accent)', textTransform:'uppercase', marginBottom:4 },
-  previewBookRow : { display:'flex', alignItems:'center', gap:10, fontSize:13, color:'var(--text-primary)' },
-  previewDot     : { width:6, height:6, borderRadius:'50%', background:'var(--accent)', flexShrink:0 },
-  previewMessage : { fontSize:13, color:'var(--text-muted)', fontStyle:'italic', margin:0 },
-  previewCta     : { background:'var(--accent)', color:'#0d0d0d', padding:'11px 16px', borderRadius:8, fontSize:13, fontWeight:600, textAlign:'center' },
-  previewFooter  : { fontSize:11, color:'#3a3835', textAlign:'center', margin:0 },
-  successBox     : { display:'flex', alignItems:'center', gap:14, padding:'18px', background:'rgba(58,154,106,0.08)', border:'1px solid rgba(58,154,106,0.25)', borderRadius:'var(--radius-md)' },
-  successTitle   : { fontSize:15, fontWeight:600, color:'#3a9a6a', margin:'0 0 3px' },
-  successSub     : { fontSize:12, color:'var(--text-muted)', margin:0 },
+// ── Lessons Tab ───────────────────────────────────────────────────────────────
+function LessonsTab() {
+  const [subtab, setSubtab] = useState('overview')
+  const [topics, setTopics] = useState([])
+  const [lessons, setLessons] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [editLesson, setEditLesson] = useState(null)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => { loadData() }, [])
+
+  async function loadData() {
+    const [{ data: t }, { data: l }] = await Promise.all([
+      supabase.from('topics').select('id, name').order('name'),
+      supabase.from('lessons').select('id, topic_id, title, content, memory_hook, board_relevance').order('title'),
+    ])
+    setTopics(t || [])
+    setLessons(l || [])
+    setLoading(false)
+  }
+
+  async function saveLesson() {
+    if (!editLesson) return
+    setSaving(true)
+    if (editLesson.id) {
+      await supabase.from('lessons').update({
+        title: editLesson.title,
+        content: editLesson.content,
+        memory_hook: editLesson.memory_hook,
+        board_relevance: editLesson.board_relevance,
+      }).eq('id', editLesson.id)
+    } else {
+      await supabase.from('lessons').insert([{
+        topic_id: editLesson.topic_id,
+        title: editLesson.title,
+        content: editLesson.content,
+        memory_hook: editLesson.memory_hook,
+        board_relevance: editLesson.board_relevance,
+      }])
+    }
+    setSaving(false)
+    setEditLesson(null)
+    loadData()
+  }
+
+  const topicMap = Object.fromEntries(topics.map(t => [t.id, t.name]))
+  const coveredTopics = new Set(lessons.map(l => l.topic_id))
+  const missing = topics.filter(t => !coveredTopics.has(t.id))
+
+  if (editLesson) {
+    return (
+      <div style={s.section}>
+        <button style={s.backBtn} onClick={() => setEditLesson(null)}>← Back</button>
+        <div style={s.sectionLabel}>
+          {editLesson.id ? `Editing: ${editLesson.title}` : 'New Lesson'}
+        </div>
+        {!editLesson.id && (
+          <div style={s.field}>
+            <label style={s.label}>Topic</label>
+            <select style={s.select} value={editLesson.topic_id || ''}
+              onChange={e => setEditLesson(p => ({ ...p, topic_id: e.target.value }))}>
+              <option value="">Select topic…</option>
+              {topics.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+          </div>
+        )}
+        <div style={s.field}>
+          <label style={s.label}>Title</label>
+          <input style={s.input} value={editLesson.title || ''}
+            onChange={e => setEditLesson(p => ({ ...p, title: e.target.value }))} />
+        </div>
+        <div style={s.field}>
+          <label style={s.label}>Content (Markdown)</label>
+          <textarea style={s.textarea} rows={12} value={editLesson.content || ''}
+            onChange={e => setEditLesson(p => ({ ...p, content: e.target.value }))} />
+        </div>
+        <div style={s.field}>
+          <label style={s.label}>Memory Hook</label>
+          <input style={s.input} value={editLesson.memory_hook || ''}
+            onChange={e => setEditLesson(p => ({ ...p, memory_hook: e.target.value }))} />
+        </div>
+        <div style={s.field}>
+          <label style={s.label}>Board Relevance</label>
+          <input style={s.input} value={editLesson.board_relevance || ''}
+            onChange={e => setEditLesson(p => ({ ...p, board_relevance: e.target.value }))} />
+        </div>
+        <button style={s.btn} onClick={saveLesson} disabled={saving}>
+          {saving ? 'Saving…' : 'Save Lesson'}
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div style={s.section}>
+      <div style={s.subtabBar}>
+        {['overview', 'edit'].map(st => (
+          <button key={st} style={{ ...s.subtabBtn, ...(subtab === st ? s.subtabBtnActive : {}) }}
+            onClick={() => setSubtab(st)}>
+            {st.charAt(0).toUpperCase() + st.slice(1)}
+          </button>
+        ))}
+      </div>
+
+      {subtab === 'overview' && (
+        <>
+          <div style={s.statRow}>
+            <div style={s.bigStat}>{lessons.length} <span style={{ fontSize: 14, color: 'var(--text-muted)' }}>/ {topics.length}</span></div>
+            <div style={s.bigStatLabel}>Topics with lessons</div>
+          </div>
+          {missing.length > 0 && (
+            <>
+              <div style={{ ...s.sectionLabel, color: '#e05c5c' }}>⚠ Missing lessons ({missing.length})</div>
+              {missing.map(t => (
+                <div key={t.id} style={s.missingRow}>
+                  <span style={s.missingName}>{t.name}</span>
+                  <button style={s.addBtn}
+                    onClick={() => setEditLesson({ topic_id: t.id, title: '', content: '', memory_hook: '', board_relevance: '' })}>
+                    + Add
+                  </button>
+                </div>
+              ))}
+            </>
+          )}
+        </>
+      )}
+
+      {subtab === 'edit' && (
+        <>
+          <button style={s.btn}
+            onClick={() => setEditLesson({ topic_id: '', title: '', content: '', memory_hook: '', board_relevance: '' })}>
+            + New Lesson
+          </button>
+          <div style={s.cardList}>
+            {lessons.map(l => (
+              <div key={l.id} style={s.cardRow}>
+                <div>
+                  <div style={s.cardQ}>{l.title}</div>
+                  <div style={s.cardMeta}>
+                    <span style={s.chip}>{topicMap[l.topic_id] || 'Unknown topic'}</span>
+                  </div>
+                </div>
+                <button style={s.editBtn} onClick={() => setEditLesson(l)}>Edit</button>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )
 }
+
+// ── Announcements Tab ─────────────────────────────────────────────────────────
+function AnnouncementsTab() {
+  const [items, setItems] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [form, setForm] = useState({ title: '', body: '', active: true })
+  const [saving, setSaving] = useState(false)
+  const [showForm, setShowForm] = useState(false)
+
+  useEffect(() => { loadItems() }, [])
+
+  async function loadItems() {
+    const { data } = await supabase
+      .from('announcements')
+      .select('*')
+      .order('created_at', { ascending: false })
+    setItems(data || [])
+    setLoading(false)
+  }
+
+  async function save() {
+    if (!form.title.trim() || !form.body.trim()) return
+    setSaving(true)
+    await supabase.from('announcements').insert([{
+      title: form.title.trim(),
+      body: form.body.trim(),
+      active: form.active,
+    }])
+    setSaving(false)
+    setForm({ title: '', body: '', active: true })
+    setShowForm(false)
+    loadItems()
+  }
+
+  async function toggle(id, active) {
+    await supabase.from('announcements').update({ active: !active }).eq('id', id)
+    setItems(prev => prev.map(i => i.id === id ? { ...i, active: !active } : i))
+  }
+
+  async function remove(id) {
+    await supabase.from('announcements').delete().eq('id', id)
+    setItems(prev => prev.filter(i => i.id !== id))
+  }
+
+  return (
+    <div style={s.section}>
+      {!showForm ? (
+        <button style={s.btn} onClick={() => setShowForm(true)}>+ New Announcement</button>
+      ) : (
+        <div style={s.formCard}>
+          <div style={s.field}>
+            <label style={s.label}>Title</label>
+            <input style={s.input} placeholder="e.g. New content added for Child Development"
+              value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} autoFocus />
+          </div>
+          <div style={s.field}>
+            <label style={s.label}>Message</label>
+            <textarea style={s.textarea} rows={4}
+              placeholder="What's new or what should students know?"
+              value={form.body} onChange={e => setForm(p => ({ ...p, body: e.target.value }))} />
+          </div>
+          <div style={s.checkRow}>
+            <input type="checkbox" id="active-check" checked={form.active}
+              onChange={e => setForm(p => ({ ...p, active: e.target.checked }))} />
+            <label htmlFor="active-check" style={s.checkLabel}>Active (visible to students)</label>
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button style={s.btn} onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Post'}</button>
+            <button style={s.ghostBtn} onClick={() => setShowForm(false)}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {loading ? <Loading /> : items.length === 0 ? (
+        <div style={s.empty}>No announcements yet.</div>
+      ) : items.map(item => (
+        <div key={item.id} style={s.announcementCard}>
+          <div style={s.announcementHeader}>
+            <div>
+              <div style={s.announcementTitle}>{item.title}</div>
+              <div style={s.announcementDate}>
+                {new Date(item.created_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <button
+                style={{ ...s.statusBtn, background: item.active ? 'rgba(16,185,129,0.1)' : 'var(--bg-elevated)', color: item.active ? '#10B981' : 'var(--text-muted)', border: `1px solid ${item.active ? '#10B981' : 'var(--border)'}` }}
+                onClick={() => toggle(item.id, item.active)}>
+                {item.active ? 'Active' : 'Inactive'}
+              </button>
+              <button style={s.deleteBtn} onClick={() => remove(item.id)}>✕</button>
+            </div>
+          </div>
+          <div style={s.announcementBody}>{item.body}</div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ── Trials Tab ────────────────────────────────────────────────────────────────
+function TrialsTab() {
+  const [trials, setTrials] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => { loadTrials() }, [])
+
+  async function loadTrials() {
+    const { data } = await supabase
+      .from('trial_sessions')
+      .select('*')
+      .order('started_at', { ascending: false })
+      .limit(100)
+    setTrials(data || [])
+    setLoading(false)
+  }
+
+  const total     = trials.length
+  const converted = trials.filter(t => t.converted).length
+  const convRate  = total > 0 ? Math.round((converted / total) * 100) : 0
+  const byLET     = trials.filter(t => t.course_id === 'LET').length
+
+  return (
+    <div style={s.section}>
+      <div style={ow.grid}>
+        {[
+          { label: 'Total Trials',   val: total,     color: '#8B5CF6' },
+          { label: 'Converted',      val: converted, color: '#10B981' },
+          { label: 'Conv. Rate',     val: `${convRate}%`, color: '#F59E0B' },
+          { label: 'LET Trials',     val: byLET,     color: 'var(--accent)' },
+        ].map(stat => (
+          <div key={stat.label} style={ow.statCard}>
+            <div style={{ ...ow.statVal, color: stat.color }}>{stat.val}</div>
+            <div style={ow.statLabel}>{stat.label}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={s.sectionLabel}>Recent Trials</div>
+      {loading ? <Loading /> : (
+        <div style={s.cardList}>
+          {trials.map(t => (
+            <div key={t.id} style={s.cardRow}>
+              <div style={{ flex: 1 }}>
+                <div style={s.cardQ}>{t.name} <span style={s.chip}>{t.course_id}</span></div>
+                <div style={s.cardMeta}>
+                  <span style={s.chip}>{t.email}</span>
+                  <span style={s.chip}>{new Date(t.started_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}</span>
+                </div>
+              </div>
+              <span style={{
+                ...s.chip,
+                color: t.converted ? '#10B981' : 'var(--text-muted)',
+                borderColor: t.converted ? '#10B981' : 'var(--border)',
+              }}>
+                {t.converted ? '✓ Paid' : 'Trial'}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Students Tab ──────────────────────────────────────────────────────────────
+function StudentsTab() {
+  const [students, setStudents] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+
+  useEffect(() => { loadStudents() }, [])
+
+  async function loadStudents() {
+    const { data } = await supabase
+      .from('customers')
+      .select('id, name, email, created_at, is_active, referral_code')
+      .order('created_at', { ascending: false })
+    setStudents(data || [])
+    setLoading(false)
+  }
+
+  const filtered = students.filter(s =>
+    !search ||
+    s.name?.toLowerCase().includes(search.toLowerCase()) ||
+    s.email?.toLowerCase().includes(search.toLowerCase())
+  )
+
+  return (
+    <div style={s.section}>
+      <input style={s.searchInput} placeholder="Search students…"
+        value={search} onChange={e => setSearch(e.target.value)} />
+      <div style={s.listCount}>{filtered.length} students</div>
+      {loading ? <Loading /> : (
+        <div style={s.cardList}>
+          {filtered.map(st => (
+            <div key={st.id} style={s.cardRow}>
+              <div style={ow.avatar}>{st.name?.[0]?.toUpperCase() || '?'}</div>
+              <div style={{ flex: 1 }}>
+                <div style={s.cardQ}>{st.name}</div>
+                <div style={s.cardMeta}>
+                  <span style={s.chip}>{st.email}</span>
+                  {st.referral_code && <span style={s.chip}>ref: {st.referral_code}</span>}
+                </div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <span style={{ ...s.chip, color: st.is_active ? '#10B981' : '#e05c5c' }}>
+                  {st.is_active ? 'Active' : 'Inactive'}
+                </span>
+                <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 3 }}>
+                  {new Date(st.created_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Keys Tab ──────────────────────────────────────────────────────────────────
+function KeysTab() {
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [course, setCourse] = useState('LET')
+  const [result, setResult] = useState(null)
+  const [status, setStatus] = useState('idle')
+
+  async function generate() {
+    if (!name.trim() || !email.trim()) return
+    setStatus('loading')
+    const ownerPass = sessionStorage.getItem('owner_auth')
+    const res = await fetch('/api/generate-key', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, password: ownerPass, course }),
+    })
+    const data = await res.json()
+    if (data.key) {
+      setResult(data)
+      setStatus('success')
+      setName('')
+      setEmail('')
+    } else {
+      setStatus('error')
+    }
+  }
+
+  return (
+    <div style={s.section}>
+      <div style={s.sectionLabel}>Generate Access Key</div>
+      <div style={s.field}>
+        <label style={s.label}>Student Name</label>
+        <input style={s.input} value={name} onChange={e => setName(e.target.value)} placeholder="Juan dela Cruz" />
+      </div>
+      <div style={s.field}>
+        <label style={s.label}>Email</label>
+        <input style={s.input} type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="juan@email.com" />
+      </div>
+      <div style={s.field}>
+        <label style={s.label}>Course</label>
+        <select style={s.select} value={course} onChange={e => setCourse(e.target.value)}>
+          <option value="LET">LET</option>
+          <option value="NLE">NLE</option>
+          <option value="CPA">CPA</option>
+          <option value="BAR">Bar</option>
+        </select>
+      </div>
+      <button style={s.btn} onClick={generate} disabled={status === 'loading'}>
+        {status === 'loading' ? 'Generating…' : 'Generate Key'}
+      </button>
+      {result && (
+        <div style={s.resultBox}>
+          <div style={s.resultLabel}>Access Key</div>
+          <div style={s.keyDisplay}>{result.key}</div>
+          <div style={s.resultNote}>Send this key to {result.email || email}</div>
+          <button style={s.ghostBtn} onClick={() => navigator.clipboard.writeText(result.key)}>
+            Copy Key
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Shared helpers ────────────────────────────────────────────────────────────
+function Loading() {
+  return <div style={{ padding: 24, color: 'var(--text-muted)', fontSize: 13 }}>Loading…</div>
+}
+
+// ── Styles ────────────────────────────────────────────────────────────────────
+const ow = {
+  grid        : { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 20 },
+  statCard    : { background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px', textAlign: 'center' },
+  statVal     : { fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, lineHeight: 1 },
+  statLabel   : { fontSize: 10, color: 'var(--text-muted)', marginTop: 4, textTransform: 'uppercase', letterSpacing: '.04em' },
+  studentRow  : { display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: '1px solid var(--border)' },
+  avatar      : { width: 34, height: 34, borderRadius: '50%', background: 'var(--accent-dim)', border: '1px solid var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: 'var(--accent)', flexShrink: 0 },
+  studentName : { fontSize: 13, color: 'var(--text-primary)', fontWeight: 500 },
+  studentEmail: { fontSize: 11, color: 'var(--text-muted)' },
+  studentDate : { fontSize: 11, color: 'var(--text-muted)', flexShrink: 0 },
+}
+
 const s = {
-  root         : { minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'var(--bg-base)', padding:20 },
-  loginCard    : { width:'100%', maxWidth:380, background:'var(--bg-surface)', border:'1px solid var(--border)', borderRadius:'var(--radius-xl)', padding:'36px 28px', display:'flex', flexDirection:'column', gap:20 },
-  dashboard    : { minHeight:'100vh', background:'var(--bg-base)', display:'flex', flexDirection:'column' },
-  dashHeader   : { display:'flex', alignItems:'center', justifyContent:'space-between', padding:'20px 20px 0', flexShrink:0 },
-  brand        : { display:'flex', alignItems:'center', gap:10 },
-  brandName    : { fontFamily:'var(--font-display)', fontSize:17, color:'var(--text-primary)', letterSpacing:'-0.02em' },
-  brandBy      : { fontSize:10, color:'var(--accent)', letterSpacing:'0.06em', textTransform:'uppercase' },
-  statPill     : { fontSize:12, color:'var(--accent)', background:'var(--accent-dim)', padding:'4px 12px', borderRadius:99, border:'1px solid rgba(201,169,110,0.2)' },
-  tabs         : { display:'flex', gap:0, padding:'16px 20px 0', borderBottom:'1px solid var(--border)', flexShrink:0, overflowX:'auto' },
-  tab          : { padding:'8px 14px', background:'transparent', border:'none', borderBottom:'2px solid transparent', color:'var(--text-muted)', fontSize:12, fontWeight:500, cursor:'pointer', transition:'all var(--transition)', marginBottom:-1, whiteSpace:'nowrap' },
-  tabActive    : { color:'var(--accent)', borderBottomColor:'var(--accent)' },
-  tabContent   : { flex:1, overflowY:'auto' },
-  section      : { padding:'20px', display:'flex', flexDirection:'column', gap:16, maxWidth:500 },
-  sectionDesc  : { fontSize:13, color:'var(--text-muted)', lineHeight:1.6 },
-  sectionRow   : { display:'flex', alignItems:'center', justifyContent:'space-between', gap:12 },
-  field        : { display:'flex', flexDirection:'column', gap:7 },
-  label        : { fontSize:11, fontWeight:500, color:'var(--text-secondary)', textTransform:'uppercase', letterSpacing:'0.07em' },
-  input        : { padding:'10px 12px', background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', color:'var(--text-primary)', fontSize:14, outline:'none', width:'100%' },
-  btn          : { display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:'12px', background:'var(--accent)', color:'#0d0d0d', border:'none', borderRadius:'var(--radius-md)', fontSize:14, fontWeight:500, cursor:'pointer', transition:'all var(--transition)' },
-  btnDisabled  : { opacity:0.45, cursor:'not-allowed' },
-  smallBtn     : { padding:'6px 12px', background:'transparent', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', color:'var(--text-secondary)', fontSize:12, cursor:'pointer', flexShrink:0 },
-  error        : { fontSize:13, color:'#e05c5c', padding:'10px 12px', background:'rgba(224,92,92,0.08)', borderRadius:'var(--radius-sm)' },
-  spinner      : { width:14, height:14, border:'2px solid rgba(0,0,0,0.2)', borderTop:'2px solid #0d0d0d', borderRadius:'50%', animation:'spin 0.7s linear infinite', display:'inline-block' },
-  resultBox    : { padding:'16px', background:'rgba(58,154,106,0.08)', border:'1px solid rgba(58,154,106,0.25)', borderRadius:'var(--radius-md)', display:'flex', flexDirection:'column', gap:8 },
-  resultLabel  : { fontSize:11, color:'#3a9a6a', textTransform:'uppercase', letterSpacing:'0.07em', fontWeight:500 },
-  keyDisplay   : { fontFamily:'monospace', fontSize:22, color:'var(--accent)', fontWeight:700, letterSpacing:'0.1em' },
-  resultNote   : { fontSize:12, color:'var(--text-muted)' },
-  loading      : { display:'flex', justifyContent:'center', padding:40 },
-  customerList : { display:'flex', flexDirection:'column', gap:2 },
-  customerRow  : { display:'flex', alignItems:'center', gap:12, padding:'10px 12px', background:'var(--bg-elevated)', borderRadius:'var(--radius-md)', border:'1px solid var(--border)' },
-  customerAvatar: { width:36, height:36, borderRadius:'50%', background:'var(--accent-dim)', color:'var(--accent)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:600, flexShrink:0 },
-  customerInfo : { flex:1, minWidth:0 },
-  customerName : { fontSize:13, color:'var(--text-primary)', fontWeight:500, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' },
-  customerEmail: { fontSize:12, color:'var(--text-muted)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' },
-  customerDate : { fontSize:11, color:'var(--text-muted)', flexShrink:0 },
-}
-
-// ── Feedback tab styles ───────────────────────────────────────────────────────
-const fbS = {
-  card       : { background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', padding:'14px 16px', marginBottom:10 },
-  cardHeader : { display:'flex', gap:10, alignItems:'flex-start', marginBottom:8 },
-  cardName   : { fontSize:13, fontWeight:600, color:'var(--text-primary)', margin:0 },
-  cardMeta   : { fontSize:11, color:'var(--text-muted)', margin:'2px 0 0' },
-  cardMsg    : { fontSize:14, color:'var(--text-secondary)', margin:0, lineHeight:1.6, whiteSpace:'pre-wrap' },
-}
-
-// ── Edit Book styles ──────────────────────────────────────────────────────────
-const ebS = {
-  bookRow        : { display:'flex', alignItems:'center', gap:12, padding:'12px 16px', background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:'var(--radius-md)' },
-  bookTitle      : { fontSize:14, fontWeight:500, color:'var(--text-primary)', margin:'0 0 2px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' },
-  bookMeta       : { fontSize:12, color:'var(--text-muted)', margin:0 },
-  editBtn        : { padding:'6px 14px', background:'var(--accent-dim)', border:'1px solid rgba(201,169,110,0.3)', borderRadius:8, color:'var(--accent)', fontSize:13, cursor:'pointer', fontFamily:'inherit', flexShrink:0 },
-  editHeader     : { display:'flex', alignItems:'center', gap:12, marginBottom:16, paddingBottom:12, borderBottom:'1px solid var(--border)' },
-  backBtn        : { padding:'6px 12px', background:'transparent', border:'1px solid var(--border)', borderRadius:8, color:'var(--text-secondary)', fontSize:13, cursor:'pointer', fontFamily:'inherit', flexShrink:0 },
-  editTitle      : { fontSize:13, color:'var(--text-muted)', margin:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' },
-  deleteSection  : { marginTop:24, paddingTop:16, borderTop:'1px solid var(--border)' },
-  deleteBtn      : { padding:'8px 16px', background:'transparent', border:'1px solid rgba(224,92,92,0.3)', borderRadius:8, color:'#e05c5c', fontSize:13, cursor:'pointer', fontFamily:'inherit', width:'100%' },
-  deleteConfirmBox: { background:'rgba(224,92,92,0.06)', border:'1px solid rgba(224,92,92,0.2)', borderRadius:10, padding:'14px 16px' },
-  deleteWarning  : { fontSize:13, color:'var(--text-secondary)', lineHeight:1.6, margin:0 },
-  deleteConfirmBtn: { flex:1, padding:'10px', background:'#e05c5c', border:'none', borderRadius:8, color:'#fff', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'inherit' },
-  deleteCancelBtn : { flex:1, padding:'10px', background:'transparent', border:'1px solid var(--border)', borderRadius:8, color:'var(--text-secondary)', fontSize:13, cursor:'pointer', fontFamily:'inherit' },
-  refreshSection : { marginTop:12, paddingTop:14, borderTop:'1px solid var(--border)' },
-  refreshLabel   : { fontSize:13, fontWeight:500, color:'var(--text-primary)', margin:'0 0 4px' },
-  refreshDesc    : { fontSize:12, color:'var(--text-muted)', margin:'0 0 10px', lineHeight:1.6, fontWeight:300 },
-  refreshBtn     : { width:'100%', padding:'9px 14px', background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:8, color:'var(--text-secondary)', fontSize:13, cursor:'pointer', fontFamily:'inherit', display:'flex', alignItems:'center', justifyContent:'center', gap:8, transition:'border-color var(--transition)' },
+  root            : { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-base)', padding: 20 },
+  loginCard       : { width: '100%', maxWidth: 360, background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-xl)', padding: '36px 28px', display: 'flex', flexDirection: 'column', gap: 16 },
+  dashboard       : { minHeight: '100vh', background: 'var(--bg-base)', display: 'flex', flexDirection: 'column' },
+  dashHeader      : { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 20px 0', flexShrink: 0 },
+  brand           : { display: 'flex', alignItems: 'center', gap: 10 },
+  brandIcon       : { width: 34, height: 34, background: 'var(--accent-dim)', border: '1px solid var(--accent)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 16, color: 'var(--accent)' },
+  brandName       : { fontFamily: 'var(--font-display)', fontSize: 16, color: 'var(--text-primary)', lineHeight: 1.1 },
+  brandBy         : { fontSize: 10, color: 'var(--accent)', letterSpacing: '0.06em', textTransform: 'uppercase' },
+  exitBtn         : { fontSize: 12, color: 'var(--text-muted)', textDecoration: 'none', padding: '6px 12px', border: '1px solid var(--border)', borderRadius: 8 },
+  tabBar          : { display: 'flex', gap: 0, padding: '16px 20px 0', borderBottom: '1px solid var(--border)', flexShrink: 0, overflowX: 'auto' },
+  tabBtn          : { padding: '8px 12px', background: 'transparent', border: 'none', borderBottom: '2px solid transparent', color: 'var(--text-muted)', fontSize: 12, fontWeight: 500, cursor: 'pointer', transition: 'all 0.15s', marginBottom: -1, whiteSpace: 'nowrap', fontFamily: 'inherit' },
+  tabBtnActive    : { color: 'var(--accent)', borderBottomColor: 'var(--accent)' },
+  tabContent      : { flex: 1, overflowY: 'auto' },
+  section         : { padding: '20px', display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 600 },
+  sectionLabel    : { fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.05em', fontWeight: 600 },
+  subtabBar       : { display: 'flex', gap: 6, marginBottom: 4 },
+  subtabBtn       : { padding: '6px 14px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 20, fontSize: 12, color: 'var(--text-muted)', cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' },
+  subtabBtnActive : { background: 'var(--accent-dim)', border: '1px solid var(--accent)', color: 'var(--accent)' },
+  field           : { display: 'flex', flexDirection: 'column', gap: 6 },
+  label           : { fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em' },
+  input           : { padding: '10px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', color: 'var(--text-primary)', fontSize: 14, outline: 'none', width: '100%', boxSizing: 'border-box', fontFamily: 'inherit' },
+  textarea        : { padding: '10px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', color: 'var(--text-primary)', fontSize: 13, outline: 'none', width: '100%', boxSizing: 'border-box', fontFamily: 'monospace', resize: 'vertical' },
+  select          : { padding: '10px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', color: 'var(--text-primary)', fontSize: 13, outline: 'none', width: '100%', fontFamily: 'inherit' },
+  btn             : { padding: '11px 16px', background: 'var(--accent)', color: '#0d0d0d', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'opacity 0.15s' },
+  ghostBtn        : { padding: '10px 16px', background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', color: 'var(--text-muted)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' },
+  backBtn         : { padding: '6px 12px', background: 'none', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text-muted)', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', alignSelf: 'flex-start' },
+  error           : { fontSize: 13, color: '#e05c5c', padding: '8px 12px', background: 'rgba(224,92,92,0.08)', borderRadius: 8 },
+  msg             : { fontSize: 13, padding: '8px 12px', borderRadius: 8 },
+  hint            : { fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic' },
+  statRow         : { display: 'flex', alignItems: 'baseline', gap: 8 },
+  bigStat         : { fontFamily: 'var(--font-display)', fontSize: 40, fontWeight: 700, color: 'var(--accent)', lineHeight: 1 },
+  bigStatLabel    : { fontSize: 13, color: 'var(--text-muted)' },
+  topicBars       : { display: 'flex', flexDirection: 'column', gap: 6 },
+  topicBarRow     : { display: 'flex', alignItems: 'center', gap: 8 },
+  topicBarName    : { fontSize: 11, color: 'var(--text-secondary)', width: 160, flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  topicBarWrap    : { flex: 1, height: 6, background: 'var(--bg-elevated)', borderRadius: 3, overflow: 'hidden' },
+  topicBarFill    : { height: '100%', background: 'var(--accent)', borderRadius: 3, transition: 'width 0.5s' },
+  topicBarCount   : { fontSize: 11, color: 'var(--text-muted)', width: 28, textAlign: 'right' },
+  filterRow       : { display: 'flex', gap: 8 },
+  searchInput     : { flex: 1, padding: '8px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text-primary)', fontSize: 13, outline: 'none', fontFamily: 'inherit' },
+  listCount       : { fontSize: 11, color: 'var(--text-muted)' },
+  cardList        : { display: 'flex', flexDirection: 'column', gap: 6 },
+  cardRow         : { display: 'flex', alignItems: 'center', gap: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px' },
+  cardQ           : { fontSize: 12, color: 'var(--text-primary)', marginBottom: 4, flex: 1 },
+  cardMeta        : { display: 'flex', gap: 4, flexWrap: 'wrap' },
+  chip            : { fontSize: 10, padding: '2px 6px', borderRadius: 6, background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text-muted)' },
+  deleteBtn       : { padding: '4px 8px', background: 'none', border: '1px solid rgba(224,92,92,0.3)', borderRadius: 6, color: '#e05c5c', fontSize: 11, cursor: 'pointer', flexShrink: 0, fontFamily: 'inherit' },
+  editBtn         : { padding: '5px 10px', background: 'var(--accent-dim)', border: '1px solid var(--accent)', borderRadius: 6, color: 'var(--accent)', fontSize: 11, cursor: 'pointer', flexShrink: 0, fontFamily: 'inherit' },
+  missingRow      : { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: 'rgba(224,92,92,0.06)', border: '1px solid rgba(224,92,92,0.2)', borderRadius: 8 },
+  missingName     : { fontSize: 13, color: 'var(--text-primary)' },
+  addBtn          : { padding: '4px 10px', background: 'var(--accent)', color: '#0d0d0d', border: 'none', borderRadius: 6, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' },
+  formCard        : { background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px', display: 'flex', flexDirection: 'column', gap: 12 },
+  checkRow        : { display: 'flex', alignItems: 'center', gap: 8 },
+  checkLabel      : { fontSize: 13, color: 'var(--text-secondary)' },
+  announcementCard: { background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '14px' },
+  announcementHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 },
+  announcementTitle: { fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 },
+  announcementDate: { fontSize: 11, color: 'var(--text-muted)' },
+  announcementBody: { fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 },
+  statusBtn       : { fontSize: 11, padding: '3px 8px', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 },
+  resultBox       : { background: 'rgba(58,154,106,0.08)', border: '1px solid rgba(58,154,106,0.25)', borderRadius: 10, padding: '16px', display: 'flex', flexDirection: 'column', gap: 8 },
+  resultLabel     : { fontSize: 11, color: '#3a9a6a', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 600 },
+  keyDisplay      : { fontFamily: 'monospace', fontSize: 22, color: 'var(--accent)', fontWeight: 700, letterSpacing: '0.1em' },
+  resultNote      : { fontSize: 12, color: 'var(--text-muted)' },
+  empty           : { fontSize: 13, color: 'var(--text-muted)', textAlign: 'center', padding: '24px 0' },
 }
