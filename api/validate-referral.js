@@ -18,8 +18,8 @@ export default async function handler(req, res) {
     // 1. Check agents table first (₱20 discount)
     const { data: agent } = await supabase
       .from('agents')
-      .select('id, name, email, code')
-      .eq('code', codeUpper)
+      .select('id, name, email, referral_code')
+      .eq('referral_code', codeUpper)
       .single()
 
     if (agent) {

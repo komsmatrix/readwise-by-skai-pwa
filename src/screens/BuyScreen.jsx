@@ -83,7 +83,7 @@ export default function BuyScreen() {
     if (!email.trim() || !email.includes('@')) return setErrorMsg('Please enter a valid email address.')
     setStatus('loading'); setErrorMsg('')
     try {
-      const res = await fetch('/api/create-payment', {
+      const res = await fetch('/api/create-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, referralCode, amount: finalPrice, course: selectedCourse }),
