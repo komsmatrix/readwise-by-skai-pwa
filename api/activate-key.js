@@ -1,7 +1,7 @@
 // api/activate-key.js
 import { createClient } from '@supabase/supabase-js'
 
-const supabase      = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE)
+const supabase      = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY)
 const RESEND_API_KEY = process.env.RESEND_API_KEY
 const APP_URL        = process.env.VITE_APP_URL || 'https://readwisebyskai.com'
 const INTRO_PRICE    = 249
@@ -95,56 +95,40 @@ export default async function handler(req, res) {
         headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
         body   : JSON.stringify({
           from    : 'Readwise by Skai <hello@readwisebyskai.com>',
-          reply_to: 'readwisebyskai@gmail.com',
           to      : [emailClean],
-          subject : '📚 Welcome to Readwise by Skai — You\'re In!',
+          subject : "You're in — your Readwise by Skai access is ready",
           html    : `<!DOCTYPE html>
 <html>
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
-<body style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:32px 20px;background:#f5f3ef;color:#1a1a1a;">
-<div style="background:#0d0d0d;border-radius:16px;padding:40px 36px;border:1px solid #2a2a2a;">
-
-  <h1 style="font-size:26px;color:#c9a96e;margin:0 0 4px;font-family:Georgia,serif;">Readwise by Skai</h1>
-  <p style="color:#666;margin:0 0 32px;font-size:13px;letter-spacing:0.05em;text-transform:uppercase;">Your Personal Reading Space</p>
-
-  <p style="font-size:16px;color:#f0ede8;margin:0 0 12px;">Hi ${name.split(' ')[0]}! 👋</p>
-  <p style="font-size:15px;color:#b0a898;line-height:1.7;margin:0 0 24px;">
-    Welcome! Your account is activated and your reading space is ready. Upload your own books, explore the growing library of classics, and start reading beautifully.
-  </p>
-
-  <div style="text-align:center;margin:0 0 28px;">
-    <a href="${APP_URL}" style="display:inline-block;background:#c9a96e;color:#0d0d0d;text-decoration:none;padding:14px 36px;border-radius:99px;font-size:15px;font-weight:700;letter-spacing:0.01em;">
-      Open My Reading Space →
-    </a>
+<body style="margin:0;padding:0;background:#0d0d0d;font-family:'Helvetica Neue',Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#0d0d0d;padding:40px 20px;">
+<tr><td align="center">
+<table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;">
+<tr><td style="background:#161616;border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:40px;">
+  <p style="margin:0 0 6px;font-size:24px;font-weight:700;color:#f0ede8;">You're in, \${name.split(' ')[0]}. 🎓</p>
+  <p style="margin:0 0 28px;font-size:15px;color:#9a9690;line-height:1.7;">Your account is active. Your board exam prep starts now.</p>
+  <div style="height:1px;background:rgba(255,255,255,0.07);margin:0 0 28px;"></div>
+  <p style="margin:0 0 10px;font-size:11px;font-weight:700;color:#c9a96e;text-transform:uppercase;letter-spacing:0.08em;">Log in with your email</p>
+  <div style="background:#0d0d0d;border:1px solid rgba(201,169,110,0.25);border-radius:10px;padding:14px 18px;margin-bottom:20px;">
+    <p style="margin:0;font-size:14px;color:#c9a96e;font-family:monospace;">\${emailClean}</p>
   </div>
-
-  <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:18px 20px;margin:0 0 24px;">
-    <p style="margin:0 0 6px;font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.08em;">Your login email</p>
-    <p style="margin:0;font-size:14px;color:#c9a96e;font-family:monospace;">${emailClean}</p>
-    <p style="margin:8px 0 0;font-size:12px;color:#666;">Use this email every time you open the app.</p>
+  <a href="\${APP_URL}" style="display:block;background:#c9a96e;color:#0d0d0d;text-decoration:none;padding:14px;border-radius:8px;font-size:15px;font-weight:700;text-align:center;margin-bottom:28px;">Open Readwise by Skai →</a>
+  <div style="height:1px;background:rgba(255,255,255,0.07);margin:0 0 20px;"></div>
+  <p style="margin:0 0 10px;font-size:11px;font-weight:700;color:#c9a96e;text-transform:uppercase;letter-spacing:0.08em;">🎁 Your Referral Code</p>
+  <div style="background:#0d0d0d;border:1px solid rgba(201,169,110,0.2);border-radius:10px;padding:14px 18px;margin-bottom:20px;">
+    <p style="margin:0 0 4px;font-size:26px;color:#c9a96e;font-family:monospace;font-weight:700;letter-spacing:0.1em;">\${customerCode}</p>
+    <p style="margin:0;font-size:12px;color:#6b6560;">Share this — friends get ₱10 off, and you help them pass.</p>
   </div>
-
-  <div style="background:#1a1a1a;border:1px solid rgba(201,169,110,0.2);border-radius:10px;padding:18px 20px;margin:0 0 24px;">
-    <p style="margin:0 0 6px;font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.08em;">🎁 Your Friend Referral Code</p>
-    <p style="margin:0 0 6px;font-size:28px;color:#c9a96e;font-family:monospace;font-weight:700;letter-spacing:0.1em;">${customerCode}</p>
-    <p style="margin:0;font-size:13px;color:#b0a898;line-height:1.6;">
-      Share this code with friends — they get <strong style="color:#f0ede8;">₱10 off</strong> when they sign up at <a href="${APP_URL}/buy" style="color:#c9a96e;text-decoration:none;">readwisebyskai.com/buy</a>. It's your way of sharing something you love. ❤️
-    </p>
+  <div style="background:rgba(201,169,110,0.06);border:1px solid rgba(201,169,110,0.15);border-radius:10px;padding:14px 16px;">
+    <p style="margin:0;font-size:13px;color:#9a9690;line-height:1.7;">You joined at the <strong style="color:#c9a96e;">introductory price of ₱\${INTRO_PRICE}</strong> — lifetime access, all future updates included. Study consistently and your Readiness Score will reflect it. Pasado ka nito. 💪</p>
   </div>
-
-  <div style="background:rgba(201,169,110,0.06);border:1px solid rgba(201,169,110,0.15);border-radius:10px;padding:16px 20px;margin:0 0 24px;">
-    <p style="margin:0 0 6px;font-size:13px;color:#c9a96e;font-weight:600;">🔥 You joined at the introductory price of ₱${INTRO_PRICE}</p>
-    <p style="margin:0;font-size:13px;color:#888;line-height:1.6;">The regular price is ₱${REGULAR_PRICE}. You locked in lifetime access at the best price — great call.</p>
-  </div>
-
-  <div style="background:rgba(160,112,208,0.06);border:1px solid rgba(160,112,208,0.2);border-radius:10px;padding:16px 20px;margin:0 0 28px;">
-    <p style="margin:0 0 4px;font-size:13px;color:#a070d0;font-weight:600;">📣 Community is coming</p>
-    <p style="margin:0;font-size:13px;color:#888;line-height:1.6;">We're building a reading community — book discussions, reading lists, and connecting with fellow readers. As a founding member, you'll get early access. 🚀</p>
-  </div>
-
-  <hr style="border:none;border-top:1px solid #2a2a2a;margin:0 0 20px;">
-  <p style="font-size:13px;color:#555;margin:0;">Questions? Just reply to this email — Kyle reads every message personally.<br>Happy reading! 📖</p>
-</div>
+</td></tr>
+<tr><td style="padding:20px 0 0;text-align:center;">
+  <p style="margin:0;font-size:12px;color:#5a5753;">Questions? Reply to this email — we read every one.</p>
+</td></tr>
+</table>
+</td></tr>
+</table>
 </body>
 </html>`
         }),

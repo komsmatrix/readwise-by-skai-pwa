@@ -3,8 +3,8 @@ import { createClient } from '@supabase/supabase-js'
 import crypto from 'crypto'
 
 const supabase = createClient(
-  process.env.VITE_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY
 )
 
 const RESEND_API_KEY  = process.env.RESEND_API_KEY
@@ -54,7 +54,7 @@ function emailTemplate({ firstName, name, email, key, expiresAt, appUrl }) {
                   </td>
                   <td style="vertical-align:middle;">
                     <div style="font-size:18px;font-weight:600;color:#f0ede8;letter-spacing:-0.02em;">Readwise by Skai</div>
-                    <div style="font-size:11px;color:#c9a96e;letter-spacing:0.08em;text-transform:uppercase;margin-top:2px;">Your Personal Reading Space</div>
+                    <div style="font-size:11px;color:#c9a96e;letter-spacing:0.08em;text-transform:uppercase;margin-top:2px;">Board Exam Operating System</div>
                   </td>
                 </tr>
               </table>
@@ -129,7 +129,7 @@ function emailTemplate({ firstName, name, email, key, expiresAt, appUrl }) {
                         </tr>
                         <tr>
                           <td style="padding:4px 0;font-size:13px;color:#9a9690;padding-right:8px;">④</td>
-                          <td style="padding:4px 0;font-size:13px;color:#9a9690;">Tap <span style="color:#c9a96e;font-weight:500;">"Open my reading space"</span></td>
+                          <td style="padding:4px 0;font-size:13px;color:#9a9690;">Tap <span style="color:#c9a96e;font-weight:500;">"Open Readwise by Skai"</span></td>
                         </tr>
                       </table>
                     </div>
@@ -141,56 +141,50 @@ function emailTemplate({ firstName, name, email, key, expiresAt, appUrl }) {
               <div style="height:1px;background:rgba(255,255,255,0.07);margin:0 0 24px;"></div>
 
               <!-- Quick guide -->
-              <p style="margin:0 0 14px;font-size:11px;font-weight:600;color:#c9a96e;text-transform:uppercase;letter-spacing:0.08em;">Quick Guide</p>
+              <p style="margin:0 0 14px;font-size:11px;font-weight:600;color:#c9a96e;text-transform:uppercase;letter-spacing:0.08em;">What Readwise does for you</p>
               <table cellpadding="0" cellspacing="0" style="width:100%;margin-bottom:28px;">
                 <tr>
                   <td style="width:50%;padding:0 8px 10px 0;vertical-align:top;">
                     <div style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:14px;">
-                      <p style="margin:0 0 4px;font-size:16px;">📚</p>
-                      <p style="margin:0 0 4px;font-size:13px;font-weight:600;color:#f0ede8;">Library</p>
-                      <p style="margin:0;font-size:12px;color:#5a5753;line-height:1.5;">Browse and open any book from your collection</p>
+                      <p style="margin:0 0 4px;font-size:16px;">🎯</p>
+                      <p style="margin:0 0 4px;font-size:13px;font-weight:600;color:#f0ede8;">Tells you what to study</p>
+                      <p style="margin:0;font-size:12px;color:#5a5753;line-height:1.5;">Next Best Action updates every session based on your gaps</p>
                     </div>
                   </td>
                   <td style="width:50%;padding:0 0 10px 8px;vertical-align:top;">
                     <div style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:14px;">
-                      <p style="margin:0 0 4px;font-size:16px;">🔊</p>
-                      <p style="margin:0 0 4px;font-size:13px;font-weight:600;color:#f0ede8;">Text to Speech</p>
-                      <p style="margin:0;font-size:12px;color:#5a5753;line-height:1.5;">Let the app read to you while you relax</p>
+                      <p style="margin:0 0 4px;font-size:16px;">🧠</p>
+                      <p style="margin:0 0 4px;font-size:13px;font-weight:600;color:#f0ede8;">Remembers what you forget</p>
+                      <p style="margin:0;font-size:12px;color:#5a5753;line-height:1.5;">Spaced repetition surfaces cards before you forget them</p>
                     </div>
                   </td>
                 </tr>
                 <tr>
                   <td style="width:50%;padding:0 8px 0 0;vertical-align:top;">
                     <div style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:14px;">
-                      <p style="margin:0 0 4px;font-size:16px;">🔖</p>
-                      <p style="margin:0 0 4px;font-size:13px;font-weight:600;color:#f0ede8;">Bookmarks</p>
-                      <p style="margin:0;font-size:12px;color:#5a5753;line-height:1.5;">Save your page and resume anytime</p>
+                      <p style="margin:0 0 4px;font-size:16px;">📊</p>
+                      <p style="margin:0 0 4px;font-size:13px;font-weight:600;color:#f0ede8;">Predicts if you'll pass</p>
+                      <p style="margin:0;font-size:12px;color:#5a5753;line-height:1.5;">Readiness Score updates after every session</p>
                     </div>
                   </td>
                   <td style="width:50%;padding:0 0 0 8px;vertical-align:top;">
                     <div style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:14px;">
-                      <p style="margin:0 0 4px;font-size:16px;">📱</p>
-                      <p style="margin:0 0 4px;font-size:13px;font-weight:600;color:#f0ede8;">Install as App</p>
-                      <p style="margin:0;font-size:12px;color:#5a5753;line-height:1.5;">Add to home screen for quick access</p>
+                      <p style="margin:0 0 4px;font-size:16px;">💬</p>
+                      <p style="margin:0 0 4px;font-size:13px;font-weight:600;color:#f0ede8;">Coaches you daily</p>
+                      <p style="margin:0;font-size:12px;color:#5a5753;line-height:1.5;">Coach Insights find your weak spots and tell you what to do</p>
                     </div>
                   </td>
                 </tr>
               </table>
 
-              <!-- Urgency + Community -->
               <div style="background:rgba(201,169,110,0.06);border:1px solid rgba(201,169,110,0.15);border-radius:8px;padding:14px 16px;margin-bottom:12px;">
                 <p style="margin:0;font-size:13px;color:#9a9690;line-height:1.7;">
-                  🔥 You joined at the <span style="color:#c9a96e;font-weight:600;">introductory price of ₱249</span> — the regular price is ₱399. You locked in lifetime access at the best price.
-                </p>
-              </div>
-              <div style="background:rgba(160,112,208,0.06);border:1px solid rgba(160,112,208,0.2);border-radius:8px;padding:14px 16px;margin-bottom:12px;">
-                <p style="margin:0;font-size:13px;color:#9a9690;line-height:1.7;">
-                  📣 <span style="color:#a070d0;font-weight:600;">Community is coming</span> — book discussions, reading lists, and connecting with fellow readers. As a founding member, you'll get early access. 🚀
+                  🔥 You joined at the <span style="color:#c9a96e;font-weight:600;">introductory price of ₱249</span> — lifetime access, all future updates included.
                 </p>
               </div>
               <div style="background:rgba(201,169,110,0.06);border:1px solid rgba(201,169,110,0.15);border-radius:8px;padding:14px 16px;">
                 <p style="margin:0;font-size:13px;color:#9a9690;line-height:1.7;">
-                  Your access is <span style="color:#c9a96e;font-weight:600;">lifetime</span> once activated — works on any device, any browser. New books are added regularly and will appear in your library automatically.
+                  Study consistently and your Readiness Score will reflect it. <span style="color:#c9a96e;font-weight:600;">Pasado ka nito. 💪</span>
                 </p>
               </div>
 
