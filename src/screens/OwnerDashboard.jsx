@@ -177,6 +177,17 @@ function QuestionsTab() {
   const [filterTopic, setFilterTopic] = useState('')
   const [search, setSearch] = useState('')
 
+  // Generate tab state
+  const [genTopic, setGenTopic] = useState('')
+  const [genCount, setGenCount] = useState(20)
+  const [genMix, setGenMix] = useState('60')
+  const [genDiff, setGenDiff] = useState('mixed')
+  const [genStatus, setGenStatus] = useState('idle')
+  const [genMsg, setGenMsg] = useState('')
+  const [genResults, setGenResults] = useState([])
+  const [genSelected, setGenSelected] = useState(new Set())
+  const [saveStatus, setSaveStatus] = useState('idle')
+
   useEffect(() => { loadData() }, [])
 
   async function loadData() {
@@ -187,6 +198,137 @@ function QuestionsTab() {
     setTopics(t || [])
     setCards(c || [])
     setLoading(false)
+  }
+
+  async function generateQuestions() {
+    if (!genTopic) return setGenMsg('Please select a topic first.')
+    const topicName = topics.find(t => t.id === genTopic)?.name || genTopic
+    setGenStatus('loading')
+    setGenMsg('')
+    setGenResults([])
+    setGenSelected(new Set())
+
+    const situational = parseInt(genMix)
+    const factual = 100 - situational
+
+    const prompt = `You are an expert LET (Licensure Examination for Teachers) board exam question writer for the Philippines.
+
+Generate exactly ${genCount} multiple choice questions about "${topicName}" for the LET board exam.
+
+Mix: ${situational}% situational (classroom scenarios, real teaching situations) and ${factual}% factual (theories, definitions, concepts).
+Difficulty: ${genDiff === 'mixed' ? 'mix of Easy, Medium, and Hard' : genDiff}.
+
+Rules:
+- 4 options each (A, B, C, D)
+- One correct answer only
+- No trick questions — test real knowledge
+- Situational questions must describe a realistic Filipino classroom scenario
+- Include a brief explanation for the correct answer
+
+Respond ONLY with a JSON array. No markdown, no preamble, no backticks. Example format:
+[
+  {
+    "question": "Question text here",
+    "options": {"A": "option1", "B": "option2", "C": "option3", "D": "option4"},
+    "answer": "A",
+    "explanation": "Brief explanation",
+    "type": "situational",
+    "difficulty": "Medium"
+  }
+]`
+
+    try {
+      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_OPENROUTER_API_KEY}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://readwisebyskai.com',
+        },
+        body: JSON.stringify({
+          model: 'meta-llama/llama-3.3-70b-instruct',
+          max_tokens: 4000,
+          messages: [{ role: 'user', content: prompt }],
+        }),
+      })
+
+      const data = await res.json()
+      const raw = data.choices?.[0]?.message?.content || ''
+
+      // Clean and parse JSON
+      const cleaned = raw.replace(/```json|```/g, '').trim()
+      const questions = JSON.parse(cleaned)
+
+      if (!Array.isArray(questions) || questions.length === 0) {
+        throw new Error('No questions returned')
+      }
+
+      // Add topic_id and format
+      const formatted = questions.map((q, i) => ({
+        ...q,
+        id: `gen_${Date.now()}_${i}`,
+        topic_id: genTopic,
+        board_frequency: 'High',
+      }))
+
+      setGenResults(formatted)
+      setGenSelected(new Set(formatted.map(q => q.id)))
+      setGenMsg(`${formatted.length} questions generated. Review and select which to save.`)
+      setGenStatus('success')
+
+    } catch (err) {
+      setGenStatus('error')
+      setGenMsg(`Error: ${err.message}. Try again.`)
+    }
+  }
+
+  async function saveSelected() {
+    const toSave = genResults.filter(q => genSelected.has(q.id))
+    if (toSave.length === 0) return setGenMsg('No questions selected.')
+    setSaveStatus('loading')
+
+    let saved = 0
+    let dupes = 0
+
+    for (const q of toSave) {
+      const fullQuestion = `${q.question} [A) ${q.options?.A} | B) ${q.options?.B} | C) ${q.options?.C} | D) ${q.options?.D}]`
+      const answer = q.options?.[q.answer] || q.answer
+
+      // Duplicate check
+      const { data: existing } = await supabase
+        .from('cards')
+        .select('id')
+        .ilike('question', `%${q.question.slice(0, 50)}%`)
+        .limit(1)
+
+      if (existing && existing.length > 0) {
+        dupes++
+        continue
+      }
+
+      await supabase.from('cards').insert({
+        question       : fullQuestion,
+        answer         : answer,
+        explanation    : q.explanation || '',
+        topic_id       : q.topic_id,
+        difficulty     : q.difficulty || 'Medium',
+        board_frequency: q.board_frequency || 'High',
+        bloom_level    : q.type === 'situational' ? 'Apply' : 'Remember',
+      })
+      saved++
+    }
+
+    setSaveStatus('idle')
+    setGenMsg(`✓ ${saved} questions saved to Supabase. ${dupes > 0 ? `${dupes} duplicates skipped.` : ''}`)
+    loadData()
+  }
+
+  function toggleSelect(id) {
+    setGenSelected(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
   }
 
   async function runSQL() {
@@ -226,10 +368,10 @@ function QuestionsTab() {
   return (
     <div style={s.section}>
       <div style={s.subtabBar}>
-        {['overview', 'import', 'browse'].map(st => (
+        {['overview', 'import', 'generate', 'browse'].map(st => (
           <button key={st} style={{ ...s.subtabBtn, ...(subtab === st ? s.subtabBtnActive : {}) }}
             onClick={() => setSubtab(st)}>
-            {st.charAt(0).toUpperCase() + st.slice(1)}
+            {st === 'generate' ? '✨ Generate' : st.charAt(0).toUpperCase() + st.slice(1)}
           </button>
         ))}
       </div>
@@ -252,6 +394,126 @@ function QuestionsTab() {
                 </div>
               ))}
             </div>
+          )}
+        </>
+      )}
+
+      {subtab === 'generate' && (
+        <>
+          <div style={s.sectionLabel}>AI Question Generator</div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>
+            Generates LET board exam questions using OpenRouter AI. Questions are checked for duplicates before saving.
+          </div>
+
+          <div style={s.field}>
+            <label style={s.label}>Topic</label>
+            <select style={s.select} value={genTopic} onChange={e => setGenTopic(e.target.value)}>
+              <option value="">Select topic…</option>
+              {topics.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 12 }}>
+            <div style={s.field}>
+              <label style={s.label}>Questions</label>
+              <select style={s.select} value={genCount} onChange={e => setGenCount(parseInt(e.target.value))}>
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={30}>30</option>
+                <option value={50}>50</option>
+              </select>
+            </div>
+            <div style={s.field}>
+              <label style={s.label}>Situational %</label>
+              <select style={s.select} value={genMix} onChange={e => setGenMix(e.target.value)}>
+                <option value="40">40% situational</option>
+                <option value="60">60% situational</option>
+                <option value="80">80% situational</option>
+                <option value="100">100% situational</option>
+              </select>
+            </div>
+            <div style={s.field}>
+              <label style={s.label}>Difficulty</label>
+              <select style={s.select} value={genDiff} onChange={e => setGenDiff(e.target.value)}>
+                <option value="mixed">Mixed</option>
+                <option value="Easy">Easy</option>
+                <option value="Medium">Medium</option>
+                <option value="Hard">Hard</option>
+              </select>
+            </div>
+          </div>
+
+          <button style={{ ...s.btn, opacity: genStatus === 'loading' ? 0.6 : 1 }}
+            onClick={generateQuestions} disabled={genStatus === 'loading'}>
+            {genStatus === 'loading' ? '⏳ Generating…' : `✨ Generate ${genCount} Questions`}
+          </button>
+
+          {genMsg && (
+            <div style={{ ...s.msg, color: genStatus === 'error' ? '#e05c5c' : '#10B981', marginTop: 10 }}>
+              {genMsg}
+            </div>
+          )}
+
+          {genResults.length > 0 && (
+            <>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '16px 0 8px' }}>
+                <div style={s.sectionLabel}>
+                  {genSelected.size} of {genResults.length} selected
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button style={s.subtabBtn} onClick={() => setGenSelected(new Set(genResults.map(q => q.id)))}>
+                    Select All
+                  </button>
+                  <button style={s.subtabBtn} onClick={() => setGenSelected(new Set())}>
+                    Deselect All
+                  </button>
+                </div>
+              </div>
+
+              <div style={s.cardList}>
+                {genResults.map(q => (
+                  <div key={q.id} style={{
+                    ...s.cardRow,
+                    background: genSelected.has(q.id) ? 'rgba(201,169,110,0.06)' : 'var(--bg-elevated)',
+                    border: genSelected.has(q.id) ? '1px solid rgba(201,169,110,0.3)' : '1px solid var(--border)',
+                    cursor: 'pointer',
+                  }} onClick={() => toggleSelect(q.id)}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                      <div style={{
+                        width: 18, height: 18, borderRadius: 4, flexShrink: 0, marginTop: 2,
+                        background: genSelected.has(q.id) ? 'var(--accent)' : 'transparent',
+                        border: `1px solid ${genSelected.has(q.id) ? 'var(--accent)' : 'var(--border)'}`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 11, color: '#0d0d0d',
+                      }}>
+                        {genSelected.has(q.id) ? '✓' : ''}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={s.cardQ}>{q.question}</div>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)', margin: '4px 0' }}>
+                          A) {q.options?.A} · B) {q.options?.B} · C) {q.options?.C} · D) {q.options?.D}
+                        </div>
+                        <div style={{ fontSize: 11, color: '#10B981' }}>✓ {q.answer}) {q.options?.[q.answer]}</div>
+                        {q.explanation && (
+                          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, fontStyle: 'italic' }}>
+                            {q.explanation}
+                          </div>
+                        )}
+                        <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                          <span style={s.chip}>{q.type}</span>
+                          <span style={s.chip}>{q.difficulty}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <button style={{ ...s.btn, marginTop: 12, opacity: saveStatus === 'loading' ? 0.6 : 1 }}
+                onClick={saveSelected} disabled={saveStatus === 'loading'}>
+                {saveStatus === 'loading' ? 'Saving…' : `💾 Save ${genSelected.size} Selected Questions`}
+              </button>
+            </>
           )}
         </>
       )}
