@@ -1,11 +1,11 @@
 {
   "name"            : "Readwise by Skai",
   "short_name"      : "Readwise",
-  "description"     : "Your personal reading space. Upload your books + growing library of classics.",
+  "description"     : "Board Exam Operating System. Tells you what to study, remembers what you forget, predicts whether you'll pass.",
   "start_url"       : "/",
   "display"         : "standalone",
-  "background_color": "#0f0f0f",
-  "theme_color"     : "#0f0f0f",
+  "background_color": "#0d0d0d",
+  "theme_color"     : "#0d0d0d",
   "orientation"     : "portrait-primary",
   "icons": [
     { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },

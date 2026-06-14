@@ -80,7 +80,7 @@ export default function StudyScreen({ customer, studentExam, onDone }) {
 
   async function nextCard() {
     const card    = cards[idx]
-    const correct = chosen === card.correct_index
+    const correct = chosen === correctIndex
 
     // Save review
     await saveCardReview(customer.id, card.id, correct, conf)
@@ -234,7 +234,29 @@ export default function StudyScreen({ customer, studentExam, onDone }) {
   // ── Active session ────────────────────────────────────────────────────────
   const card = cards[idx]
   if (!card) return null
-  const choices = Array.isArray(card.choices) ? card.choices : JSON.parse(card.choices || '[]')
+  // Parse choices from question format: "Question [A) opt1 | B) opt2 | C) opt3 | D) opt4]"
+  // or use card.choices if available (legacy format)
+  let choices = []
+  let correctIndex = 0
+  if (Array.isArray(card.choices) && card.choices.length > 0) {
+    choices = card.choices
+    correctIndex = card.correct_index || 0
+  } else {
+    // Parse from question string format
+    const match = card.question?.match(/\[([^\]]+)\]$/)
+    if (match) {
+      const parts = match[1].split('|').map(p => p.trim())
+      choices = parts.map(p => p.replace(/^[A-D]\)\s*/, '').trim())
+      // Find correct answer index
+      const answerText = card.answer?.trim()
+      correctIndex = choices.findIndex(c => c === answerText)
+      if (correctIndex === -1) correctIndex = 0
+    } else {
+      // Fallback: treat answer as single choice
+      choices = [card.answer || 'True', 'False']
+      correctIndex = 0
+    }
+  }
 
   return (
     <div style={s.root}>
@@ -280,8 +302,8 @@ export default function StudyScreen({ customer, studentExam, onDone }) {
             {choices.map((choice, i) => {
               let border = 'var(--border)', bg = 'var(--bg-elevated)', color = 'var(--text-primary)'
               if (answered) {
-                if (i === card.correct_index)            { border = '#10B981'; bg = 'rgba(16,185,129,0.08)'; color = '#10B981' }
-                else if (i === chosen && i !== card.correct_index) { border = '#e05c5c'; bg = 'rgba(224,92,92,0.08)'; color = '#e05c5c' }
+                if (i === correctIndex)            { border = '#10B981'; bg = 'rgba(16,185,129,0.08)'; color = '#10B981' }
+                else if (i === chosen && i !== correctIndex) { border = '#e05c5c'; bg = 'rgba(224,92,92,0.08)'; color = '#e05c5c' }
                 else { color = 'var(--text-muted)' }
               }
               return (

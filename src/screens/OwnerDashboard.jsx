@@ -208,10 +208,9 @@ function QuestionsTab() {
     setGenResults([])
     setGenSelected(new Set())
 
-    const situational = parseInt(genMix)
-    const factual = 100 - situational
-
-    const prompt = `You are an expert LET (Licensure Examination for Teachers) board exam question writer for the Philippines.
+    const topicName = topics.find(t => t.id === genTopic)?.name || genTopic
+    // Prompt is handled server-side in api/generate-questions.js
+    const situational = parseInt(genMix) (Licensure Examination for Teachers) board exam question writer for the Philippines.
 
 Generate exactly ${genCount} multiple choice questions about "${topicName}" for the LET board exam.
 
@@ -238,42 +237,27 @@ Respond ONLY with a JSON array. No markdown, no preamble, no backticks. Example 
 ]`
 
     try {
-      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      const ownerPass = sessionStorage.getItem('owner_auth') || ''
+      const res = await fetch('/api/generate-questions', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_OPENROUTER_API_KEY}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': 'https://readwisebyskai.com',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'meta-llama/llama-3.3-70b-instruct',
-          max_tokens: 4000,
-          messages: [{ role: 'user', content: prompt }],
+          password      : ownerPass,
+          topicName,
+          topicId       : genTopic,
+          count         : genCount,
+          situationalPct: genMix,
+          difficulty    : genDiff,
         }),
       })
 
       const data = await res.json()
-      const raw = data.choices?.[0]?.message?.content || ''
+      if (!data.success) throw new Error(data.error || 'Generation failed')
 
-      // Clean and parse JSON
-      const cleaned = raw.replace(/```json|```/g, '').trim()
-      const questions = JSON.parse(cleaned)
-
-      if (!Array.isArray(questions) || questions.length === 0) {
-        throw new Error('No questions returned')
-      }
-
-      // Add topic_id and format
-      const formatted = questions.map((q, i) => ({
-        ...q,
-        id: `gen_${Date.now()}_${i}`,
-        topic_id: genTopic,
-        board_frequency: 'High',
-      }))
-
-      setGenResults(formatted)
-      setGenSelected(new Set(formatted.map(q => q.id)))
-      setGenMsg(`${formatted.length} questions generated. Review and select which to save.`)
+      const questions = data.questions
+      setGenResults(questions)
+      setGenSelected(new Set(questions.map(q => q.id)))
+      setGenMsg(`${questions.length} questions generated. Review and select which to save.`)
       setGenStatus('success')
 
     } catch (err) {

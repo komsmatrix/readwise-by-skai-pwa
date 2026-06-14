@@ -271,7 +271,8 @@ export function computeReadinessScore({ coveragePct, masteryPct, consistencyPct,
   const hasMock = mockPct !== null && mockPct !== undefined
   if (!hasMock) {
     // Redistribute weights across 3 components
-    const score = (coveragePct * 0.40) + (masteryPct * 0.35) + (consistencyPct * 0.25)
+    // Weights redistributed proportionally when no mock exam yet (0.30+0.30+0.20 → /0.80)
+    const score = (coveragePct * 0.375) + (masteryPct * 0.375) + (consistencyPct * 0.25)
     return { score: Math.round(score), estimated: true }
   }
   const score =
