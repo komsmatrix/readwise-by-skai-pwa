@@ -27,35 +27,118 @@ function welcomeEmail({ firstName, name, email, key, appUrl }) {
 <html lang="en">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
 <body style="margin:0;padding:0;background:#0d0d0d;font-family:'Helvetica Neue',Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0d0d0d;padding:40px 20px;">
-    <tr><td align="center">
-      <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;">
-        <tr><td style="background:#161616;border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:40px;">
-          <p style="margin:0 0 8px;font-size:22px;font-weight:600;color:#f0ede8;">Welcome, ${firstName}!</p>
-          <p style="margin:0 0 28px;font-size:15px;color:#9a9690;line-height:1.7;">Your access to Readwise by Skai — Board Exam Operating System — is ready.</p>
-          <div style="height:1px;background:rgba(255,255,255,0.07);margin:0 0 28px;"></div>
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#0d0d0d;padding:40px 20px;">
+  <tr><td align="center">
+  <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;">
 
-          <p style="margin:0 0 10px;font-size:11px;font-weight:600;color:#c9a96e;text-transform:uppercase;letter-spacing:0.08em;">Your Access Key</p>
-          <div style="background:#0d0d0d;border:1px solid rgba(201,169,110,0.3);border-radius:10px;padding:16px 20px;margin-bottom:28px;">
-            <p style="margin:0;font-family:'Courier New',monospace;font-size:26px;font-weight:700;color:#c9a96e;letter-spacing:0.12em;">${key}</p>
-          </div>
+    <!-- Header -->
+    <tr><td style="padding:0 0 24px 0;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:22px;font-weight:700;color:#f0ede8;letter-spacing:-0.02em;">Readwise <span style="color:#c9a96e;">by Skai</span></span>
+      </div>
+      <div style="font-size:11px;color:#c9a96e;letter-spacing:0.08em;text-transform:uppercase;margin-top:4px;">Board Exam Operating System</div>
+    </td></tr>
 
-          <p style="margin:0 0 10px;font-size:11px;font-weight:600;color:#c9a96e;text-transform:uppercase;letter-spacing:0.08em;">How to activate</p>
-          <div style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:16px 20px;margin-bottom:28px;">
-            <p style="margin:0 0 6px;font-size:13px;color:#9a9690;">① Go to <a href="${appUrl}" style="color:#c9a96e;">${appUrl}</a></p>
-            <p style="margin:0 0 6px;font-size:13px;color:#9a9690;">② Click New Customer</p>
-            <p style="margin:0 0 6px;font-size:13px;color:#9a9690;">③ Enter: <span style="color:#f0ede8;">${name}</span> · <span style="color:#f0ede8;">${email}</span></p>
-            <p style="margin:0;font-size:13px;color:#9a9690;">④ Enter the key above and tap Activate</p>
-          </div>
+    <!-- Main card -->
+    <tr><td style="background:#161616;border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:40px;">
 
-          <a href="${appUrl}" style="display:block;background:#c9a96e;color:#0d0d0d;text-decoration:none;padding:14px 24px;border-radius:8px;font-size:15px;font-weight:700;text-align:center;">Open Readwise by Skai →</a>
+      <p style="margin:0 0 6px;font-size:24px;font-weight:700;color:#f0ede8;letter-spacing:-0.02em;">You're in, ${firstName}.</p>
+      <p style="margin:0 0 28px;font-size:15px;color:#9a9690;line-height:1.7;">Your payment was received. Your board exam prep starts now.</p>
 
-          <div style="height:1px;background:rgba(255,255,255,0.07);margin:28px 0;"></div>
-          <p style="margin:0;font-size:12px;color:#5a5753;text-align:center;">Questions? Reply to this email. — Readwise by Skai</p>
+      <div style="height:1px;background:rgba(255,255,255,0.07);margin:0 0 28px;"></div>
+
+      <!-- Option 1: Direct login -->
+      <div style="background:#0d0d0d;border:1px solid rgba(201,169,110,0.25);border-radius:12px;padding:20px 24px;margin-bottom:16px;">
+        <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#c9a96e;text-transform:uppercase;letter-spacing:0.08em;">Option 1 — Easiest</p>
+        <p style="margin:0 0 12px;font-size:15px;font-weight:600;color:#f0ede8;">Log in directly with your email</p>
+        <p style="margin:0 0 16px;font-size:13px;color:#9a9690;line-height:1.6;">Since you paid online, your account is already active. Just go to the app and sign in as a returning customer using <strong style="color:#f0ede8;">${email}</strong> — no key needed.</p>
+        <a href="${appUrl}" style="display:inline-block;background:#c9a96e;color:#0d0d0d;text-decoration:none;padding:12px 24px;border-radius:8px;font-size:14px;font-weight:700;">Open Readwise by Skai →</a>
+      </div>
+
+      <!-- Option 2: Manual key -->
+      <div style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:20px 24px;margin-bottom:28px;">
+        <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#9a9690;text-transform:uppercase;letter-spacing:0.08em;">Option 2 — If Option 1 doesn't work</p>
+        <p style="margin:0 0 12px;font-size:15px;font-weight:600;color:#f0ede8;">Activate manually with your key</p>
+        <div style="background:#111;border:1px solid rgba(201,169,110,0.2);border-radius:8px;padding:14px 18px;margin-bottom:12px;">
+          <p style="margin:0;font-family:'Courier New',monospace;font-size:22px;font-weight:700;color:#c9a96e;letter-spacing:0.12em;">${key}</p>
+        </div>
+        <p style="margin:0;font-size:13px;color:#9a9690;line-height:1.6;">Go to the app → click <strong style="color:#f0ede8;">New Customer</strong> → enter your name <strong style="color:#f0ede8;">${name}</strong>, email <strong style="color:#f0ede8;">${email}</strong>, and the key above → tap Activate.</p>
+      </div>
+
+      <div style="height:1px;background:rgba(255,255,255,0.07);margin:0 0 28px;"></div>
+
+      <!-- Product guide -->
+      <p style="margin:0 0 16px;font-size:11px;font-weight:700;color:#c9a96e;text-transform:uppercase;letter-spacing:0.08em;">What Readwise does for you</p>
+
+      <table cellpadding="0" cellspacing="0" style="width:100%;margin-bottom:12px;">
+        <tr>
+          <td style="width:50%;padding:0 6px 8px 0;vertical-align:top;">
+            <div style="background:#111;border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:16px;">
+              <p style="margin:0 0 6px;font-size:18px;">🎯</p>
+              <p style="margin:0 0 4px;font-size:13px;font-weight:600;color:#f0ede8;">Tells you what to study</p>
+              <p style="margin:0;font-size:12px;color:#5a5753;line-height:1.5;">Your Next Best Action updates every session based on your gaps and exam date.</p>
+            </div>
+          </td>
+          <td style="width:50%;padding:0 0 8px 6px;vertical-align:top;">
+            <div style="background:#111;border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:16px;">
+              <p style="margin:0 0 6px;font-size:18px;">🧠</p>
+              <p style="margin:0 0 4px;font-size:13px;font-weight:600;color:#f0ede8;">Remembers what you forget</p>
+              <p style="margin:0;font-size:12px;color:#5a5753;line-height:1.5;">Spaced repetition surfaces cards right before you'd forget them — not when it's too late.</p>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td style="width:50%;padding:0 6px 0 0;vertical-align:top;">
+            <div style="background:#111;border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:16px;">
+              <p style="margin:0 0 6px;font-size:18px;">📊</p>
+              <p style="margin:0 0 4px;font-size:13px;font-weight:600;color:#f0ede8;">Predicts if you'll pass</p>
+              <p style="margin:0;font-size:12px;color:#5a5753;line-height:1.5;">Your Readiness Score updates after every session — weighted by actual board exam topics.</p>
+            </div>
+          </td>
+          <td style="width:50%;padding:0 0 0 6px;vertical-align:top;">
+            <div style="background:#111;border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:16px;">
+              <p style="margin:0 0 6px;font-size:18px;">💬</p>
+              <p style="margin:0 0 4px;font-size:13px;font-weight:600;color:#f0ede8;">Coaches you daily</p>
+              <p style="margin:0;font-size:12px;color:#5a5753;line-height:1.5;">Coach Insights tell you exactly what's pulling your score down and what to do next.</p>
+            </div>
+          </td>
+        </tr>
+      </table>
+
+      <div style="height:1px;background:rgba(255,255,255,0.07);margin:24px 0;"></div>
+
+      <!-- Quick start -->
+      <p style="margin:0 0 12px;font-size:11px;font-weight:700;color:#c9a96e;text-transform:uppercase;letter-spacing:0.08em;">Quick start — 3 steps</p>
+      <table cellpadding="0" cellspacing="0" style="width:100%;margin-bottom:24px;">
+        <tr><td style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+          <span style="font-size:13px;color:#c9a96e;font-weight:700;margin-right:12px;">01</span>
+          <span style="font-size:13px;color:#9a9690;">Open the app and complete the <strong style="color:#f0ede8;">3-step onboarding</strong> — set your exam date and study mode.</span>
+        </td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+          <span style="font-size:13px;color:#c9a96e;font-weight:700;margin-right:12px;">02</span>
+          <span style="font-size:13px;color:#9a9690;">Take the <strong style="color:#f0ede8;">diagnostic quiz</strong> so Readwise knows your starting point.</span>
+        </td></tr>
+        <tr><td style="padding:8px 0;">
+          <span style="font-size:13px;color:#c9a96e;font-weight:700;margin-right:12px;">03</span>
+          <span style="font-size:13px;color:#9a9690;">Hit <strong style="color:#f0ede8;">Start Now</strong> on your first Next Best Action and build the habit.</span>
         </td></tr>
       </table>
+
+      <div style="background:rgba(201,169,110,0.06);border:1px solid rgba(201,169,110,0.15);border-radius:10px;padding:16px 20px;">
+        <p style="margin:0;font-size:13px;color:#9a9690;line-height:1.7;">You joined at the <strong style="color:#c9a96e;">introductory price</strong> — lifetime access, all future updates included. Study consistently and your Readiness Score will reflect it. Pasado ka nito. 💪</p>
+      </div>
+
     </td></tr>
+
+    <!-- Footer -->
+    <tr><td style="padding:24px 0 0;text-align:center;">
+      <p style="margin:0 0 4px;font-size:12px;color:#5a5753;">Questions? Reply to this email — we read every one.</p>
+      <p style="margin:0;font-size:12px;color:#3a3835;">— Readwise by Skai Team</p>
+    </td></tr>
+
   </table>
+  </td></tr>
+</table>
 </body>
 </html>`
 }
@@ -128,7 +211,7 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         from   : 'Readwise by Skai <hello@readwisebyskai.com>',
         to     : [email.toLowerCase().trim()],
-        subject: 'Your Readwise by Skai access key',
+        subject: "You're in — your Readwise by Skai access is ready",
         html   : welcomeEmail({ firstName, name: name.trim(), email: email.toLowerCase().trim(), key, appUrl: APP_URL }),
       }),
     })
