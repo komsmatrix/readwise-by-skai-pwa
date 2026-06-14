@@ -101,14 +101,16 @@ export default function ProfileScreen({ customer, studentExam, onSignOut, onExam
 
         {/* Appearance */}
         <div style={s.sectionLabel}>Appearance</div>
-        <div style={{ padding:'0 20px', display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, marginBottom:8 }}>
+        <div style={{ padding:'0 20px', display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:8 }}>
           {[
-            { id:'dark',     label:'🌑 Dark',       sub:'Default' },
-            { id:'sepia',    label:'📜 Sepia',       sub:'Warm & easy on eyes' },
-            { id:'blue',     label:'💼 Blue Light',  sub:'Clean professional' },
-            { id:'midnight', label:'🌌 Midnight',    sub:'Dark blue focus' },
-            { id:'ocean',    label:'🌊 Ocean',       sub:'Teal & orange' },
-            { id:'pastel',   label:'🌸 Pastel',      sub:'Blue & pink' },
+            { id:'dark',      label:'🌑 Dark',       sub:'Default' },
+            { id:'parchment', label:'📜 Parchment',  sub:'Warm & focused' },
+            { id:'slate',     label:'💼 Slate',       sub:'Cool & professional' },
+            { id:'cosmos',    label:'🌌 Cosmos',      sub:'Deep & immersive' },
+            { id:'aurora',    label:'🌿 Aurora',      sub:'Calm & refreshing' },
+            { id:'sakura',    label:'🌸 Sakura',      sub:'Soft & cheerful' },
+            { id:'forest',    label:'🌲 Forest',      sub:'Natural & grounded' },
+            { id:'rosegold',  label:'🌹 Rose Gold',   sub:'Warm & elegant' },
           ].map(t => (
             <button key={t.id}
               onClick={() => applyTheme(t.id)}
