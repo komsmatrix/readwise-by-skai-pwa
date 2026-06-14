@@ -7,6 +7,111 @@ import {
 
 const MODE_SIZES = { Light: 10, Standard: 25, Intensive: 50, 'Exam Sprint': 80 }
 
+// ─── Markdown renderer (same as LessonScreen) ─────────────────────────────────
+function renderMarkdown(text) {
+  if (!text) return ""
+
+  const lines = text.split("\n")
+  let html = ""
+  let i = 0
+
+  while (i < lines.length) {
+    const line = lines[i]
+
+    // Blank line
+    if (!line.trim()) { i++; continue }
+
+    // Headings
+    if (line.startsWith("### ")) { html += `<h3 style="font-size:14px;font-weight:700;color:var(--text-primary);margin:14px 0 6px;line-height:1.3">${inlineFormat(line.slice(4))}</h3>`; i++; continue }
+    if (line.startsWith("## "))  { html += `<h2 style="font-size:15px;font-weight:700;color:var(--text-primary);margin:16px 0 8px;line-height:1.3">${inlineFormat(line.slice(3))}</h2>`; i++; continue }
+    if (line.startsWith("# "))   { html += `<h1 style="font-size:16px;font-weight:800;color:var(--text-primary);margin:18px 0 8px;line-height:1.3">${inlineFormat(line.slice(2))}</h1>`; i++; continue }
+
+    // Horizontal rule
+    if (line.trim() === "---" || line.trim() === "***") { html += `<hr style="border:none;border-top:1px solid var(--border);margin:12px 0"/>`; i++; continue }
+
+    // Blockquote
+    if (line.startsWith("> ")) {
+      let bq = ""
+      while (i < lines.length && lines[i].startsWith("> ")) { bq += inlineFormat(lines[i].slice(2)) + " "; i++ }
+      html += `<blockquote style="border-left:3px solid var(--accent);padding:6px 12px;margin:8px 0;color:var(--text-secondary);font-style:italic;background:var(--bg-elevated);border-radius:0 6px 6px 0">${bq.trim()}</blockquote>`
+      continue
+    }
+
+    // Code block
+    if (line.startsWith("```")) {
+      i++
+      let code = ""
+      while (i < lines.length && !lines[i].startsWith("```")) { code += lines[i] + "\n"; i++ }
+      i++ // skip closing ```
+      html += `<pre style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:6px;padding:10px;overflow-x:auto;margin:8px 0"><code style="font-size:11px;color:var(--text-primary);line-height:1.6;white-space:pre;font-family:monospace">${escHtml(code.trimEnd())}</code></pre>`
+      continue
+    }
+
+    // Unordered list
+    if (line.match(/^[-*+] /)) {
+      let items = ""
+      while (i < lines.length && lines[i].match(/^[-*+] /)) {
+        items += `<li style="margin:3px 0;line-height:1.6">${inlineFormat(lines[i].slice(2))}</li>`
+        i++
+      }
+      html += `<ul style="margin:6px 0;padding-left:18px;color:var(--text-secondary)">${items}</ul>`
+      continue
+    }
+
+    // Numbered list
+    if (line.match(/^\d+\. /)) {
+      let items = ""
+      while (i < lines.length && lines[i].match(/^\d+\. /)) {
+        items += `<li style="margin:3px 0;line-height:1.6">${inlineFormat(lines[i].replace(/^\d+\. /, ""))}</li>`
+        i++
+      }
+      html += `<ol style="margin:6px 0;padding-left:18px;color:var(--text-secondary)">${items}</ol>`
+      continue
+    }
+
+    // Table
+    if (line.includes("|") && line.trim().startsWith("|")) {
+      const tableLines = []
+      while (i < lines.length && lines[i].includes("|")) { tableLines.push(lines[i]); i++ }
+      const rows = tableLines.filter(r => !r.match(/^[|\s-:]+$/))
+      let tableHtml = `<div style="overflow-x:auto;margin:8px 0"><table style="width:100%;border-collapse:collapse;font-size:11px">`
+      rows.forEach((row, ri) => {
+        const cells = row.split("|").filter((_, ci) => ci > 0 && ci < row.split("|").length - 1)
+        const tag = ri === 0 ? "th" : "td"
+        const rowStyle = ri === 0 ? "background:var(--bg-elevated)" : ri % 2 === 0 ? "background:var(--bg-surface)" : ""
+        tableHtml += `<tr style="${rowStyle}">${cells.map(c => `<${tag} style="padding:6px 10px;border:1px solid var(--border);text-align:left;color:var(--text-primary)">${inlineFormat(c.trim())}</${tag}>`).join("")}</tr>`
+      })
+      tableHtml += "</table></div>"
+      html += tableHtml
+      continue
+    }
+
+    // Regular paragraph
+    let para = ""
+    while (i < lines.length && lines[i].trim() && !lines[i].match(/^[#>\-*+\d`|]/) && lines[i].trim() !== "---") {
+      para += (para ? " " : "") + lines[i]
+      i++
+    }
+    if (para) html += `<p style="margin:6px 0;line-height:1.7;color:var(--text-secondary)">${inlineFormat(para)}</p>`
+  }
+
+  return html
+}
+
+function inlineFormat(text) {
+  return text
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/\*\*\*(.+?)\*\*\*/g, "<strong><em>$1</em></strong>")
+    .replace(/\*\*(.+?)\*\*/g, "<strong style=\"color:var(--text-primary)\">$1</strong>")
+    .replace(/\*(.+?)\*/g, "<em>$1</em>")
+    .replace(/`(.+?)`/g, "<code style=\"background:var(--bg-elevated);padding:1px 5px;border-radius:4px;font-size:11px;font-family:monospace;color:var(--accent)\">$1</code>")
+}
+
+function escHtml(text) {
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 export default function StudyScreen({ customer, studentExam, onDone }) {
   const [phase,    setPhase]    = useState('loading') // loading | session | summary
   const [cards,    setCards]    = useState([])
@@ -320,9 +425,12 @@ export default function StudyScreen({ customer, studentExam, onDone }) {
             })}
           </div>
 
-          {/* Explanation */}
+          {/* Explanation — with markdown rendering */}
           {answered && card.explanation && (
-            <div style={s.explanation}>{card.explanation}</div>
+            <div
+              style={s.explanation}
+              dangerouslySetInnerHTML={{ __html: renderMarkdown(card.explanation) }}
+            />
           )}
         </div>
 
