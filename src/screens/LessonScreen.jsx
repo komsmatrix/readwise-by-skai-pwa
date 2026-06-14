@@ -202,12 +202,72 @@ export default function LessonScreen({ session, onBack }) {
   const activeLesson = lessons.find(l => l.id === activeId);
   const completedCount = lessons.filter(l => progress[l.id]).length;
 
+  // ─── TTS Player ───────────────────────────────────────────────────────────
+  function TTSPlayer({ lesson }) {
+    const [ttsState, setTtsState] = useState('idle') // idle | playing | paused
+    const [ttsAvailable] = useState(() => 'speechSynthesis' in window)
+
+    function getPlainText(lesson) {
+      const parts = []
+      if (lesson.title)         parts.push(lesson.title + '.')
+      if (lesson.board_relevance) parts.push(lesson.board_relevance + '.')
+      if (lesson.content)       parts.push(lesson.content.replace(/[#*`>_~]/g, '').replace(/\n+/g, ' '))
+      if (lesson.memory_hook)   parts.push('Memory Hook. ' + lesson.memory_hook)
+      return parts.join(' ')
+    }
+
+    function handlePlay() {
+      if (!ttsAvailable) return
+      if (ttsState === 'playing') {
+        window.speechSynthesis.pause()
+        setTtsState('paused')
+        return
+      }
+      if (ttsState === 'paused') {
+        window.speechSynthesis.resume()
+        setTtsState('playing')
+        return
+      }
+      window.speechSynthesis.cancel()
+      const utt = new SpeechSynthesisUtterance(getPlainText(lesson))
+      utt.rate  = 0.95
+      utt.pitch = 1
+      utt.onend   = () => setTtsState('idle')
+      utt.onerror = () => setTtsState('idle')
+      window.speechSynthesis.speak(utt)
+      setTtsState('playing')
+    }
+
+    function handleStop() {
+      window.speechSynthesis.cancel()
+      setTtsState('idle')
+    }
+
+    if (!ttsAvailable) return null
+
+    return (
+      <div style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 14px', background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', margin:'0 0 12px' }}>
+        <button onClick={handlePlay} style={{ display:'flex', alignItems:'center', gap:6, background:'var(--accent-dim)', border:'1px solid var(--accent)', borderRadius:'var(--radius-sm)', padding:'7px 14px', cursor:'pointer', fontFamily:'inherit', fontSize:13, fontWeight:600, color:'var(--accent)', transition:'all 0.15s' }}>
+          {ttsState === 'playing' ? '⏸ Pause' : ttsState === 'paused' ? '▶ Resume' : '▶ Listen'}
+        </button>
+        {ttsState !== 'idle' && (
+          <button onClick={handleStop} style={{ background:'transparent', border:'1px solid var(--border)', borderRadius:'var(--radius-sm)', padding:'7px 12px', cursor:'pointer', fontFamily:'inherit', fontSize:13, color:'var(--text-muted)', transition:'all 0.15s' }}>
+            ⏹ Stop
+          </button>
+        )}
+        <span style={{ fontSize:11, color:'var(--text-muted)', flex:1 }}>
+          {ttsState === 'playing' ? 'Reading aloud…' : ttsState === 'paused' ? 'Paused' : 'Listen to this lesson'}
+        </span>
+      </div>
+    )
+  }
+
   // ─── Lesson Reader ────────────────────────────────────────────────────────
   if (view === "lesson" && activeLesson) {
     return (
       <div style={s.screen}>
         <div style={s.readerHeader}>
-          <button style={s.backBtn} onClick={() => setView("topic")}>← Back</button>
+          <button style={s.backBtn} onClick={() => { window.speechSynthesis?.cancel(); setView("topic"); }}>← Back</button>
           <span style={s.readerTopic}>{selected?.name}</span>
           {progress[activeLesson.id]
             ? <span style={s.doneBadge}>✓ Done</span>
@@ -221,6 +281,9 @@ export default function LessonScreen({ session, onBack }) {
           <h1 style={s.lessonTitle}>{activeLesson.title}</h1>
           <span style={s.readTime}>⏱ ~{activeLesson.read_time_mins} min read</span>
         </div>
+        <div style={{ padding:'0 20px 8px' }}>
+          <TTSPlayer lesson={activeLesson} />
+        </div>
         <div style={s.lessonContent} dangerouslySetInnerHTML={{ __html: renderMarkdown(activeLesson.content) }} />
         {activeLesson.memory_hook && (
           <div style={s.memoryHook}>
@@ -229,7 +292,7 @@ export default function LessonScreen({ session, onBack }) {
           </div>
         )}
         {!progress[activeLesson.id] && (
-          <button style={s.doneBtnBottom} onClick={() => { markComplete(activeLesson.id); setView("topic"); }}>
+          <button style={s.doneBtnBottom} onClick={() => { window.speechSynthesis?.cancel(); markComplete(activeLesson.id); setView("topic"); }}>
             ✓ Lesson Complete — Back to List
           </button>
         )}
