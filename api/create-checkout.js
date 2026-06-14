@@ -32,7 +32,7 @@ export default async function handler(req, res) {
 
       // Check agent code first (₱20 discount)
       const { data: agent } = await supabase
-        .from('agents').select('id, name, email, is_active').eq('code', code).single()
+        .from('agents').select('id, name, email, is_active').eq('referral_code', code).single()
 
       if (agent && agent.is_active) {
         // FRAUD PROTECTION: agent cannot use their own code
@@ -67,7 +67,7 @@ export default async function handler(req, res) {
     // Build description
     const description = referralCode
       ? `Readwise by Skai — Lifetime Access (Code: ${referralCode.toUpperCase()})`
-      : 'Upload your own books + growing library of classics. Dark mode, TTS, any device. Lifetime access.'
+      : 'Board Exam Operating System. Spaced repetition, Readiness Score, Daily Coaching. LET exam — lifetime access.'
 
     // Create PayMongo checkout session
     const response = await fetch('https://api.paymongo.com/v1/checkout_sessions', {
@@ -93,7 +93,7 @@ export default async function handler(req, res) {
               currency   : 'PHP',
               amount     : finalPrice,
               name       : 'Readwise by Skai — Lifetime Access',
-              description: 'Upload your own books + growing library of classics. Dark mode, TTS, any device. Lifetime access.',
+              description: 'Board Exam Operating System. Spaced repetition, Readiness Score, Daily Coaching. LET exam — lifetime access.',
               quantity   : 1,
             }],
             payment_method_types: ['qrph'],
