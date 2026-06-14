@@ -193,12 +193,14 @@ export default async function handler(req, res) {
     }, { onConflict: 'email' })
 
     if (agentId) {
-      await supabase.from('agents')
-        .update({
-          total_referrals  : supabase.rpc('increment', { x: 1 }),
-          total_commission : supabase.rpc('increment', { x: AGENT_COMMISSION }),
-        })
-        .eq('id', agentId)
+      const { data: agent } = await supabase
+        .from('agents').select('total_referrals, total_commission').eq('id', agentId).single()
+      if (agent) {
+        await supabase.from('agents').update({
+          total_referrals : (agent.total_referrals  || 0) + 1,
+          total_commission: (agent.total_commission || 0) + AGENT_COMMISSION,
+        }).eq('id', agentId)
+      }
     }
 
     const firstName = name.trim().split(' ')[0]

@@ -2,8 +2,8 @@
 import { createClient } from '@supabase/supabase-js'
 
 const supabase = createClient(
-  process.env.VITE_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY
 )
 
 const PAYMONGO_SECRET  = process.env.PAYMONGO_SECRET_KEY
@@ -96,7 +96,7 @@ export default async function handler(req, res) {
               description: 'Board Exam Operating System. Spaced repetition, Readiness Score, Daily Coaching. LET exam — lifetime access.',
               quantity   : 1,
             }],
-            payment_method_types: ['qrph'],
+            payment_method_types: ['qrph', 'card', 'gcash', 'paymaya'],
             metadata: {
               customer_name : name.trim(),
               customer_email: email.toLowerCase().trim(),
