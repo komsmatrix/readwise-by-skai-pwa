@@ -904,6 +904,12 @@ function AgentsTab() {
     setBlasting(false)
   }
 
+  async function deleteAgent(id) {
+    if (!window.confirm('Delete this agent? This cannot be undone.')) return
+    await supabase.from('agents').delete().eq('id', id)
+    setAgents(prev => prev.filter(a => a.id !== id))
+  }
+
   async function enrollAgent() {
     if (!form.name.trim() || !form.email.trim() || !form.gcash_number.trim()) return
     setSaving(true)
@@ -1057,6 +1063,7 @@ function AgentsTab() {
                 <div style={ag.agentMeta}>{agent.email} · GCash: {agent.gcash_number}</div>
               </div>
               <div style={ag.codeBox}>{agent.referral_code}</div>
+              <button style={ag.deleteAgentBtn} onClick={() => deleteAgent(agent.id)} title="Delete agent">✕</button>
             </div>
 
             <div style={ag.statsRow}>
@@ -1368,6 +1375,7 @@ const ag = {
   stat        : { background:'var(--bg-elevated)', borderRadius:8, padding:'10px', textAlign:'center' },
   statVal     : { fontSize:16, fontWeight:700, color:'var(--text-primary)', fontFamily:'var(--font-display)' },
   statLabel   : { fontSize:9, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'.04em', marginTop:3 },
+  deleteAgentBtn: { background:'none', border:'1px solid rgba(224,92,92,0.3)', borderRadius:6, color:'#e05c5c', fontSize:13, cursor:'pointer', padding:'4px 8px', flexShrink:0 },
   payBtn      : { width:'100%', padding:'10px', background:'rgba(16,185,129,0.1)', border:'1px solid #10B981', borderRadius:8, color:'#10B981', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'inherit' },
   modalOverlay: { position:'fixed', inset:0, background:'rgba(0,0,0,0.7)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, padding:16 },
   modal       : { background:'var(--bg-surface)', border:'1px solid var(--border)', borderRadius:16, padding:'24px', width:'100%', maxWidth:420, display:'flex', flexDirection:'column', gap:14 },
