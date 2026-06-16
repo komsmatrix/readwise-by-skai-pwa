@@ -680,6 +680,8 @@ function LessonsTab() {
         </>
       )}
 
+      {subtab === 'resources' && (<ResourcesTab topics={topics} />)}
+
       {subtab === 'edit' && (
         <>
           <button style={s.btn}
@@ -1742,3 +1744,6 @@ const ag = {
   modalAmount : { fontFamily:'var(--font-display)', fontSize:40, fontWeight:800, color:'#10B981', lineHeight:1 },
   modalSub    : { fontSize:12, color:'var(--text-muted)', marginTop:-8 },
 }
+
+
+
