@@ -264,36 +264,48 @@ export default function LessonScreen({ session, onBack }) {
   }
 
   // ─── Lesson Reader ────────────────────────────────────────────────────────
-  if (view === "lesson" && activeLesson) {
+  if (view === "lesson") {
+    // Show loading until full lesson content is fetched
+    if (!fullLesson) {
+      return (
+        <div style={s.screen}>
+          <div style={s.readerHeader}>
+            <button style={s.backBtn} onClick={() => { setView("topic"); setFullLesson(null); }}>← Back</button>
+            <span style={s.readerTopic}>{selected?.name}</span>
+          </div>
+          <div style={s.empty}>Loading lesson…</div>
+        </div>
+      )
+    }
     return (
       <div style={s.screen}>
         <div style={s.readerHeader}>
           <button style={s.backBtn} onClick={() => { window.speechSynthesis?.cancel(); setView("topic"); setFullLesson(null); }}>← Back</button>
           <span style={s.readerTopic}>{selected?.name}</span>
-          {progress[activeLesson.id]
+          {progress[fullLesson.id]
             ? <span style={s.doneBadge}>✓ Done</span>
-            : <button style={s.doneBtn} onClick={() => markComplete(activeLesson.id)}>Mark Complete</button>
+            : <button style={s.doneBtn} onClick={() => markComplete(fullLesson.id)}>Mark Complete</button>
           }
         </div>
-        {activeLesson.board_relevance && (
-          <div style={s.relevanceBanner}>📋 {activeLesson.board_relevance}</div>
+        {fullLesson.board_relevance && (
+          <div style={s.relevanceBanner}>📋 {fullLesson.board_relevance}</div>
         )}
         <div style={s.readerMeta}>
-          <h1 style={s.lessonTitle}>{activeLesson.title}</h1>
-          <span style={s.readTime}>⏱ ~{activeLesson.read_time_mins} min read</span>
+          <h1 style={s.lessonTitle}>{fullLesson.title}</h1>
+          <span style={s.readTime}>⏱ ~{fullLesson.read_time_mins} min read</span>
         </div>
         <div style={{ padding:'0 20px 8px' }}>
-          <TTSPlayer lesson={activeLesson} />
+          <TTSPlayer lesson={fullLesson} />
         </div>
-        <div style={s.lessonContent} dangerouslySetInnerHTML={{ __html: renderMarkdown(activeLesson.content) }} />
-        {activeLesson.memory_hook && (
+        <div style={s.lessonContent} dangerouslySetInnerHTML={{ __html: renderMarkdown(fullLesson.content) }} />
+        {fullLesson.memory_hook && (
           <div style={s.memoryHook}>
             <div style={s.memoryHookLabel}>🧠 Memory Hook</div>
-            <pre style={s.memoryHookText}>{activeLesson.memory_hook}</pre>
+            <pre style={s.memoryHookText}>{fullLesson.memory_hook}</pre>
           </div>
         )}
-        {!progress[activeLesson.id] && (
-          <button style={s.doneBtnBottom} onClick={() => { window.speechSynthesis?.cancel(); markComplete(activeLesson.id); setView("topic"); setFullLesson(null); }}>
+        {!progress[fullLesson.id] && (
+          <button style={s.doneBtnBottom} onClick={() => { window.speechSynthesis?.cancel(); markComplete(fullLesson.id); setView("topic"); setFullLesson(null); }}>
             ✓ Lesson Complete — Back to List
           </button>
         )}
