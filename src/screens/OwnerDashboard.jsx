@@ -571,6 +571,28 @@ function LessonsTab() {
     loadData()
   }
 
+  async function deleteLesson(id, title) {
+    if (!window.confirm(\`Delete lesson "${title}"? This cannot be undone.\`)) return
+    await supabase.from('lessons').delete().eq('id', id)
+    setLessons(prev => prev.filter(l => l.id !== id))
+  }
+
+  function handleMdUpload(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = ev => {
+      setEditLesson(p => ({ ...p, content: ev.target.result }))
+      // Auto-fill title from filename if title is empty
+      if (!editLesson?.title) {
+        const name = file.name.replace(/\.md$/i, '').replace(/[_-]/g, ' ')
+        setEditLesson(p => ({ ...p, content: ev.target.result, title: p.title || name }))
+      }
+    }
+    reader.readAsText(file)
+    e.target.value = '' // reset so same file can be re-uploaded
+  }
+
   const topicMap = Object.fromEntries(topics.map(t => [t.id, t.name]))
   const coveredTopics = new Set(lessons.map(l => l.topic_id))
   const missing = topics.filter(t => !coveredTopics.has(t.id))
@@ -599,6 +621,17 @@ function LessonsTab() {
         </div>
         <div style={s.field}>
           <label style={s.label}>Content (Markdown)</label>
+          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
+            <label style={{ display:'flex', alignItems:'center', gap:6, background:'var(--bg-elevated)', border:'1px solid var(--accent)', borderRadius:6, padding:'5px 12px', cursor:'pointer', fontSize:12, color:'var(--accent)', fontWeight:600 }}>
+              📄 Upload .md file
+              <input type="file" accept=".md,.txt" style={{ display:'none' }} onChange={handleMdUpload} />
+            </label>
+            {editLesson.content && (
+              <span style={{ fontSize:11, color:'var(--text-muted)' }}>
+                {editLesson.content.length.toLocaleString()} chars loaded
+              </span>
+            )}
+          </div>
           <textarea style={s.textarea} rows={12} value={editLesson.content || ''}
             onChange={e => setEditLesson(p => ({ ...p, content: e.target.value }))} />
         </div>
@@ -645,7 +678,10 @@ function LessonsTab() {
                     <span style={s.chip}>{topicMap[l.topic_id] || 'Unknown topic'}</span>
                   </div>
                 </div>
-                <button style={s.editBtn} onClick={() => setEditLesson(l)}>Edit</button>
+                <div style={{ display:'flex', gap:6 }}>
+                  <button style={s.editBtn} onClick={() => setEditLesson(l)}>Edit</button>
+                  <button style={s.deleteBtn} onClick={() => deleteLesson(l.id, l.title)}>✕</button>
+                </div>
               </div>
             ))}
           </div>
