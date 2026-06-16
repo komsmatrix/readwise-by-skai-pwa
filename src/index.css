@@ -1,6 +1,9 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* ── DEFAULT THEME: Dark ── */
+/* ── Google Fonts import ── */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,800;1,400&family=Lora:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;500;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Nunito:wght@400;600;700;800&family=Josefin+Sans:wght@300;400;600;700&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,400&family=DM+Mono:wght@400;500&display=swap');
+
+/* ── DEFAULT THEME: Dark — Sophisticated & Timeless ── */
 :root {
   --bg-base    : #0d0d0d;
   --bg-surface : #141414;
@@ -18,12 +21,15 @@
   --radius-md  : 8px;
   --radius-lg  : 12px;
   --radius-xl  : 16px;
-  --font-display: 'Georgia', 'Times New Roman', serif;
-  --font-ui     : -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  /* Dark: Sophisticated — Playfair Display for headings, Lora for reading */
+  --font-display: 'Playfair Display', 'Georgia', serif;
+  --font-ui     : 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-reader : 'Lora', 'Georgia', serif;
+  --font-mono   : 'DM Mono', monospace;
   --transition  : 0.15s ease;
 }
 
-/* ── THEME: Parchment (warm & focused) ── */
+/* ── THEME: Parchment — Warm & Scholarly ── */
 [data-theme="parchment"] {
   --bg-base    : #f5f0e4;
   --bg-surface : #ede8da;
@@ -37,9 +43,14 @@
   --accent     : #7a5c0f;
   --accent-dim : rgba(122,92,15,0.10);
   --reader-bg  : #f5f0e4;
+  /* Parchment: Classic book feel — Crimson Pro for reading, Josefin Sans for UI */
+  --font-display: 'Playfair Display', 'Georgia', serif;
+  --font-ui     : 'Josefin Sans', 'Georgia', serif;
+  --font-reader : 'Crimson Pro', 'Georgia', serif;
+  --font-mono   : 'DM Mono', monospace;
 }
 
-/* ── THEME: Slate (cool & professional) ── */
+/* ── THEME: Slate — Cool & Professional ── */
 [data-theme="slate"] {
   --bg-base    : #1e2a3a;
   --bg-surface : #253347;
@@ -53,9 +64,14 @@
   --accent     : #5ba3d9;
   --accent-dim : rgba(91,163,217,0.12);
   --reader-bg  : #253347;
+  /* Slate: Clean & corporate — Inter everywhere, precise and legible */
+  --font-display: 'Inter', sans-serif;
+  --font-ui     : 'Inter', sans-serif;
+  --font-reader : 'Inter', sans-serif;
+  --font-mono   : 'DM Mono', monospace;
 }
 
-/* ── THEME: Cosmos (deep & immersive) ── */
+/* ── THEME: Cosmos — Deep & Immersive ── */
 [data-theme="cosmos"] {
   --bg-base    : #0c0f1e;
   --bg-surface : #141728;
@@ -69,9 +85,14 @@
   --accent     : #9b7fe8;
   --accent-dim : rgba(155,127,232,0.13);
   --reader-bg  : #141728;
+  /* Cosmos: Futuristic editorial — DM Sans light weight, airy and spacious */
+  --font-display: 'DM Sans', sans-serif;
+  --font-ui     : 'DM Sans', sans-serif;
+  --font-reader : 'DM Sans', sans-serif;
+  --font-mono   : 'DM Mono', monospace;
 }
 
-/* ── THEME: Aurora (calm & refreshing) ── */
+/* ── THEME: Aurora — Calm & Refreshing ── */
 [data-theme="aurora"] {
   --bg-base    : #0a2a2a;
   --bg-surface : #0f3535;
@@ -85,9 +106,14 @@
   --accent     : #3ecfaa;
   --accent-dim : rgba(62,207,170,0.13);
   --reader-bg  : #0f3535;
+  /* Aurora: Organic & calm — Lora for warmth, DM Sans for UI */
+  --font-display: 'Lora', serif;
+  --font-ui     : 'DM Sans', sans-serif;
+  --font-reader : 'Lora', serif;
+  --font-mono   : 'DM Mono', monospace;
 }
 
-/* ── THEME: Sakura (soft & cheerful) ── */
+/* ── THEME: Sakura — Cute & Cheerful ── */
 [data-theme="sakura"] {
   --bg-base    : #fff5f8;
   --bg-surface : #ffffff;
@@ -101,9 +127,14 @@
   --accent     : #e0487a;
   --accent-dim : rgba(224,72,122,0.10);
   --reader-bg  : #ffffff;
+  /* Sakura: Cute & playful — Nunito rounded and friendly */
+  --font-display: 'Nunito', sans-serif;
+  --font-ui     : 'Nunito', sans-serif;
+  --font-reader : 'Nunito', sans-serif;
+  --font-mono   : 'DM Mono', monospace;
 }
 
-/* ── THEME: Forest (natural & grounded) ── */
+/* ── THEME: Forest — Natural & Grounded ── */
 [data-theme="forest"] {
   --bg-base    : #0d1f0f;
   --bg-surface : #142817;
@@ -117,9 +148,14 @@
   --accent     : #7ec85a;
   --accent-dim : rgba(126,200,90,0.12);
   --reader-bg  : #142817;
+  /* Forest: Organic & earthy — Lora serif for that grounded feel */
+  --font-display: 'Lora', serif;
+  --font-ui     : 'DM Sans', sans-serif;
+  --font-reader : 'Lora', serif;
+  --font-mono   : 'DM Mono', monospace;
 }
 
-/* ── THEME: Rose Gold (warm & elegant) ── */
+/* ── THEME: Rose Gold — Beautiful & Elegant ── */
 [data-theme="rosegold"] {
   --bg-base    : #1a1015;
   --bg-surface : #241820;
@@ -133,6 +169,11 @@
   --accent     : #c9748a;
   --accent-dim : rgba(201,116,138,0.13);
   --reader-bg  : #241820;
+  /* Rose Gold: Elegant & luxurious — Cormorant Garamond, ultra-refined */
+  --font-display: 'Cormorant Garamond', 'Georgia', serif;
+  --font-ui     : 'DM Sans', sans-serif;
+  --font-reader : 'Cormorant Garamond', 'Georgia', serif;
+  --font-mono   : 'DM Mono', monospace;
 }
 
 html, body {

@@ -403,7 +403,7 @@ export default function LessonScreen({ session, onBack }) {
             <div style={{ fontSize:11, fontWeight:700, color:'var(--accent)', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:10 }}>
               {selected?.name}
             </div>
-            <h1 style={{ fontSize:26, fontWeight:800, color:'var(--text-primary)', lineHeight:1.25, margin:'0 0 12px' }}>
+            <h1 style={{ fontSize:26, fontWeight:800, color:'var(--text-primary)', lineHeight:1.25, margin:'0 0 12px', fontFamily:'var(--font-display)' }}>
               {activeLesson.title}
             </h1>
             <div style={{ display:'flex', alignItems:'center', gap:16, flexWrap:'wrap' }}>
@@ -418,7 +418,7 @@ export default function LessonScreen({ session, onBack }) {
           <TTSPlayer lesson={activeLesson} />
 
           {/* Main content */}
-          <div style={{ fontSize:15, lineHeight:1.85, color:'var(--text-secondary)' }}
+          <div style={{ fontSize:15, lineHeight:1.85, color:'var(--text-secondary)', fontFamily:'var(--font-reader)' }}
             dangerouslySetInnerHTML={{ __html: renderMarkdown(activeLesson.content) }} />
 
           {/* Memory hook */}
