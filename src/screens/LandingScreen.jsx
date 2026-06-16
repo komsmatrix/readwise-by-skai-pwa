@@ -1,5 +1,15 @@
 import { useState, useEffect, useRef } from 'react'
 
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768)
+  useEffect(() => {
+    const fn = () => setIsMobile(window.innerWidth < 768)
+    window.addEventListener('resize', fn)
+    return () => window.removeEventListener('resize', fn)
+  }, [])
+  return isMobile
+}
+
 export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
   // onGetAccess(course), onTryFree(course)
 
@@ -10,6 +20,7 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
   const [bars, setBars]   = useState({ b1: 0, b2: 0, b3: 0, b4: 0 })
   const [studentCount, setStudentCount] = useState(null)
   const [navOpen, setNavOpen] = useState(false)
+  const isMobile = useIsMobile()
   const [selectedCourse, setSelectedCourse] = useState('LET')
 
   const LEVELS = [
@@ -96,7 +107,8 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
             <div style={s.navBy}>by Skai</div>
           </div>
         </div>
-        <div style={s.navLinks}>
+        {/* Desktop nav links */}
+        <div style={{ ...s.navLinks, display: isMobile ? 'none' : 'flex' }}>
           <a href="#how" style={s.navLink}>How it works</a>
           <a href="#courses" style={s.navLink}>Courses</a>
           <a href="#pricing" style={s.navLink}>Pricing</a>
@@ -104,7 +116,28 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
           <button style={s.navSignIn} onClick={onSignIn}>Sign In</button>
           <button style={s.navCta} onClick={() => onGetAccess(selectedCourse)}>Get Access · ₱249</button>
         </div>
+        {/* Mobile nav — hamburger + actions */}
+        <div style={{ ...s.navMobile, display: isMobile ? 'flex' : 'none' }}>
+          <button style={s.navSignInMobile} onClick={onSignIn}>Sign In</button>
+          <button style={s.navCtaMobile} onClick={() => onGetAccess(selectedCourse)}>Get Access</button>
+          <button style={s.hamburger} onClick={() => setNavOpen(o => !o)} aria-label="Menu">
+            <span style={{ display:'block', width:20, height:2, background:'var(--text-primary)', marginBottom:4, transition:'all .2s', transform: navOpen ? 'translateY(6px) rotate(45deg)' : 'none' }}/>
+            <span style={{ display:'block', width:20, height:2, background:'var(--text-primary)', marginBottom:4, opacity: navOpen ? 0 : 1, transition:'all .2s' }}/>
+            <span style={{ display:'block', width:20, height:2, background:'var(--text-primary)', transition:'all .2s', transform: navOpen ? 'translateY(-6px) rotate(-45deg)' : 'none' }}/>
+          </button>
+        </div>
       </nav>
+      {/* Mobile dropdown menu */}
+      {navOpen && (
+        <div style={s.mobileMenu}>
+          {[['#how','How it works'],['#courses','Courses'],['#pricing','Pricing'],['#updates','Updates']].map(([href,label]) => (
+            <a key={label} href={href} style={s.mobileMenuLink} onClick={() => setNavOpen(false)}>{label}</a>
+          ))}
+          <div style={{ height:1, background:'var(--border)', margin:'8px 0' }}/>
+          <button style={s.mobileMenuSignIn} onClick={() => { setNavOpen(false); onSignIn(); }}>Sign In</button>
+          <button style={s.mobileMenuCta} onClick={() => { setNavOpen(false); onGetAccess(selectedCourse); }}>Get Access · ₱249</button>
+        </div>
+      )}
 
       {/* HERO */}
       <section style={s.hero}>
@@ -125,7 +158,7 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
           <button style={s.btnGhost}   onClick={() => onTryFree(selectedCourse)}>Try Free for 1 Hour →</button>
         </div>
         <div style={s.examBadges}>
-          {['LET','NLE','CPA Board','Bar Exam'].map((e,i) => (
+          {['LET','NLE','NAPOLCOM','Civil Service','Criminology'].map((e,i) => (
             <span key={e} style={{ ...s.examBadge, ...(i===0 ? s.examBadgeActive : {}) }}>{e}</span>
           ))}
         </div>
@@ -220,9 +253,10 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
           <div style={s.coursesGrid}>
             {[
               { code:'LET',  full:'Licensure Examination for Teachers', live:true,  stats:['12 topics covered','1,200+ questions','12 structured lessons','150 questions · 3 hours'] },
-              { code:'NLE',  full:'Nursing Licensure Examination',       live:false, stats:['500 questions · 5 sub-exams','Content in preparation'] },
-              { code:'CPA',  full:'CPA Board Examination',               live:false, stats:['300 questions · 6 subjects','Content in preparation'] },
-              { code:'Bar',  full:'Philippine Bar Examination',           live:false, stats:['Content in preparation'] },
+              { code:'NLE',       full:'Nursing Licensure Examination',     live:false, stats:['500 questions · 5 sub-exams','Content in preparation'] },
+              { code:'NAPOLCOM',  full:'NAPOLCOM Examination',            live:false, stats:['Police Officer I & Promotion','Content in preparation'] },
+              { code:'Civil Service', full:'Civil Service Examination',   live:false, stats:['Professional & Sub-professional','Content in preparation'] },
+              { code:'Criminology', full:'Criminology Licensure Exam',    live:false, stats:['Content in preparation'] },
             ].map(c => {
               const isSelected = selectedCourse === c.code
               return (
@@ -280,7 +314,7 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
                 'Spaced repetition scheduling',
                 'Coach Insights and daily recommendations',
                 'Mock board exam simulation',
-                'NLE, CPA, Bar access when available',
+                'NLE, NAPOLCOM, Civil Service + more when available',
               ].map(f => (
                 <div key={f} style={s.priceFeature}>
                   <span style={{ color:'var(--accent)', fontWeight:700 }}>✓</span> {f}
@@ -373,6 +407,14 @@ const s = {
   navName:          { fontWeight:700, fontSize:16, color:'var(--text-primary)' },
   navBy:            { fontSize:10, color:'var(--accent)', textTransform:'uppercase', letterSpacing:'.06em' },
   navLinks:         { display:'flex', alignItems:'center', gap:20 },
+  navMobile:        { display:'none', alignItems:'center', gap:8 },
+  navSignInMobile:  { background:'none', border:'1px solid var(--border)', color:'var(--text-secondary)', padding:'7px 12px', borderRadius:8, fontWeight:600, fontSize:13, cursor:'pointer', fontFamily:'inherit' },
+  navCtaMobile:     { background:'var(--accent)', color:'#0d0d0d', padding:'7px 14px', borderRadius:8, fontWeight:700, fontSize:13, border:'none', cursor:'pointer', fontFamily:'inherit' },
+  hamburger:        { background:'none', border:'none', cursor:'pointer', padding:'6px', display:'flex', flexDirection:'column', justifyContent:'center' },
+  mobileMenu:       { position:'fixed', top:65, left:0, right:0, zIndex:99, background:'var(--bg-surface)', borderBottom:'1px solid var(--border)', padding:'16px 24px', display:'flex', flexDirection:'column', gap:4, boxShadow:'0 8px 32px rgba(0,0,0,0.4)' },
+  mobileMenuLink:   { color:'var(--text-primary)', textDecoration:'none', fontSize:16, fontWeight:500, padding:'12px 0', borderBottom:'1px solid var(--border)' },
+  mobileMenuSignIn: { background:'none', border:'1px solid var(--border)', color:'var(--text-secondary)', padding:'12px', borderRadius:8, fontWeight:600, fontSize:15, cursor:'pointer', fontFamily:'inherit', marginTop:8 },
+  mobileMenuCta:    { background:'var(--accent)', color:'#0d0d0d', padding:'14px', borderRadius:8, fontWeight:700, fontSize:15, border:'none', cursor:'pointer', fontFamily:'inherit', marginTop:8 },
   navLink:          { color:'var(--text-secondary)', textDecoration:'none', fontSize:14, background:'none', border:'none', cursor:'pointer' },
   navSignIn:        { background:'none', border:'1px solid var(--border)', color:'var(--text-secondary)', padding:'8px 16px', borderRadius:8, fontWeight:600, fontSize:14, cursor:'pointer', fontFamily:'inherit' },
   navCta:           { background:'var(--accent)', color:'#0d0d0d', padding:'8px 20px', borderRadius:8, fontWeight:700, fontSize:14, border:'none', cursor:'pointer', fontFamily:'inherit' },
