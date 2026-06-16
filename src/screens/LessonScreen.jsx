@@ -484,6 +484,15 @@ export default function LessonScreen({ session, onBack }) {
             </div>
           )}
 
+          {/* Audio player — top of lesson for background listening */}
+          {activeLesson.audio_url && (
+            <div style={{ marginBottom:16, background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:12, padding:'12px 16px' }}>
+              <div style={{ fontSize:10, fontWeight:700, color:'var(--accent)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:8 }}>🎧 Audio Lesson</div>
+              <audio controls style={{ width:'100%', height:36 }} src={activeLesson.audio_url} />
+              <div style={{ fontSize:10, color:'var(--text-muted)', marginTop:6 }}>Listen while you read</div>
+            </div>
+          )}
+
           {/* TTS player */}
           <TTSPlayer lesson={activeLesson} contentRef={contentRef} />
 
@@ -521,12 +530,7 @@ export default function LessonScreen({ session, onBack }) {
                     allowFullScreen />
                 </div>
               )}
-              {activeLesson.audio_url && (
-                <div style={{ marginBottom:14 }}>
-                  <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:6 }}>🎧 Audio</div>
-                  <audio controls style={{ width:'100%', borderRadius:8 }} src={activeLesson.audio_url} />
-                </div>
-              )}
+
               {activeLesson.infographic_url && (
                 <div style={{ marginBottom:14 }}>
                   <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:6 }}>🖼 Infographic</div>
