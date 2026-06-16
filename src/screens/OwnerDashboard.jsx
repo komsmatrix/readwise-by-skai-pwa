@@ -582,7 +582,7 @@ function LessonsTab() {
   }
 
   async function deleteLesson(id, title) {
-    if (!window.confirm(\`Delete lesson "${title}"? This cannot be undone.\`)) return
+    if (!window.confirm('Delete lesson "' + title + '"? This cannot be undone.')) return
     await supabase.from('lessons').delete().eq('id', id)
     setLessons(prev => prev.filter(l => l.id !== id))
   }
