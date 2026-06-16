@@ -386,10 +386,11 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
           {['How it works','Courses','Pricing','Updates'].map(l => (
             <a key={l} href={l === 'How it works' ? '#how' : l === 'Updates' ? '#updates' : `#${l.toLowerCase()}`} style={s.footerLink}>{l}</a>
           ))}
+          <a href="/privacy" style={s.footerLink}>Privacy Policy</a>
           <button style={{ ...s.footerLink, background:'none', border:'none', cursor:'pointer' }} onClick={onSignIn}>Sign In</button>
           <button style={{ ...s.footerLink, background:'none', border:'none', cursor:'pointer' }} onClick={() => onGetAccess(selectedCourse)}>Buy Access</button>
         </div>
-        <div style={s.footerCopy}>© 2026 Readwise by Skai · All rights reserved</div>
+        <div style={s.footerCopy}>© 2026 Readwise by Skai · All rights reserved · <a href="/privacy" style={{ color:"var(--text-muted)", textDecoration:"underline" }}>Privacy Policy</a></div>
       </footer>
 
     </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 // ─── Supabase config ──────────────────────────────────────────────────────────
 const SUPA_URL = import.meta.env.VITE_SUPABASE_URL
@@ -241,6 +241,7 @@ export default function LessonScreen({ session, onBack }) {
   }
 
   const [fullLesson, setFullLesson] = useState(null)
+  const contentRef = useRef(null)
   const activeLesson = fullLesson || lessons.find(l => l.id === activeId);
   const completedCount = lessons.filter(l => progress[l.id]).length;
 
@@ -313,38 +314,82 @@ export default function LessonScreen({ session, onBack }) {
     )
   }
 
-  // ─── TTS Player ───────────────────────────────────────────────────────────
-  function TTSPlayer({ lesson }) {
-    const [ttsState, setTtsState] = useState('idle') // idle | playing | paused
+  // ─── TTS Player with word highlighting ───────────────────────────────────
+  function TTSPlayer({ lesson, contentRef }) {
+    const [ttsState, setTtsState] = useState('idle')
     const [ttsAvailable] = useState(() => 'speechSynthesis' in window)
 
     function getPlainText(lesson) {
       const parts = []
-      if (lesson.title)         parts.push(lesson.title + '.')
+      if (lesson.title)           parts.push(lesson.title + '.')
       if (lesson.board_relevance) parts.push(lesson.board_relevance + '.')
-      if (lesson.content)       parts.push(lesson.content.replace(/[#*`>_~]/g, '').replace(/\n+/g, ' '))
-      if (lesson.memory_hook)   parts.push('Memory Hook. ' + lesson.memory_hook)
-      return parts.join(' ')
+      if (lesson.content)         parts.push(lesson.content.replace(/[#*`>_~|]/g, '').replace(/\n+/g, ' ').replace(/\s+/g, ' '))
+      if (lesson.memory_hook)     parts.push('Memory Hook. ' + lesson.memory_hook)
+      return parts.join(' ').trim()
+    }
+
+    function clearHighlight() {
+      document.querySelectorAll('[data-tts-hl]').forEach(el => {
+        el.style.background = ''
+        el.style.color = ''
+        el.style.borderRadius = ''
+        el.style.padding = ''
+      })
+    }
+
+    function highlightAt(charIndex, length) {
+      clearHighlight()
+      if (!contentRef?.current) return
+      // Walk all text nodes and find the one containing charIndex
+      const walker = document.createTreeWalker(contentRef.current, NodeFilter.SHOW_TEXT)
+      let offset = 0
+      let node
+      while ((node = walker.nextNode())) {
+        const nodeLen = node.textContent.length
+        if (offset + nodeLen > charIndex) {
+          // This node contains our word — wrap it in a span
+          const parent = node.parentNode
+          if (!parent || parent.nodeName === 'SCRIPT') { offset += nodeLen; continue }
+          const localStart = charIndex - offset
+          const before = node.textContent.slice(0, localStart)
+          const word   = node.textContent.slice(localStart, localStart + length)
+          const after  = node.textContent.slice(localStart + length)
+          const span = document.createElement('span')
+          span.setAttribute('data-tts-hl', '1')
+          span.style.background   = 'var(--accent)'
+          span.style.color        = '#0d0d0d'
+          span.style.borderRadius = '3px'
+          span.style.padding      = '0 2px'
+          span.textContent = word
+          const frag = document.createDocumentFragment()
+          if (before) frag.appendChild(document.createTextNode(before))
+          frag.appendChild(span)
+          if (after) frag.appendChild(document.createTextNode(after))
+          parent.replaceChild(frag, node)
+          span.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+          break
+        }
+        offset += nodeLen
+      }
     }
 
     function handlePlay() {
       if (!ttsAvailable) return
-      if (ttsState === 'playing') {
-        window.speechSynthesis.pause()
-        setTtsState('paused')
-        return
-      }
-      if (ttsState === 'paused') {
-        window.speechSynthesis.resume()
-        setTtsState('playing')
-        return
-      }
+      if (ttsState === 'playing') { window.speechSynthesis.pause(); setTtsState('paused'); return }
+      if (ttsState === 'paused')  { window.speechSynthesis.resume(); setTtsState('playing'); return }
       window.speechSynthesis.cancel()
-      const utt = new SpeechSynthesisUtterance(getPlainText(lesson))
-      utt.rate  = 0.95
-      utt.pitch = 1
-      utt.onend   = () => setTtsState('idle')
-      utt.onerror = () => setTtsState('idle')
+      clearHighlight()
+      const text = getPlainText(lesson)
+      const utt  = new SpeechSynthesisUtterance(text)
+      utt.rate   = 0.95
+      utt.pitch  = 1
+      utt.onboundary = (e) => {
+        if (e.name === 'word' && e.charLength > 0) {
+          highlightAt(e.charIndex, e.charLength)
+        }
+      }
+      utt.onend   = () => { setTtsState('idle'); clearHighlight() }
+      utt.onerror = () => { setTtsState('idle'); clearHighlight() }
       window.speechSynthesis.speak(utt)
       setTtsState('playing')
     }
@@ -352,12 +397,13 @@ export default function LessonScreen({ session, onBack }) {
     function handleStop() {
       window.speechSynthesis.cancel()
       setTtsState('idle')
+      clearHighlight()
     }
 
     if (!ttsAvailable) return null
 
     return (
-      <div style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 14px', background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', margin:'0 0 12px' }}>
+      <div style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 14px', background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', margin:'0 0 16px' }}>
         <button onClick={handlePlay} style={{ display:'flex', alignItems:'center', gap:6, background:'var(--accent-dim)', border:'1px solid var(--accent)', borderRadius:'var(--radius-sm)', padding:'7px 14px', cursor:'pointer', fontFamily:'inherit', fontSize:13, fontWeight:600, color:'var(--accent)', transition:'all 0.15s' }}>
           {ttsState === 'playing' ? '⏸ Pause' : ttsState === 'paused' ? '▶ Resume' : '▶ Listen'}
         </button>
@@ -423,10 +469,10 @@ export default function LessonScreen({ session, onBack }) {
           )}
 
           {/* TTS player */}
-          <TTSPlayer lesson={activeLesson} />
+          <TTSPlayer lesson={activeLesson} contentRef={contentRef} />
 
           {/* Main content */}
-          <div className="lesson-reader-content lesson-reader-body"
+          <div ref={contentRef} className="lesson-reader-content lesson-reader-body"
             style={{ fontSize:15, lineHeight:1.9, color:'var(--text-secondary)', fontFamily:'var(--font-reader)' }}
             dangerouslySetInnerHTML={{ __html: renderMarkdown(activeLesson.content) }} />
 
