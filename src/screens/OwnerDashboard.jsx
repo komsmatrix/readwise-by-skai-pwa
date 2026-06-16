@@ -649,7 +649,7 @@ function LessonsTab() {
   return (
     <div style={s.section}>
       <div style={s.subtabBar}>
-        {['overview', 'edit'].map(st => (
+        {['overview', 'edit', 'resources'].map(st => (
           <button key={st} style={{ ...s.subtabBtn, ...(subtab === st ? s.subtabBtnActive : {}) }}
             onClick={() => setSubtab(st)}>
             {st.charAt(0).toUpperCase() + st.slice(1)}
@@ -701,6 +701,120 @@ function LessonsTab() {
           </div>
         </>
       )}
+
+      {subtab === 'resources' && (
+        <ResourcesTab topics={topics} />
+      )}
+    </div>
+  )
+}
+
+
+// ── Resources Tab (inside LessonsTab) ────────────────────────────────────────
+function ResourcesTab({ topics }) {
+  const [selectedTopic, setSelectedTopic] = useState('')
+  const [resources, setResources] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [form, setForm] = useState({ video_url: '', audio_url: '', infographic_url: '', mindmap_url: '' })
+  const [saving, setSaving] = useState(false)
+  const [existing, setExisting] = useState(null)
+
+  async function loadResources(topicId) {
+    setLoading(true)
+    const { data } = await supabase.from('topic_resources').select('*').eq('topic_id', topicId)
+    if (data?.[0]) {
+      setExisting(data[0])
+      setForm({
+        video_url: data[0].video_url || '',
+        audio_url: data[0].audio_url || '',
+        infographic_url: data[0].infographic_url || '',
+        mindmap_url: data[0].mindmap_url || '',
+      })
+    } else {
+      setExisting(null)
+      setForm({ video_url: '', audio_url: '', infographic_url: '', mindmap_url: '' })
+    }
+    setLoading(false)
+  }
+
+  function handleTopicChange(topicId) {
+    setSelectedTopic(topicId)
+    if (topicId) loadResources(topicId)
+  }
+
+  async function saveResources() {
+    if (!selectedTopic) return
+    setSaving(true)
+    if (existing) {
+      await supabase.from('topic_resources').update(form).eq('id', existing.id)
+    } else {
+      await supabase.from('topic_resources').insert([{ topic_id: selectedTopic, ...form }])
+    }
+    setSaving(false)
+    loadResources(selectedTopic)
+    alert('Resources saved!')
+  }
+
+  return (
+    <div>
+      <div style={s.sectionLabel}>Topic Resources</div>
+      <div style={s.field}>
+        <label style={s.label}>Select Topic</label>
+        <select style={s.select} value={selectedTopic} onChange={e => handleTopicChange(e.target.value)}>
+          <option value="">Choose a topic…</option>
+          {topics.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+        </select>
+      </div>
+
+      {selectedTopic && !loading && (
+        <>
+          <div style={s.field}>
+            <label style={s.label}>🎬 YouTube Video URL</label>
+            <input style={s.input} value={form.video_url}
+              placeholder="https://youtube.com/watch?v=..."
+              onChange={e => setForm(p => ({ ...p, video_url: e.target.value }))} />
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+              Paste YouTube link — shows as embedded video in Topics screen
+            </div>
+          </div>
+          <div style={s.field}>
+            <label style={s.label}>🎧 Audio URL</label>
+            <input style={s.input} value={form.audio_url}
+              placeholder="https://... (Supabase storage or direct link)"
+              onChange={e => setForm(p => ({ ...p, audio_url: e.target.value }))} />
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+              NotebookLM audio or any direct audio file link
+            </div>
+          </div>
+          <div style={s.field}>
+            <label style={s.label}>🖼 Infographic URL</label>
+            <input style={s.input} value={form.infographic_url}
+              placeholder="https://... (image link)"
+              onChange={e => setForm(p => ({ ...p, infographic_url: e.target.value }))} />
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+              Direct image link — shown inline in Resources tab
+            </div>
+          </div>
+          <div style={s.field}>
+            <label style={s.label}>🗺 Mindmap URL</label>
+            <input style={s.input} value={form.mindmap_url}
+              placeholder="https://... (Canva, Miro, or image link)"
+              onChange={e => setForm(p => ({ ...p, mindmap_url: e.target.value }))} />
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+              Canva, Miro, or any image/embed link
+            </div>
+          </div>
+          <button style={s.btn} onClick={saveResources} disabled={saving}>
+            {saving ? 'Saving…' : existing ? 'Update Resources' : 'Save Resources'}
+          </button>
+          {existing && (
+            <div style={{ fontSize: 11, color: '#10B981', marginTop: 8 }}>
+              ✓ Resources already saved for this topic — updating will overwrite
+            </div>
+          )}
+        </>
+      )}
+      {loading && <div style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 12 }}>Loading…</div>}
     </div>
   )
 }
