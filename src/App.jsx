@@ -14,6 +14,7 @@ import LandingScreen     from './screens/LandingScreen.jsx'
 import TrialScreen       from './screens/TrialScreen.jsx'
 import TrialExpiredScreen from './screens/TrialExpiredScreen.jsx'
 import TrialTimer        from './components/TrialTimer.jsx'
+import MockBoardScreen   from './screens/MockBoardScreen.jsx'
 
 // Apply saved theme on startup
 const savedTheme = localStorage.getItem('rbs_theme') || 'dark'
@@ -228,6 +229,13 @@ export default function App() {
             onDone={() => setActiveTab('home')}
           />
         )}
+        {activeTab === 'mock' && (
+          <MockBoardScreen
+            customer={sessionUser}
+            studentExam={studentExam}
+            onDone={() => setActiveTab('home')}
+          />
+        )}
         {activeTab === 'topics' && (
           <TopicsScreen
             customer={sessionUser}
@@ -266,10 +274,11 @@ export default function App() {
 function BottomNav({ activeTab, setActiveTab }) {
   const tabs = [
     { id: 'home',    label: 'Home',    icon: HomeIcon   },
-    { id: 'study',   label: 'Practice', icon: CardsIcon  },
-    { id: 'lessons', label: 'Lessons', icon: BookIcon   },
-    { id: 'topics',  label: 'Topics',  icon: ChartIcon  },
-    { id: 'profile', label: 'Settings', icon: PersonIcon },
+    { id: 'study',   label: 'Practice',   icon: CardsIcon  },
+    { id: 'mock',    label: 'Mock Board', icon: MockIcon   },
+    { id: 'lessons', label: 'Lessons',   icon: BookIcon   },
+    { id: 'topics',  label: 'Topics',    icon: ChartIcon  },
+    { id: 'profile', label: 'Settings',  icon: PersonIcon },
   ]
   return (
     <nav style={{ display: 'flex', justifyContent: 'space-around', padding: '10px 0 14px', background: 'var(--bg-surface)', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
@@ -315,6 +324,15 @@ function ChartIcon({ size, active }) {
       <line x1="18" y1="20" x2="18" y2="10"/>
       <line x1="12" y1="20" x2="12" y2="4"/>
       <line x1="6"  y1="20" x2="6"  y2="14"/>
+    </svg>
+  )
+}
+function MockIcon({ size, active }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2 : 1.5} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+      <rect x="9" y="3" width="6" height="4" rx="1"/>
+      <path d="M9 12h6M9 16h4"/>
     </svg>
   )
 }
