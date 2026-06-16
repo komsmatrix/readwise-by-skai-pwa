@@ -203,6 +203,32 @@ export default function LessonScreen({ session, onBack }) {
   const activeLesson = fullLesson || lessons.find(l => l.id === activeId);
   const completedCount = lessons.filter(l => progress[l.id]).length;
 
+  // ─── Lesson Content (chunked to avoid crash) ─────────────────────────────
+  function LessonContent({ content }) {
+    const [showAll, setShowAll] = useState(false)
+    if (!content) return null
+    const LIMIT = 6000
+    const isLong = content.length > LIMIT
+    const text = (!isLong || showAll) ? content : content.slice(0, LIMIT)
+    return (
+      <div>
+        <div style={s.lessonContent} dangerouslySetInnerHTML={{ __html: renderMarkdown(text) }} />
+        {isLong && !showAll && (
+          <div style={{ padding: '0 20px 16px', textAlign: 'center' }}>
+            <button onClick={() => setShowAll(true)} style={{
+              background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-md)', padding: '10px 24px',
+              color: 'var(--accent)', fontSize: 13, fontWeight: 600,
+              cursor: 'pointer', fontFamily: 'inherit'
+            }}>
+              Show more ↓
+            </button>
+          </div>
+        )}
+      </div>
+    )
+  }
+
   // ─── TTS Player ───────────────────────────────────────────────────────────
   function TTSPlayer({ lesson }) {
     const [ttsState, setTtsState] = useState('idle') // idle | playing | paused
@@ -264,48 +290,36 @@ export default function LessonScreen({ session, onBack }) {
   }
 
   // ─── Lesson Reader ────────────────────────────────────────────────────────
-  if (view === "lesson") {
-    // Show loading until full lesson content is fetched
-    if (!fullLesson) {
-      return (
-        <div style={s.screen}>
-          <div style={s.readerHeader}>
-            <button style={s.backBtn} onClick={() => { setView("topic"); setFullLesson(null); }}>← Back</button>
-            <span style={s.readerTopic}>{selected?.name}</span>
-          </div>
-          <div style={s.empty}>Loading lesson…</div>
-        </div>
-      )
-    }
+  if (view === "lesson" && activeLesson) {
     return (
       <div style={s.screen}>
         <div style={s.readerHeader}>
           <button style={s.backBtn} onClick={() => { window.speechSynthesis?.cancel(); setView("topic"); setFullLesson(null); }}>← Back</button>
           <span style={s.readerTopic}>{selected?.name}</span>
-          {progress[fullLesson.id]
+          {progress[activeLesson.id]
             ? <span style={s.doneBadge}>✓ Done</span>
-            : <button style={s.doneBtn} onClick={() => markComplete(fullLesson.id)}>Mark Complete</button>
+            : <button style={s.doneBtn} onClick={() => markComplete(activeLesson.id)}>Mark Complete</button>
           }
         </div>
-        {fullLesson.board_relevance && (
-          <div style={s.relevanceBanner}>📋 {fullLesson.board_relevance}</div>
+        {activeLesson.board_relevance && (
+          <div style={s.relevanceBanner}>📋 {activeLesson.board_relevance}</div>
         )}
         <div style={s.readerMeta}>
-          <h1 style={s.lessonTitle}>{fullLesson.title}</h1>
-          <span style={s.readTime}>⏱ ~{fullLesson.read_time_mins} min read</span>
+          <h1 style={s.lessonTitle}>{activeLesson.title}</h1>
+          <span style={s.readTime}>⏱ ~{activeLesson.read_time_mins} min read</span>
         </div>
         <div style={{ padding:'0 20px 8px' }}>
-          <TTSPlayer lesson={fullLesson} />
+          <TTSPlayer lesson={activeLesson} />
         </div>
-        <div style={s.lessonContent} dangerouslySetInnerHTML={{ __html: renderMarkdown(fullLesson.content) }} />
-        {fullLesson.memory_hook && (
+        <div style={s.lessonContent} dangerouslySetInnerHTML={{ __html: renderMarkdown(activeLesson.content) }} />
+        {activeLesson.memory_hook && (
           <div style={s.memoryHook}>
             <div style={s.memoryHookLabel}>🧠 Memory Hook</div>
-            <pre style={s.memoryHookText}>{fullLesson.memory_hook}</pre>
+            <pre style={s.memoryHookText}>{activeLesson.memory_hook}</pre>
           </div>
         )}
-        {!progress[fullLesson.id] && (
-          <button style={s.doneBtnBottom} onClick={() => { window.speechSynthesis?.cancel(); markComplete(fullLesson.id); setView("topic"); setFullLesson(null); }}>
+        {!progress[activeLesson.id] && (
+          <button style={s.doneBtnBottom} onClick={() => { window.speechSynthesis?.cancel(); markComplete(activeLesson.id); setView("topic"); setFullLesson(null); }}>
             ✓ Lesson Complete — Back to List
           </button>
         )}
@@ -439,7 +453,7 @@ export default function LessonScreen({ session, onBack }) {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const s = {
-  screen:         { minHeight: "100vh", background: "var(--bg-base)", color: "var(--text-primary)", fontFamily: "var(--font-ui)", paddingBottom: 80 },
+  screen:         { height: "100vh", overflowY: "auto", background: "var(--bg-base)", color: "var(--text-primary)", fontFamily: "var(--font-ui)", paddingBottom: 80 },
   header:         { display: "flex", alignItems: "center", gap: 12, padding: "16px 20px", borderBottom: "1px solid #1e1e1e" },
   readerHeader:   { display: "flex", alignItems: "center", gap: 12, padding: "16px 20px", borderBottom: "1px solid #1e1e1e", position: "sticky", top: 0, background: "#0f0f0f", zIndex: 10 },
   headerTitle:    { fontSize: 18, fontWeight: 700, color: "#f0ede6", flex: 1 },
