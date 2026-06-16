@@ -113,6 +113,9 @@ export default function TrialScreen({ onTrialStart }) {
 
   return (
     <div className="trial-screen">
+      <button onClick={() => window.history.back()} style={{ position:'absolute', top:20, left:20, display:'flex', alignItems:'center', gap:6, background:'none', border:'none', color:'var(--accent)', fontSize:13, fontWeight:600, cursor:'pointer', padding:8, fontFamily:'inherit' }}>
+        ← Back
+      </button>
       <div className="trial-card">
         <div className="trial-header">
           <div className="trial-badge">FREE · 1 HOUR</div>
@@ -162,7 +165,7 @@ export default function TrialScreen({ onTrialStart }) {
               {[
                 { id: "LET", label: "LET", sub: "Licensure Exam for Teachers" },
                 { id: "NLE", label: "NLE", sub: "Coming soon", disabled: true },
-                { id: "CPA", label: "CPA", sub: "Coming soon", disabled: true },
+                { id: "NAPOLCOM", label: "NAPOLCOM", sub: "Coming soon", disabled: true },
               ].map((c) => (
                 <button
                   key={c.id}
@@ -215,6 +218,7 @@ export default function TrialScreen({ onTrialStart }) {
           justify-content: center;
           padding: 24px 16px;
           background: var(--bg-base);
+          position: relative;
         }
         .trial-card {
           width: 100%;

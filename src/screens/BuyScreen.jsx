@@ -17,8 +17,8 @@ export default function BuyScreen() {
   const COURSES = [
     { id:'LET', name:'LET', full:'Licensure Exam for Teachers', price:249, available:true,  topics:12, questions:'1,200+' },
     { id:'NLE', name:'NLE', full:'Nursing Licensure Exam',       price:249, available:false },
-    { id:'CPA', name:'CPA', full:'CPA Board Exam',               price:249, available:false },
-    { id:'BAR', name:'Bar', full:'Philippine Bar Exam',          price:249, available:false },
+    { id:'NAPOLCOM',     name:'NAPOLCOM',     full:'NAPOLCOM Examination',      price:249, available:false },
+    { id:'Civil Service', name:'Civil Service', full:'Civil Service Examination', price:249, available:false },
   ]
 
   const [selectedCourse, setSelectedCourse] = useState(initCourse)
@@ -118,6 +118,11 @@ export default function BuyScreen() {
     <div style={s.root}>
       <div style={s.bg} />
       <div style={s.card}>
+
+        {/* Back button */}
+        <button onClick={() => window.history.back()} style={{ display:'flex', alignItems:'center', gap:6, background:'none', border:'none', color:'var(--accent)', fontSize:13, fontWeight:600, cursor:'pointer', padding:'0 0 16px', fontFamily:'inherit' }}>
+          ← Back
+        </button>
 
         {/* Brand */}
         <div style={s.brand}>
