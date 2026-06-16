@@ -266,7 +266,7 @@ export default function App() {
 function BottomNav({ activeTab, setActiveTab }) {
   const tabs = [
     { id: 'home',    label: 'Home',    icon: HomeIcon   },
-    { id: 'study',   label: 'Study',   icon: CardsIcon  },
+    { id: 'study',   label: 'Practice', icon: CardsIcon  },
     { id: 'lessons', label: 'Lessons', icon: BookIcon   },
     { id: 'topics',  label: 'Topics',  icon: ChartIcon  },
     { id: 'profile', label: 'Settings', icon: PersonIcon },

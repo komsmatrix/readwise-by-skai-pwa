@@ -203,6 +203,49 @@ export default function LessonScreen({ session, onBack }) {
   const activeLesson = fullLesson || lessons.find(l => l.id === activeId);
   const completedCount = lessons.filter(l => progress[l.id]).length;
 
+  // ─── Quiz state ───────────────────────────────────────────────────────────
+  const [quizCards,   setQuizCards]   = useState([])
+  const [quizIdx,     setQuizIdx]     = useState(0)
+  const [quizChosen,  setQuizChosen]  = useState(null)
+  const [quizAnswered,setQuizAnswered]= useState(false)
+  const [quizResults, setQuizResults] = useState([])
+  const [quizPhase,   setQuizPhase]   = useState('idle') // idle | session | summary
+
+  async function startQuiz(topicId) {
+    const data = await sbFetch(`cards?topic_id=eq.${topicId}&is_active=eq.true&select=id,question,choices,correct_index,explanation,difficulty,bloom_level&limit=100`)
+    if (!data?.length) return
+    // Shuffle and take 10
+    const shuffled = data.sort(() => Math.random() - 0.5).slice(0, 10)
+    setQuizCards(shuffled)
+    setQuizIdx(0)
+    setQuizChosen(null)
+    setQuizAnswered(false)
+    setQuizResults([])
+    setQuizPhase('session')
+    setView('quiz')
+  }
+
+  function pickQuizAnswer(i) {
+    if (quizAnswered) return
+    setQuizChosen(i)
+    setQuizAnswered(true)
+  }
+
+  function nextQuizCard() {
+    const card = quizCards[quizIdx]
+    const correct = quizChosen === card.correct_index
+    const newResults = [...quizResults, { correct, question: card.question }]
+    setQuizResults(newResults)
+    if (quizIdx + 1 >= quizCards.length) {
+      setQuizResults(newResults)
+      setQuizPhase('summary')
+    } else {
+      setQuizIdx(i => i + 1)
+      setQuizChosen(null)
+      setQuizAnswered(false)
+    }
+  }
+
   // ─── Lesson Content (chunked to avoid crash) ─────────────────────────────
   function LessonContent({ content }) {
     const [showAll, setShowAll] = useState(false)
@@ -323,8 +366,144 @@ export default function LessonScreen({ session, onBack }) {
             ✓ Lesson Complete — Back to List
           </button>
         )}
+        {/* Test Yourself button — always shown at bottom of lesson */}
+        <button style={{
+          display: 'block', margin: progress[activeLesson.id] ? '0 20px 20px' : '12px 20px 20px',
+          width: 'calc(100% - 40px)', padding: '14px',
+          background: 'var(--bg-elevated)', color: 'var(--accent)',
+          border: '1px solid var(--accent)', borderRadius: 12,
+          fontSize: 14, fontWeight: 700, cursor: 'pointer', textAlign: 'center',
+          fontFamily: 'inherit',
+        }} onClick={() => { window.speechSynthesis?.cancel(); startQuiz(selected?.id); }}>
+          🧪 Test Yourself — 10 Questions
+        </button>
       </div>
     );
+  }
+
+  // ─── Quiz Session ─────────────────────────────────────────────────────────
+  if (view === 'quiz' && quizPhase === 'session' && quizCards.length > 0) {
+    const card = quizCards[quizIdx]
+    const choices = Array.isArray(card.choices) && card.choices.length > 0 ? card.choices : []
+    const correctIndex = card.correct_index || 0
+
+    return (
+      <div style={s.screen}>
+        <div style={{ ...s.readerHeader, position: 'sticky', top: 0 }}>
+          <button style={s.backBtn} onClick={() => { setView('lesson'); setQuizPhase('idle'); }}>← Back to Lesson</button>
+          <span style={s.readerTopic}>{selected?.name}</span>
+          <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{quizIdx + 1}/{quizCards.length}</span>
+        </div>
+
+        {/* Progress bar */}
+        <div style={{ padding: '10px 20px 0' }}>
+          <div style={{ height: 4, background: 'var(--bg-elevated)', borderRadius: 2, overflow: 'hidden' }}>
+            <div style={{ height: '100%', background: 'var(--accent)', borderRadius: 2, width: `${((quizIdx) / quizCards.length) * 100}%`, transition: 'width .4s' }} />
+          </div>
+        </div>
+
+        <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {/* Tags */}
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 10, background: '#1A2D1A', color: '#10B981', fontWeight: 600 }}>{card.difficulty}</span>
+            <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 10, background: '#2D1A2A', color: '#8B5CF6', fontWeight: 600 }}>{card.bloom_level}</span>
+            <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 10, background: 'rgba(201,168,76,0.1)', color: '#c9a84c', fontWeight: 600 }}>Test Yourself</span>
+          </div>
+
+          {/* Question */}
+          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 20 }}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.6, marginBottom: 16 }}>{card.question}</div>
+
+            {/* Choices */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {choices.map((choice, i) => {
+                let border = 'var(--border)', bg = 'var(--bg-elevated)', color = 'var(--text-primary)'
+                if (quizAnswered) {
+                  if (i === correctIndex)                                     { border = '#10B981'; bg = 'rgba(16,185,129,0.08)'; color = '#10B981' }
+                  else if (i === quizChosen && i !== correctIndex) { border = '#e05c5c'; bg = 'rgba(224,92,92,0.08)'; color = '#e05c5c' }
+                  else { color = 'var(--text-muted)' }
+                }
+                return (
+                  <button key={i} onClick={() => pickQuizAnswer(i)} style={{
+                    background: bg, border: `1.5px solid ${border}`, borderRadius: 10,
+                    padding: '11px 14px', fontSize: 13, cursor: quizAnswered ? 'default' : 'pointer',
+                    textAlign: 'left', color, fontFamily: 'inherit', transition: 'all 0.15s',
+                  }}>{choice}</button>
+                )
+              })}
+            </div>
+
+            {/* Explanation */}
+            {quizAnswered && card.explanation && (
+              <div style={{ marginTop: 12, padding: '10px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 10, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}
+                dangerouslySetInnerHTML={{ __html: card.explanation }} />
+            )}
+          </div>
+
+          {quizAnswered && (
+            <button style={{ width: '100%', background: 'var(--accent)', color: '#0d0d0d', border: 'none', borderRadius: 12, padding: 14, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+              onClick={nextQuizCard}>
+              {quizIdx + 1 >= quizCards.length ? 'See Results' : 'Next Question →'}
+            </button>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  // ─── Quiz Summary ─────────────────────────────────────────────────────────
+  if (view === 'quiz' && quizPhase === 'summary') {
+    const correct = quizResults.filter(r => r.correct).length
+    const total = quizResults.length
+    const pct = Math.round((correct / total) * 100)
+    const passed = pct >= 70
+
+    return (
+      <div style={s.screen}>
+        <div style={s.readerHeader}>
+          <button style={s.backBtn} onClick={() => { setView('topic'); setQuizPhase('idle'); }}>← Back to Topic</button>
+          <span style={s.readerTopic}>{selected?.name}</span>
+        </div>
+        <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* Score */}
+          <div style={{ background: 'var(--bg-surface)', border: `1px solid ${passed ? '#10B981' : '#e05c5c'}`, borderRadius: 16, padding: 24, textAlign: 'center' }}>
+            <div style={{ fontSize: 56, fontWeight: 800, color: passed ? '#10B981' : '#e05c5c', lineHeight: 1 }}>{pct}%</div>
+            <div style={{ fontSize: 14, color: 'var(--text-muted)', marginTop: 8 }}>{correct} of {total} correct</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', marginTop: 12 }}>
+              {passed ? '✅ Good job! Keep it up.' : '📖 Review the lesson again and retry.'}
+            </div>
+          </div>
+
+          {/* Stats row */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+            {[
+              { label: 'Correct', val: correct, color: '#10B981' },
+              { label: 'Wrong', val: total - correct, color: '#e05c5c' },
+              { label: 'Score', val: `${pct}%`, color: 'var(--accent)' },
+            ].map(s2 => (
+              <div key={s2.label} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 12, textAlign: 'center' }}>
+                <div style={{ fontSize: 24, fontWeight: 800, color: s2.color }}>{s2.val}</div>
+                <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 3 }}>{s2.label}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Actions */}
+          <button style={{ width: '100%', background: 'var(--accent)', color: '#0d0d0d', border: 'none', borderRadius: 12, padding: 14, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+            onClick={() => startQuiz(selected?.id)}>
+            🔄 Retry Quiz
+          </button>
+          <button style={{ width: '100%', background: 'var(--bg-elevated)', color: 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: 12, padding: 14, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+            onClick={() => { setView('lesson'); setQuizPhase('idle'); }}>
+            ← Back to Lesson
+          </button>
+          <button style={{ width: '100%', background: 'none', color: 'var(--text-muted)', border: '1px solid var(--border)', borderRadius: 12, padding: 14, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}
+            onClick={() => { setView('topic'); setQuizPhase('idle'); }}>
+            Back to Topic List
+          </button>
+        </div>
+      </div>
+    )
   }
 
   // ─── Topic Lesson List ────────────────────────────────────────────────────
