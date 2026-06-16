@@ -99,8 +99,8 @@ export default function ProfileScreen({ customer, studentExam, onSignOut, onExam
           })}
         </div>
 
-        {/* Appearance */}
-        <div style={s.sectionLabel}>Appearance</div>
+        {/* Theme */}
+        <div style={s.sectionLabel}>Theme</div>
         <div style={{ padding:'0 20px', display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:8 }}>
           {[
             { id:'dark',      label:'🌑 Dark',       sub:'Default' },
