@@ -20,33 +20,55 @@ async function sbFetch(path, options = {}) {
   return text ? JSON.parse(text) : []
 }
 
-// ─── Markdown renderer ────────────────────────────────────────────────────────
+// ─── Beautiful Markdown Renderer ─────────────────────────────────────────────
 function renderMarkdown(text) {
   if (!text) return ""
+
+  // Pre-process: detect plain prose (no markdown) and auto-structure it
+  const hasMarkdown = /^#{1,3} |^[-*+] |^\d+\. |^>|^```|\*\*|__|\|/.test(text)
+  if (!hasMarkdown) {
+    return renderPlainProse(text)
+  }
 
   const lines = text.split("\n")
   let html = ""
   let i = 0
+  let sectionCount = 0
 
   while (i < lines.length) {
     const line = lines[i]
-
-    // Blank line
     if (!line.trim()) { i++; continue }
 
-    // Headings
-    if (line.startsWith("### ")) { html += `<h3 style="font-size:16px;font-weight:700;color:var(--text-primary);margin:20px 0 8px;line-height:1.3">${inlineFormat(line.slice(4))}</h3>`; i++; continue }
-    if (line.startsWith("## "))  { html += `<h2 style="font-size:19px;font-weight:700;color:var(--text-primary);margin:24px 0 10px;line-height:1.3">${inlineFormat(line.slice(3))}</h2>`; i++; continue }
-    if (line.startsWith("# "))   { html += `<h1 style="font-size:22px;font-weight:800;color:var(--text-primary);margin:28px 0 12px;line-height:1.3">${inlineFormat(line.slice(2))}</h1>`; i++; continue }
+    // H1 — large section title with accent underline
+    if (line.startsWith("# ")) {
+      sectionCount++
+      html += `<h1 style="font-size:22px;font-weight:800;color:var(--text-primary);margin:32px 0 6px;line-height:1.3;padding-bottom:8px;border-bottom:2px solid var(--accent)">${inlineFormat(line.slice(2))}</h1>`
+      i++; continue
+    }
 
-    // Horizontal rule
-    if (line.trim() === "---" || line.trim() === "***") { html += `<hr style="border:none;border-top:1px solid var(--border);margin:20px 0"/>`; i++; continue }
+    // H2 — subsection with left accent bar
+    if (line.startsWith("## ")) {
+      html += `<h2 style="font-size:17px;font-weight:700;color:var(--text-primary);margin:28px 0 8px;line-height:1.3;padding-left:12px;border-left:3px solid var(--accent)">${inlineFormat(line.slice(3))}</h2>`
+      i++; continue
+    }
 
-    // Blockquote
+    // H3 — small label style
+    if (line.startsWith("### ")) {
+      html += `<h3 style="font-size:14px;font-weight:700;color:var(--accent);margin:20px 0 6px;line-height:1.3;text-transform:uppercase;letter-spacing:0.05em">${inlineFormat(line.slice(4))}</h3>`
+      i++; continue
+    }
+
+    // HR — decorative divider
+    if (line.trim() === "---" || line.trim() === "***") {
+      html += `<div style="display:flex;align-items:center;gap:12px;margin:24px 0"><div style="flex:1;height:1px;background:var(--border)"></div><div style="width:6px;height:6px;border-radius:50%;background:var(--accent);opacity:0.5"></div><div style="flex:1;height:1px;background:var(--border)"></div></div>`
+      i++; continue
+    }
+
+    // Blockquote — styled as key concept callout
     if (line.startsWith("> ")) {
       let bq = ""
       while (i < lines.length && lines[i].startsWith("> ")) { bq += inlineFormat(lines[i].slice(2)) + " "; i++ }
-      html += `<blockquote style="border-left:3px solid var(--accent);padding:8px 14px;margin:12px 0;color:var(--text-secondary);font-style:italic;background:var(--bg-elevated);border-radius:0 8px 8px 0">${bq.trim()}</blockquote>`
+      html += `<div style="background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.25);border-left:4px solid var(--accent);border-radius:0 10px 10px 0;padding:14px 16px;margin:16px 0"><div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:0.08em;margin-bottom:6px;text-transform:uppercase">Key Concept</div><div style="font-size:14px;color:var(--text-primary);line-height:1.7">${bq.trim()}</div></div>`
       continue
     }
 
@@ -55,44 +77,45 @@ function renderMarkdown(text) {
       i++
       let code = ""
       while (i < lines.length && !lines[i].startsWith("```")) { code += lines[i] + "\n"; i++ }
-      i++ // skip closing ```
-      html += `<pre style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px;padding:14px;overflow-x:auto;margin:12px 0"><code style="font-size:12px;color:var(--text-primary);line-height:1.6;white-space:pre;font-family:monospace">${escHtml(code.trimEnd())}</code></pre>`
+      i++
+      html += `<pre style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:10px;padding:16px;overflow-x:auto;margin:16px 0"><code style="font-size:12px;color:var(--text-primary);line-height:1.7;white-space:pre;font-family:monospace">${escHtml(code.trimEnd())}</code></pre>`
       continue
     }
 
-    // Unordered list
+    // Unordered list — styled bullets
     if (line.match(/^[-*+] /)) {
       let items = ""
       while (i < lines.length && lines[i].match(/^[-*+] /)) {
-        items += `<li style="margin:4px 0;line-height:1.7">${inlineFormat(lines[i].slice(2))}</li>`
+        items += `<li style="margin:6px 0;line-height:1.75;color:var(--text-secondary);padding-left:4px">${inlineFormat(lines[i].slice(2))}</li>`
         i++
       }
-      html += `<ul style="margin:10px 0;padding-left:20px;color:var(--text-secondary)">${items}</ul>`
+      html += `<ul style="margin:12px 0;padding-left:20px;list-style:none">${items.replace(/<li /g, '<li style="margin:6px 0;line-height:1.75;color:var(--text-secondary);padding-left:4px;position:relative" ').replace(/padding-left:4px" >/g, 'padding-left:20px" ><span style="position:absolute;left:0;color:var(--accent);font-weight:700">›</span>')}</ul>`
       continue
     }
 
-    // Numbered list
+    // Numbered list — clean numbered style
     if (line.match(/^\d+\. /)) {
       let items = ""
+      let num = 1
       while (i < lines.length && lines[i].match(/^\d+\. /)) {
-        items += `<li style="margin:4px 0;line-height:1.7">${inlineFormat(lines[i].replace(/^\d+\. /, ""))}</li>`
-        i++
+        items += `<li style="margin:8px 0;line-height:1.75;color:var(--text-secondary);display:flex;gap:12px;align-items:flex-start"><span style="min-width:24px;height:24px;background:var(--accent-dim);border:1px solid var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--accent);flex-shrink:0;margin-top:2px">${num}</span><span>${inlineFormat(lines[i].replace(/^\d+\. /, ""))}</span></li>`
+        num++; i++
       }
-      html += `<ol style="margin:10px 0;padding-left:20px;color:var(--text-secondary)">${items}</ol>`
+      html += `<ol style="margin:12px 0;padding:0;list-style:none">${items}</ol>`
       continue
     }
 
-    // Table
+    // Table — styled with alternating rows
     if (line.includes("|") && line.trim().startsWith("|")) {
       const tableLines = []
       while (i < lines.length && lines[i].includes("|")) { tableLines.push(lines[i]); i++ }
       const rows = tableLines.filter(r => !r.match(/^[|\s-:]+$/))
-      let tableHtml = `<div style="overflow-x:auto;margin:12px 0"><table style="width:100%;border-collapse:collapse;font-size:13px">`
+      let tableHtml = `<div style="overflow-x:auto;margin:16px 0;border-radius:10px;border:1px solid var(--border);overflow:hidden"><table style="width:100%;border-collapse:collapse;font-size:13px">`
       rows.forEach((row, ri) => {
-        const cells = row.split("|").filter((_,ci) => ci > 0 && ci < row.split("|").length - 1)
+        const cells = row.split("|").filter((_, ci) => ci > 0 && ci < row.split("|").length - 1)
         const tag = ri === 0 ? "th" : "td"
-        const rowStyle = ri === 0 ? "background:var(--bg-elevated)" : ri % 2 === 0 ? "background:var(--bg-surface)" : ""
-        tableHtml += `<tr style="${rowStyle}">${cells.map(c => `<${tag} style="padding:8px 12px;border:1px solid var(--border);text-align:left;color:var(--text-primary)">${inlineFormat(c.trim())}</${tag}>`).join("")}</tr>`
+        const rowBg = ri === 0 ? "background:var(--bg-elevated)" : ri % 2 === 0 ? "background:rgba(255,255,255,0.02)" : ""
+        tableHtml += `<tr style="${rowBg}">${cells.map(c => `<${tag} style="padding:10px 14px;border-bottom:1px solid var(--border);text-align:left;color:${ri===0?'var(--accent)':'var(--text-secondary)'};font-weight:${ri===0?700:400};font-size:${ri===0?'11px':'13px'};${ri===0?'text-transform:uppercase;letter-spacing:0.05em':''}">${inlineFormat(c.trim())}</${tag}>`).join("")}</tr>`
       })
       tableHtml += "</table></div>"
       html += tableHtml
@@ -105,9 +128,26 @@ function renderMarkdown(text) {
       para += (para ? " " : "") + lines[i]
       i++
     }
-    if (para) html += `<p style="margin:10px 0;line-height:1.8;color:var(--text-secondary)">${inlineFormat(para)}</p>`
+    if (para) html += `<p style="margin:0 0 14px;line-height:1.85;color:var(--text-secondary);font-size:15px">${inlineFormat(para)}</p>`
   }
 
+  return html
+}
+
+// Plain prose renderer — auto-structures paragraphs beautifully
+function renderPlainProse(text) {
+  const paragraphs = text.split(/\n\n+/).filter(p => p.trim())
+  let html = ""
+  paragraphs.forEach((para, i) => {
+    const clean = para.replace(/\n/g, " ").trim()
+    if (!clean) return
+    // First paragraph gets larger treatment
+    if (i === 0) {
+      html += `<p style="margin:0 0 18px;line-height:1.9;color:var(--text-primary);font-size:16px;font-weight:500">${inlineFormat(clean)}</p>`
+    } else {
+      html += `<p style="margin:0 0 16px;line-height:1.85;color:var(--text-secondary);font-size:15px">${inlineFormat(clean)}</p>`
+    }
+  })
   return html
 }
 
@@ -115,9 +155,10 @@ function inlineFormat(text) {
   return text
     .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
     .replace(/\*\*\*(.+?)\*\*\*/g, "<strong><em>$1</em></strong>")
-    .replace(/\*\*(.+?)\*\*/g, "<strong style=\"color:var(--text-primary)\">$1</strong>")
-    .replace(/\*(.+?)\*/g, "<em>$1</em>")
-    .replace(/`(.+?)`/g, "<code style=\"background:var(--bg-elevated);padding:2px 6px;border-radius:4px;font-size:12px;font-family:monospace;color:var(--accent)\">$1</code>")
+    .replace(/\*\*(.+?)\*\*/g, "<strong style=\"color:var(--text-primary);background:rgba(201,168,76,0.1);padding:1px 3px;border-radius:3px\">$1</strong>")
+    .replace(/\*(.+?)\*/g, "<em style=\"color:var(--text-primary)\">$1</em>")
+    .replace(/__(.+?)__/g, "<strong style=\"color:var(--text-primary)\">$1</strong>")
+    .replace(/`(.+?)`/g, "<code style=\"background:var(--bg-elevated);border:1px solid var(--border);padding:2px 7px;border-radius:5px;font-size:12px;font-family:monospace;color:var(--accent)\">$1</code>")
 }
 
 function escHtml(text) {
@@ -336,47 +377,83 @@ export default function LessonScreen({ session, onBack }) {
   if (view === "lesson" && activeLesson) {
     return (
       <div style={s.screen}>
+        {/* Sticky header */}
         <div style={s.readerHeader}>
           <button style={s.backBtn} onClick={() => { window.speechSynthesis?.cancel(); setView("topic"); setFullLesson(null); }}>← Back</button>
           <span style={s.readerTopic}>{selected?.name}</span>
           {progress[activeLesson.id]
             ? <span style={s.doneBadge}>✓ Done</span>
-            : <button style={s.doneBtn} onClick={() => markComplete(activeLesson.id)}>Mark Complete</button>
+            : <button style={s.doneBtn} onClick={() => markComplete(activeLesson.id)}>Mark done</button>
           }
         </div>
+
+        {/* Board relevance banner */}
         {activeLesson.board_relevance && (
-          <div style={s.relevanceBanner}>📋 {activeLesson.board_relevance}</div>
-        )}
-        <div style={s.readerMeta}>
-          <h1 style={s.lessonTitle}>{activeLesson.title}</h1>
-          <span style={s.readTime}>⏱ ~{activeLesson.read_time_mins} min read</span>
-        </div>
-        <div style={{ padding:'0 20px 8px' }}>
-          <TTSPlayer lesson={activeLesson} />
-        </div>
-        <div style={s.lessonContent} dangerouslySetInnerHTML={{ __html: renderMarkdown(activeLesson.content) }} />
-        {activeLesson.memory_hook && (
-          <div style={s.memoryHook}>
-            <div style={s.memoryHookLabel}>🧠 Memory Hook</div>
-            <pre style={s.memoryHookText}>{activeLesson.memory_hook}</pre>
+          <div style={{ background:'rgba(201,168,76,0.07)', borderBottom:'1px solid rgba(201,168,76,0.15)', padding:'10px 20px', fontSize:12, color:'#c9a84c', lineHeight:1.5, display:'flex', gap:8, alignItems:'flex-start' }}>
+            <span style={{ flexShrink:0 }}>📋</span>
+            <span>{activeLesson.board_relevance}</span>
           </div>
         )}
-        {!progress[activeLesson.id] && (
-          <button style={s.doneBtnBottom} onClick={() => { window.speechSynthesis?.cancel(); markComplete(activeLesson.id); setView("topic"); setFullLesson(null); }}>
-            ✓ Lesson Complete — Back to List
-          </button>
-        )}
-        {/* Test Yourself button — always shown at bottom of lesson */}
-        <button style={{
-          display: 'block', margin: progress[activeLesson.id] ? '0 20px 20px' : '12px 20px 20px',
-          width: 'calc(100% - 40px)', padding: '14px',
-          background: 'var(--bg-elevated)', color: 'var(--accent)',
-          border: '1px solid var(--accent)', borderRadius: 12,
-          fontSize: 14, fontWeight: 700, cursor: 'pointer', textAlign: 'center',
-          fontFamily: 'inherit',
-        }} onClick={() => { window.speechSynthesis?.cancel(); startQuiz(selected?.id); }}>
-          🧪 Test Yourself — 10 Questions
-        </button>
+
+        {/* Reader body */}
+        <div style={{ maxWidth:680, margin:'0 auto', padding:'0 20px 100px', width:'100%', boxSizing:'border-box' }}>
+
+          {/* Title block */}
+          <div style={{ padding:'28px 0 20px', borderBottom:'1px solid var(--border)', marginBottom:24 }}>
+            <div style={{ fontSize:11, fontWeight:700, color:'var(--accent)', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:10 }}>
+              {selected?.name}
+            </div>
+            <h1 style={{ fontSize:26, fontWeight:800, color:'var(--text-primary)', lineHeight:1.25, margin:'0 0 12px' }}>
+              {activeLesson.title}
+            </h1>
+            <div style={{ display:'flex', alignItems:'center', gap:16, flexWrap:'wrap' }}>
+              <span style={{ fontSize:12, color:'var(--text-muted)' }}>⏱ ~{activeLesson.read_time_mins || 10} min read</span>
+              {progress[activeLesson.id] && (
+                <span style={{ fontSize:11, fontWeight:700, color:'#22c55e', background:'rgba(34,197,94,0.1)', border:'1px solid rgba(34,197,94,0.2)', padding:'3px 10px', borderRadius:20 }}>✓ Completed</span>
+              )}
+            </div>
+          </div>
+
+          {/* TTS player */}
+          <TTSPlayer lesson={activeLesson} />
+
+          {/* Main content */}
+          <div style={{ fontSize:15, lineHeight:1.85, color:'var(--text-secondary)' }}
+            dangerouslySetInnerHTML={{ __html: renderMarkdown(activeLesson.content) }} />
+
+          {/* Memory hook */}
+          {activeLesson.memory_hook && (
+            <div style={{ marginTop:32, background:'rgba(201,168,76,0.06)', border:'1px solid rgba(201,168,76,0.2)', borderRadius:14, padding:20, position:'relative', overflow:'hidden' }}>
+              <div style={{ position:'absolute', top:0, left:0, right:0, height:3, background:'linear-gradient(90deg, var(--accent), transparent)' }} />
+              <div style={{ fontSize:11, fontWeight:700, color:'var(--accent)', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:12, display:'flex', alignItems:'center', gap:6 }}>
+                <span>🧠</span> Memory Hook
+              </div>
+              <div style={{ fontSize:14, color:'var(--text-primary)', lineHeight:1.8, fontFamily:"'DM Mono', monospace", whiteSpace:'pre-wrap' }}>
+                {activeLesson.memory_hook}
+              </div>
+            </div>
+          )}
+
+          {/* Action buttons */}
+          <div style={{ marginTop:28, display:'flex', flexDirection:'column', gap:10 }}>
+            {!progress[activeLesson.id] && (
+              <button style={{ width:'100%', padding:'15px', background:'var(--accent)', color:'#0d0d0d', border:'none', borderRadius:12, fontSize:14, fontWeight:800, cursor:'pointer', fontFamily:'inherit' }}
+                onClick={() => { window.speechSynthesis?.cancel(); markComplete(activeLesson.id); setView("topic"); setFullLesson(null); }}>
+                ✓ Mark Complete & Continue
+              </button>
+            )}
+            <button style={{ width:'100%', padding:'14px', background:'var(--bg-elevated)', color:'var(--accent)', border:'1px solid var(--accent)', borderRadius:12, fontSize:14, fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}
+              onClick={() => { window.speechSynthesis?.cancel(); startQuiz(selected?.id); }}>
+              🧪 Test Yourself — 10 Questions
+            </button>
+            {progress[activeLesson.id] && (
+              <button style={{ width:'100%', padding:'13px', background:'none', color:'var(--text-muted)', border:'1px solid var(--border)', borderRadius:12, fontSize:13, cursor:'pointer', fontFamily:'inherit' }}
+                onClick={() => { window.speechSynthesis?.cancel(); setView("topic"); setFullLesson(null); }}>
+                ← Back to Topic
+              </button>
+            )}
+          </div>
+        </div>
       </div>
     );
   }
