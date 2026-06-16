@@ -540,7 +540,7 @@ function LessonsTab() {
   async function loadData() {
     const [{ data: t }, { data: l }] = await Promise.all([
       supabase.from('topics').select('id, name').order('name'),
-      supabase.from('lessons').select('id, topic_id, title, content, memory_hook, board_relevance').order('title'),
+      supabase.from('lessons').select('id, topic_id, title, content, memory_hook, board_relevance, image_url, video_url, audio_url, infographic_url, mindmap_url').order('title'),
     ])
     setTopics(t || [])
     setLessons(l || [])
@@ -557,6 +557,10 @@ function LessonsTab() {
         memory_hook: editLesson.memory_hook,
         board_relevance: editLesson.board_relevance,
         image_url: editLesson.image_url || null,
+        video_url: editLesson.video_url || null,
+        audio_url: editLesson.audio_url || null,
+        infographic_url: editLesson.infographic_url || null,
+        mindmap_url: editLesson.mindmap_url || null,
       }).eq('id', editLesson.id)
     } else {
       await supabase.from('lessons').insert([{
@@ -566,6 +570,10 @@ function LessonsTab() {
         memory_hook: editLesson.memory_hook,
         board_relevance: editLesson.board_relevance,
         image_url: editLesson.image_url || null,
+        video_url: editLesson.video_url || null,
+        audio_url: editLesson.audio_url || null,
+        infographic_url: editLesson.infographic_url || null,
+        mindmap_url: editLesson.mindmap_url || null,
       }])
     }
     setSaving(false)
@@ -607,7 +615,7 @@ function LessonsTab() {
       const { data: { publicUrl } } = supabase.storage.from('lesson-images').getPublicUrl(path)
       setEditLesson(p => ({ ...p, image_url: publicUrl, image_uploading: false }))
     } catch(err) {
-      alert('Image upload failed: ' + err.message)
+      alert('Image upload failed: ' + err.message + '. Make sure lesson-images bucket exists in Supabase Storage.')
       setEditLesson(p => ({ ...p, image_uploading: false }))
     }
     e.target.value = ''
@@ -665,28 +673,62 @@ function LessonsTab() {
           <input style={s.input} value={editLesson.board_relevance || ''}
             onChange={e => setEditLesson(p => ({ ...p, board_relevance: e.target.value }))} />
         </div>
+        {/* Image Upload */}
         <div style={s.field}>
-          <label style={s.label}>Lesson Image (optional)</label>
+          <label style={s.label}>🖼 Lesson Image</label>
           <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
             <label style={{ display:'flex', alignItems:'center', gap:6, background:'var(--bg-elevated)', border:'1px solid var(--accent)', borderRadius:6, padding:'5px 12px', cursor:'pointer', fontSize:12, color:'var(--accent)', fontWeight:600 }}>
-              🖼 Upload Image
+              📷 Upload Image
               <input type="file" accept="image/*" style={{ display:'none' }} onChange={handleImageUpload} />
             </label>
             {editLesson.image_uploading && <span style={{ fontSize:11, color:'var(--text-muted)' }}>Uploading…</span>}
-            {editLesson.image_url && <span style={{ fontSize:11, color:'#10B981' }}>✓ Image uploaded</span>}
+            {editLesson.image_url && <span style={{ fontSize:11, color:'#10B981' }}>✓ Uploaded</span>}
           </div>
           {editLesson.image_url && (
-            <div style={{ marginTop:6 }}>
-              <img src={editLesson.image_url} alt="lesson" style={{ maxWidth:'100%', maxHeight:160, borderRadius:8, border:'1px solid var(--border)' }} />
-              <div style={{ fontSize:10, color:'var(--text-muted)', marginTop:4, fontFamily:'monospace', wordBreak:'break-all' }}>{editLesson.image_url}</div>
-              <button style={{ fontSize:11, color:'#e05c5c', background:'none', border:'none', cursor:'pointer', marginTop:4, padding:0 }}
-                onClick={() => setEditLesson(p => ({ ...p, image_url: '' }))}>Remove image</button>
+            <div style={{ position:'relative', marginBottom:6 }}>
+              <img src={editLesson.image_url} alt="" style={{ maxWidth:'100%', maxHeight:140, borderRadius:8, border:'1px solid var(--border)', display:'block' }} />
+              <button onClick={() => setEditLesson(p => ({ ...p, image_url: '' }))}
+                style={{ position:'absolute', top:6, right:6, background:'rgba(0,0,0,0.7)', border:'none', color:'#fff', borderRadius:4, padding:'2px 8px', fontSize:11, cursor:'pointer' }}>✕</button>
             </div>
           )}
-          <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:4 }}>
-            Image will be embedded at the top of the lesson. Students see it when reading.
-          </div>
+          <input style={s.input} placeholder="Or paste image URL…" value={editLesson.image_url || ''}
+            onChange={e => setEditLesson(p => ({ ...p, image_url: e.target.value }))} />
         </div>
+
+        {/* Video URL */}
+        <div style={s.field}>
+          <label style={s.label}>🎬 YouTube Video URL</label>
+          <input style={s.input} placeholder="https://youtube.com/watch?v=…"
+            value={editLesson.video_url || ''}
+            onChange={e => setEditLesson(p => ({ ...p, video_url: e.target.value }))} />
+          <div style={{ fontSize:10, color:'var(--text-muted)', marginTop:3 }}>Shows as embedded video in the lesson</div>
+        </div>
+
+        {/* Audio URL */}
+        <div style={s.field}>
+          <label style={s.label}>🎧 Audio URL</label>
+          <input style={s.input} placeholder="https://… (Supabase storage or direct .mp3 link)"
+            value={editLesson.audio_url || ''}
+            onChange={e => setEditLesson(p => ({ ...p, audio_url: e.target.value }))} />
+          <div style={{ fontSize:10, color:'var(--text-muted)', marginTop:3 }}>NotebookLM audio or any direct audio file</div>
+        </div>
+
+        {/* Infographic URL */}
+        <div style={s.field}>
+          <label style={s.label}>🖼 Infographic URL</label>
+          <input style={s.input} placeholder="https://… (image link)"
+            value={editLesson.infographic_url || ''}
+            onChange={e => setEditLesson(p => ({ ...p, infographic_url: e.target.value }))} />
+        </div>
+
+        {/* Mindmap URL */}
+        <div style={s.field}>
+          <label style={s.label}>🗺 Mindmap URL</label>
+          <input style={s.input} placeholder="https://… (Canva, Miro, or image link)"
+            value={editLesson.mindmap_url || ''}
+            onChange={e => setEditLesson(p => ({ ...p, mindmap_url: e.target.value }))} />
+        </div>
+
         <button style={s.btn} onClick={saveLesson} disabled={saving}>
           {saving ? 'Saving…' : 'Save Lesson'}
         </button>

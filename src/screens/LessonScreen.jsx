@@ -210,7 +210,7 @@ export default function LessonScreen({ session, onBack }) {
 
   async function loadLessons(topicId) {
     setLL(true);
-    const lessonData = await sbFetch(`lessons?topic_id=eq.${topicId}&is_active=eq.true&order=sort_order&select=id,title,memory_hook,board_relevance,read_time_mins,sort_order,topic_id`);
+    const lessonData = await sbFetch(`lessons?topic_id=eq.${topicId}&is_active=eq.true&order=sort_order&select=id,title,memory_hook,board_relevance,read_time_mins,sort_order,topic_id,image_url,video_url,audio_url,infographic_url,mindmap_url`);
     setLessons(lessonData || []);
     if (customerId && lessonData?.length) {
       const ids = lessonData.map(l => l.id).join(',');
@@ -440,6 +440,47 @@ export default function LessonScreen({ session, onBack }) {
               <div style={{ fontSize:14, color:'var(--text-primary)', lineHeight:1.8, fontFamily:"'DM Mono', monospace", whiteSpace:'pre-wrap' }}>
                 {activeLesson.memory_hook}
               </div>
+            </div>
+          )}
+
+          {/* Media resources */}
+          {(activeLesson.video_url || activeLesson.audio_url || activeLesson.infographic_url || activeLesson.mindmap_url) && (
+            <div style={{ marginTop:28, background:'var(--bg-surface)', border:'1px solid var(--border)', borderRadius:14, padding:18 }}>
+              <div style={{ fontSize:11, fontWeight:700, color:'var(--accent)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:14 }}>
+                📎 Resources
+              </div>
+              {activeLesson.video_url && (
+                <div style={{ marginBottom:14 }}>
+                  <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:6 }}>🎬 Video</div>
+                  <iframe
+                    src={activeLesson.video_url.replace('watch?v=', 'embed/')}
+                    style={{ width:'100%', aspectRatio:'16/9', borderRadius:10, border:'none' }}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen />
+                </div>
+              )}
+              {activeLesson.audio_url && (
+                <div style={{ marginBottom:14 }}>
+                  <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:6 }}>🎧 Audio</div>
+                  <audio controls style={{ width:'100%', borderRadius:8 }} src={activeLesson.audio_url} />
+                </div>
+              )}
+              {activeLesson.infographic_url && (
+                <div style={{ marginBottom:14 }}>
+                  <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:6 }}>🖼 Infographic</div>
+                  <img src={activeLesson.infographic_url} alt="Infographic"
+                    style={{ width:'100%', borderRadius:10, border:'1px solid var(--border)' }} />
+                </div>
+              )}
+              {activeLesson.mindmap_url && (
+                <div style={{ marginBottom:4 }}>
+                  <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:6 }}>🗺 Mindmap</div>
+                  <a href={activeLesson.mindmap_url} target="_blank" rel="noopener noreferrer"
+                    style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 14px', background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:10, textDecoration:'none', color:'var(--accent)', fontSize:13, fontWeight:600 }}>
+                    Open Mindmap →
+                  </a>
+                </div>
+              )}
             </div>
           )}
 

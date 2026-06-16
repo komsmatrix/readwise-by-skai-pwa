@@ -20,11 +20,11 @@
   --radius-md  : 8px;
   --radius-lg  : 12px;
   --radius-xl  : 16px;
-  /* Dark: Sophisticated — Playfair Display for headings, Lora for reading */
-  --font-display: 'Playfair Display', 'Georgia', serif;
-  --font-ui     : 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-reader : 'Lora', 'Georgia', serif;
-  --font-mono   : 'DM Mono', monospace;
+  /* Dark: Sophisticated — Playfair Display/Georgia serif */
+  --font-display: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  --font-ui     : 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-reader : 'Lora', Georgia, 'Times New Roman', serif;
+  --font-mono   : 'DM Mono', 'Courier New', monospace;
   --transition  : 0.15s ease;
 }
 
@@ -42,11 +42,11 @@
   --accent     : #7a5c0f;
   --accent-dim : rgba(122,92,15,0.10);
   --reader-bg  : #f5f0e4;
-  /* Parchment: Classic book feel — Crimson Pro for reading, Josefin Sans for UI */
-  --font-display: 'Playfair Display', 'Georgia', serif;
-  --font-ui     : 'Josefin Sans', 'Georgia', serif;
-  --font-reader : 'Crimson Pro', 'Georgia', serif;
-  --font-mono   : 'DM Mono', monospace;
+  /* Parchment: Classic book — Palatino is on all devices */
+  --font-display: 'Playfair Display', Palatino, 'Book Antiqua', Georgia, serif;
+  --font-ui     : 'Josefin Sans', Optima, Candara, 'Segoe UI', sans-serif;
+  --font-reader : 'Crimson Pro', Palatino, 'Book Antiqua', Georgia, serif;
+  --font-mono   : 'DM Mono', 'Courier New', monospace;
 }
 
 /* ── THEME: Slate — Cool & Professional ── */
@@ -63,11 +63,11 @@
   --accent     : #5ba3d9;
   --accent-dim : rgba(91,163,217,0.12);
   --reader-bg  : #253347;
-  /* Slate: Clean & corporate — Inter everywhere, precise and legible */
-  --font-display: 'Inter', sans-serif;
-  --font-ui     : 'Inter', sans-serif;
-  --font-reader : 'Inter', sans-serif;
-  --font-mono   : 'DM Mono', monospace;
+  /* Slate: Clean & corporate — system sans-serif */
+  --font-display: 'Inter', 'Segoe UI', Arial, sans-serif;
+  --font-ui     : 'Inter', 'Segoe UI', Arial, sans-serif;
+  --font-reader : 'Inter', 'Segoe UI', Arial, sans-serif;
+  --font-mono   : 'DM Mono', 'Courier New', monospace;
 }
 
 /* ── THEME: Cosmos — Deep & Immersive ── */
@@ -84,11 +84,11 @@
   --accent     : #9b7fe8;
   --accent-dim : rgba(155,127,232,0.13);
   --reader-bg  : #141728;
-  /* Cosmos: Futuristic editorial — DM Sans light weight, airy and spacious */
-  --font-display: 'DM Sans', sans-serif;
-  --font-ui     : 'DM Sans', sans-serif;
-  --font-reader : 'DM Sans', sans-serif;
-  --font-mono   : 'DM Mono', monospace;
+  /* Cosmos: Futuristic — Century Gothic/Trebuchet feel */
+  --font-display: 'DM Sans', 'Century Gothic', Trebuchet MS, sans-serif;
+  --font-ui     : 'DM Sans', 'Century Gothic', Trebuchet MS, sans-serif;
+  --font-reader : 'DM Sans', 'Century Gothic', Trebuchet MS, sans-serif;
+  --font-mono   : 'DM Mono', 'Courier New', monospace;
 }
 
 /* ── THEME: Aurora — Calm & Refreshing ── */
@@ -105,11 +105,11 @@
   --accent     : #3ecfaa;
   --accent-dim : rgba(62,207,170,0.13);
   --reader-bg  : #0f3535;
-  /* Aurora: Organic & calm — Lora for warmth, DM Sans for UI */
-  --font-display: 'Lora', serif;
-  --font-ui     : 'DM Sans', sans-serif;
-  --font-reader : 'Lora', serif;
-  --font-mono   : 'DM Mono', monospace;
+  /* Aurora: Calm & organic — Garamond warmth */
+  --font-display: 'Lora', Garamond, 'Book Antiqua', Georgia, serif;
+  --font-ui     : 'DM Sans', Verdana, Geneva, sans-serif;
+  --font-reader : 'Lora', Garamond, 'Book Antiqua', Georgia, serif;
+  --font-mono   : 'DM Mono', 'Courier New', monospace;
 }
 
 /* ── THEME: Sakura — Cute & Cheerful ── */
@@ -126,11 +126,11 @@
   --accent     : #e0487a;
   --accent-dim : rgba(224,72,122,0.10);
   --reader-bg  : #ffffff;
-  /* Sakura: Cute & playful — Nunito rounded and friendly */
-  --font-display: 'Nunito', sans-serif;
-  --font-ui     : 'Nunito', sans-serif;
-  --font-reader : 'Nunito', sans-serif;
-  --font-mono   : 'DM Mono', monospace;
+  /* Sakura: Cute & cheerful — Trebuchet/Verdana rounded */
+  --font-display: 'Nunito', 'Trebuchet MS', Verdana, sans-serif;
+  --font-ui     : 'Nunito', 'Trebuchet MS', Verdana, sans-serif;
+  --font-reader : 'Nunito', 'Trebuchet MS', Verdana, sans-serif;
+  --font-mono   : 'DM Mono', 'Courier New', monospace;
 }
 
 /* ── THEME: Forest — Natural & Grounded ── */
@@ -147,11 +147,11 @@
   --accent     : #7ec85a;
   --accent-dim : rgba(126,200,90,0.12);
   --reader-bg  : #142817;
-  /* Forest: Organic & earthy — Lora serif for that grounded feel */
-  --font-display: 'Lora', serif;
-  --font-ui     : 'DM Sans', sans-serif;
-  --font-reader : 'Lora', serif;
-  --font-mono   : 'DM Mono', monospace;
+  /* Forest: Natural & grounded — Constantia warmth */
+  --font-display: 'Lora', Constantia, 'Book Antiqua', Georgia, serif;
+  --font-ui     : 'DM Sans', Verdana, Geneva, sans-serif;
+  --font-reader : 'Lora', Constantia, 'Book Antiqua', Georgia, serif;
+  --font-mono   : 'DM Mono', 'Courier New', monospace;
 }
 
 /* ── THEME: Rose Gold — Beautiful & Elegant ── */
@@ -168,11 +168,11 @@
   --accent     : #c9748a;
   --accent-dim : rgba(201,116,138,0.13);
   --reader-bg  : #241820;
-  /* Rose Gold: Elegant & luxurious — Cormorant Garamond, ultra-refined */
-  --font-display: 'Cormorant Garamond', 'Georgia', serif;
-  --font-ui     : 'DM Sans', sans-serif;
-  --font-reader : 'Cormorant Garamond', 'Georgia', serif;
-  --font-mono   : 'DM Mono', monospace;
+  /* Rose Gold: Elegant & luxurious — Didot/Bodoni feel */
+  --font-display: 'Cormorant Garamond', Didot, 'Bodoni MT', Georgia, serif;
+  --font-ui     : 'DM Sans', Optima, Candara, 'Segoe UI', sans-serif;
+  --font-reader : 'Cormorant Garamond', Didot, 'Bodoni MT', Georgia, serif;
+  --font-mono   : 'DM Mono', 'Courier New', monospace;
 }
 
 html, body {
