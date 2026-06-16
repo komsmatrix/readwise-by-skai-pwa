@@ -208,34 +208,7 @@ function QuestionsTab() {
     setGenResults([])
     setGenSelected(new Set())
 
-    const topicName = topics.find(t => t.id === genTopic)?.name || genTopic
     // Prompt is handled server-side in api/generate-questions.js
-    const situational = parseInt(genMix) (Licensure Examination for Teachers) board exam question writer for the Philippines.
-
-Generate exactly ${genCount} multiple choice questions about "${topicName}" for the LET board exam.
-
-Mix: ${situational}% situational (classroom scenarios, real teaching situations) and ${factual}% factual (theories, definitions, concepts).
-Difficulty: ${genDiff === 'mixed' ? 'mix of Easy, Medium, and Hard' : genDiff}.
-
-Rules:
-- 4 options each (A, B, C, D)
-- One correct answer only
-- No trick questions — test real knowledge
-- Situational questions must describe a realistic Filipino classroom scenario
-- Include a brief explanation for the correct answer
-
-Respond ONLY with a JSON array. No markdown, no preamble, no backticks. Example format:
-[
-  {
-    "question": "Question text here",
-    "options": {"A": "option1", "B": "option2", "C": "option3", "D": "option4"},
-    "answer": "A",
-    "explanation": "Brief explanation",
-    "type": "situational",
-    "difficulty": "Medium"
-  }
-]`
-
     try {
       const ownerPass = sessionStorage.getItem('owner_auth') || ''
       const res = await fetch('/api/generate-questions', {
@@ -679,8 +652,6 @@ function LessonsTab() {
           )}
         </>
       )}
-
-      {subtab === 'resources' && (<ResourcesTab topics={topics} />)}
 
       {subtab === 'edit' && (
         <>
