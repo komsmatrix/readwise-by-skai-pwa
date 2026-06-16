@@ -136,16 +136,32 @@ function renderMarkdown(text) {
 
 // Plain prose renderer — auto-structures paragraphs beautifully
 function renderPlainProse(text) {
-  const paragraphs = text.split(/\n\n+/).filter(p => p.trim())
+  // Step 1: normalize line breaks
+  let normalized = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+
+  // Step 2: if no double newlines exist, auto-split on sentence boundaries
+  // This handles Tool 2 output that's one giant block of text
+  if (!normalized.includes('\n\n')) {
+    // Split after ". " or ": " when followed by capital letter, every ~3-5 sentences
+    // Group sentences into paragraphs of ~4 sentences each
+    const sentences = normalized.split(/(?<=[.!?])\s+(?=[A-ZA-ZÁÉÍÓÚ\u00C0-\u017E])/)
+    const PARA_SIZE = 4
+    const groups = []
+    for (let i = 0; i < sentences.length; i += PARA_SIZE) {
+      groups.push(sentences.slice(i, i + PARA_SIZE).join(' '))
+    }
+    normalized = groups.join('\n\n')
+  }
+
+  const paragraphs = normalized.split(/\n\n+/).filter(p => p.trim())
   let html = ""
   paragraphs.forEach((para, i) => {
     const clean = para.replace(/\n/g, " ").trim()
     if (!clean) return
-    // First paragraph gets larger treatment
     if (i === 0) {
-      html += `<p style="margin:0 0 18px;line-height:1.9;color:var(--text-primary);font-size:16px;font-weight:500">${inlineFormat(clean)}</p>`
+      html += `<p style="margin:0 0 20px;line-height:1.95;color:var(--text-primary);font-size:16px;font-weight:500;font-family:var(--font-reader)">${inlineFormat(clean)}</p>`
     } else {
-      html += `<p style="margin:0 0 16px;line-height:1.85;color:var(--text-secondary);font-size:15px">${inlineFormat(clean)}</p>`
+      html += `<p style="margin:0 0 16px;line-height:1.9;color:var(--text-secondary);font-size:15px;font-family:var(--font-reader)">${inlineFormat(clean)}</p>`
     }
   })
   return html
