@@ -1,5 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { updateStudyMode } from '../lib/supabase.js'
+import { createClient } from '@supabase/supabase-js'
+
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+)
 
 const MODE_OPTIONS = ['Light', 'Standard', 'Intensive', 'Exam Sprint']
 
@@ -17,6 +23,45 @@ const MILESTONES = [
 
 export default function ProfileScreen({ customer, studentExam, onSignOut, onExamUpdated }) {
   const [theme, setTheme] = useState(() => localStorage.getItem('rbs_theme') || 'dark')
+  const [milestoneData, setMilestoneData] = useState(null)
+
+  useEffect(() => {
+    if (customer?.id) loadMilestoneData()
+  }, [customer?.id])
+
+  async function loadMilestoneData() {
+    try {
+      const [
+        { count: totalSessions },
+        { count: totalReviews },
+        { data: sessions },
+        { data: mocks },
+      ] = await Promise.all([
+        supabase.from('study_sessions').select('*', { count:'exact', head:true }).eq('customer_id', customer.id),
+        supabase.from('card_reviews').select('*', { count:'exact', head:true }).eq('student_id', customer.id),
+        supabase.from('study_sessions').select('started_at').eq('customer_id', customer.id).order('started_at', { ascending:false }).limit(60),
+        supabase.from('mock_results').select('id').eq('student_id', customer.id).limit(1),
+      ])
+      const days = [...new Set((sessions||[]).map(s => s.started_at?.split('T')[0]))].sort((a,b) => b.localeCompare(a))
+      let streak = 0
+      for (let i = 0; i < days.length; i++) {
+        const expected = new Date(Date.now() - i*86400000).toISOString().split('T')[0]
+        if (days[i] === expected) streak++
+        else break
+      }
+      setMilestoneData({ totalSessions: totalSessions||0, totalReviews: totalReviews||0, streak, mockCount: mocks?.length||0 })
+    } catch(e) { console.error(e) }
+  }
+
+  function isMilestoneUnlocked(m) {
+    if (!milestoneData) return false
+    if (m.trigger === 'sessions')  return milestoneData.totalSessions >= m.threshold
+    if (m.trigger === 'reviews')   return milestoneData.totalReviews >= m.threshold
+    if (m.trigger === 'streak')    return milestoneData.streak >= m.threshold
+    if (m.trigger === 'mocks')     return milestoneData.mockCount >= m.threshold
+    if (m.trigger === 'readiness') return (customer?.readiness_score||0) >= m.threshold
+    return false
+  }
   const [showFeedback,   setShowFeedback]   = useState(false)
   const [feedback,       setFeedback]       = useState('')
   const [feedbackType,   setFeedbackType]   = useState('feedback')
@@ -86,14 +131,20 @@ export default function ProfileScreen({ customer, studentExam, onSignOut, onExam
         <div style={s.milestonesGrid}>
           {MILESTONES.map(m => {
             // For now all locked except first_step if they have a session
-            const unlocked = false
+            const unlocked = isMilestoneUnlocked(m)
             return (
-              <div key={m.id} style={{ ...s.milestone, opacity: unlocked ? 1 : 0.35 }}>
-                <span style={{ fontSize: 20 }}>{m.icon}</span>
-                <div>
-                  <div style={s.milestoneName}>{m.name}</div>
+              <div key={m.id} style={{
+                ...s.milestone,
+                opacity: unlocked ? 1 : 0.3,
+                border: unlocked ? '1px solid var(--accent)' : '1px solid var(--border)',
+                background: unlocked ? 'var(--accent-dim)' : 'var(--bg-elevated)',
+              }}>
+                <span style={{ fontSize: 22 }}>{m.icon}</span>
+                <div style={{ flex:1 }}>
+                  <div style={{ ...s.milestoneName, color: unlocked ? 'var(--accent)' : 'var(--text-muted)' }}>{m.name}</div>
                   <div style={s.milestoneSub}>{m.sub}</div>
                 </div>
+                {unlocked && <span style={{ fontSize:14, color:'var(--accent)' }}>✓</span>}
               </div>
             )
           })}
