@@ -169,7 +169,7 @@ export default function LessonScreen({ session, onBack }) {
 
   async function loadLessons(topicId) {
     setLL(true);
-    const lessonData = await sbFetch(`lessons?topic_id=eq.${topicId}&is_active=eq.true&order=sort_order&select=*`);
+    const lessonData = await sbFetch(`lessons?topic_id=eq.${topicId}&is_active=eq.true&order=sort_order&select=id,title,memory_hook,board_relevance,read_time_mins,sort_order,topic_id`);
     setLessons(lessonData || []);
     if (customerId && lessonData?.length) {
       const ids = lessonData.map(l => l.id).join(',');
@@ -199,7 +199,8 @@ export default function LessonScreen({ session, onBack }) {
     setView("topic");
   }
 
-  const activeLesson = lessons.find(l => l.id === activeId);
+  const [fullLesson, setFullLesson] = useState(null)
+  const activeLesson = fullLesson || lessons.find(l => l.id === activeId);
   const completedCount = lessons.filter(l => progress[l.id]).length;
 
   // ─── TTS Player ───────────────────────────────────────────────────────────
@@ -267,7 +268,7 @@ export default function LessonScreen({ session, onBack }) {
     return (
       <div style={s.screen}>
         <div style={s.readerHeader}>
-          <button style={s.backBtn} onClick={() => { window.speechSynthesis?.cancel(); setView("topic"); }}>← Back</button>
+          <button style={s.backBtn} onClick={() => { window.speechSynthesis?.cancel(); setView("topic"); setFullLesson(null); }}>← Back</button>
           <span style={s.readerTopic}>{selected?.name}</span>
           {progress[activeLesson.id]
             ? <span style={s.doneBadge}>✓ Done</span>
@@ -292,7 +293,7 @@ export default function LessonScreen({ session, onBack }) {
           </div>
         )}
         {!progress[activeLesson.id] && (
-          <button style={s.doneBtnBottom} onClick={() => { window.speechSynthesis?.cancel(); markComplete(activeLesson.id); setView("topic"); }}>
+          <button style={s.doneBtnBottom} onClick={() => { window.speechSynthesis?.cancel(); markComplete(activeLesson.id); setView("topic"); setFullLesson(null); }}>
             ✓ Lesson Complete — Back to List
           </button>
         )}
@@ -337,7 +338,13 @@ export default function LessonScreen({ session, onBack }) {
               const done = progress[lesson.id];
               return (
                 <button key={lesson.id} style={{ ...s.lessonCard, ...(done ? s.lessonCardDone : {}) }}
-                  onClick={() => { setActiveId(lesson.id); setView("lesson"); }}>
+                  onClick={async () => {
+                    setActiveId(lesson.id);
+                    setView("lesson");
+                    setFullLesson(null);
+                    const full = await sbFetch(`lessons?id=eq.${lesson.id}&select=*`);
+                    if (full?.[0]) setFullLesson(full[0]);
+                  }}>
                   <div style={s.lessonCardLeft}>
                     <div style={s.lessonNum}>{done ? "✓" : idx + 1}</div>
                     <div>
