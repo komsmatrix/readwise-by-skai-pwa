@@ -193,7 +193,7 @@ function QuestionsTab() {
   async function loadData() {
     const [{ data: t }, { data: c }] = await Promise.all([
       supabase.from('topics').select('id, name, subject_id').order('name'),
-      supabase.from('cards').select('id, question, topic_id, difficulty, board_frequency').order('created_at', { ascending: false }),
+      supabase.from('cards').select('id, question, topic_id, difficulty, bloom_level').order('created_at', { ascending: false }),
     ])
     setTopics(t || [])
     setCards(c || [])
@@ -511,7 +511,7 @@ function QuestionsTab() {
                 <div style={s.cardMeta}>
                   <span style={s.chip}>{topicMap[c.topic_id] || 'Unknown'}</span>
                   <span style={s.chip}>{c.difficulty}</span>
-                  <span style={s.chip}>{c.board_frequency}</span>
+                  <span style={s.chip}>{c.bloom_level}</span>
                 </div>
                 <button style={s.deleteBtn} onClick={() => deleteCard(c.id)}>✕</button>
               </div>
@@ -528,7 +528,7 @@ function QuestionsTab() {
 
 // ── Lessons Tab ───────────────────────────────────────────────────────────────
 function LessonsTab() {
-  const [subtab, setSubtab] = useState('overview')
+  const [subtab, setSubtab] = useState('edit')
   const [topics, setTopics] = useState([])
   const [lessons, setLessons] = useState([])
   const [loading, setLoading] = useState(true)
@@ -622,36 +622,13 @@ function LessonsTab() {
   return (
     <div style={s.section}>
       <div style={s.subtabBar}>
-        {['overview', 'edit', 'resources'].map(st => (
+        {['edit', 'resources'].map(st => (
           <button key={st} style={{ ...s.subtabBtn, ...(subtab === st ? s.subtabBtnActive : {}) }}
             onClick={() => setSubtab(st)}>
             {st.charAt(0).toUpperCase() + st.slice(1)}
           </button>
         ))}
       </div>
-
-      {subtab === 'overview' && (
-        <>
-          <div style={s.statRow}>
-            <div style={s.bigStat}>{lessons.length} <span style={{ fontSize: 14, color: 'var(--text-muted)' }}>/ {topics.length}</span></div>
-            <div style={s.bigStatLabel}>Topics with lessons</div>
-          </div>
-          {missing.length > 0 && (
-            <>
-              <div style={{ ...s.sectionLabel, color: '#e05c5c' }}>⚠ Missing lessons ({missing.length})</div>
-              {missing.map(t => (
-                <div key={t.id} style={s.missingRow}>
-                  <span style={s.missingName}>{t.name}</span>
-                  <button style={s.addBtn}
-                    onClick={() => setEditLesson({ topic_id: t.id, title: '', content: '', memory_hook: '', board_relevance: '' })}>
-                    + Add
-                  </button>
-                </div>
-              ))}
-            </>
-          )}
-        </>
-      )}
 
       {subtab === 'edit' && (
         <>
@@ -1481,7 +1458,7 @@ function SalesTab() {
   async function loadSales() {
     const { data } = await supabase
       .from('customers')
-      .select('id, name, email, created_at, agent_code')
+      .select('id, name, email, created_at, agent_code, amount_paid, referral_code')
       .eq('is_active', true)
       .order('created_at', { ascending: false })
     setSales(data || [])
@@ -1495,11 +1472,11 @@ function SalesTab() {
     s.agent_code?.toLowerCase().includes(filter.toLowerCase())
   )
 
-  const totalRevenue   = sales.length * 249
+  const totalRevenue   = sales.reduce((sum, s) => sum + (s.amount_paid || 249), 0)
   const withAgent      = sales.filter(s => s.agent_code).length
   const commissions    = withAgent * 50
-  const discounts      = withAgent * 20
-  const netRevenue     = totalRevenue - discounts
+  const discounts      = sales.reduce((sum, s) => sum + (s.agent_code ? (249 - (s.amount_paid || 249)) : 0), 0)
+  const netRevenue     = totalRevenue - commissions
 
   return (
     <div style={s.section}>
@@ -1537,7 +1514,7 @@ function SalesTab() {
               </div>
               <div style={{ textAlign:'right' }}>
                 <div style={{ fontSize:14, fontWeight:700, color:'#10B981' }}>
-                  ₱{sale.agent_code ? '229' : '249'}
+                  ₱{sale.amount_paid || 249}
                 </div>
                 <div style={{ fontSize:10, color:'var(--text-muted)', marginTop:2 }}>
                   {new Date(sale.created_at).toLocaleDateString('en-PH', { month:'short', day:'numeric', year:'numeric' })}
