@@ -556,6 +556,7 @@ function LessonsTab() {
         content: editLesson.content,
         memory_hook: editLesson.memory_hook,
         board_relevance: editLesson.board_relevance,
+        image_url: editLesson.image_url || null,
       }).eq('id', editLesson.id)
     } else {
       await supabase.from('lessons').insert([{
@@ -564,6 +565,7 @@ function LessonsTab() {
         content: editLesson.content,
         memory_hook: editLesson.memory_hook,
         board_relevance: editLesson.board_relevance,
+        image_url: editLesson.image_url || null,
       }])
     }
     setSaving(false)
@@ -590,7 +592,25 @@ function LessonsTab() {
       }
     }
     reader.readAsText(file)
-    e.target.value = '' // reset so same file can be re-uploaded
+    e.target.value = ''
+  }
+
+  async function handleImageUpload(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setEditLesson(p => ({ ...p, image_uploading: true }))
+    try {
+      const ext = file.name.split('.').pop()
+      const path = `lessons/${Date.now()}.${ext}`
+      const { error } = await supabase.storage.from('lesson-images').upload(path, file, { upsert: true })
+      if (error) throw error
+      const { data: { publicUrl } } = supabase.storage.from('lesson-images').getPublicUrl(path)
+      setEditLesson(p => ({ ...p, image_url: publicUrl, image_uploading: false }))
+    } catch(err) {
+      alert('Image upload failed: ' + err.message)
+      setEditLesson(p => ({ ...p, image_uploading: false }))
+    }
+    e.target.value = ''
   }
 
   const topicMap = Object.fromEntries(topics.map(t => [t.id, t.name]))
@@ -644,6 +664,28 @@ function LessonsTab() {
           <label style={s.label}>Board Relevance</label>
           <input style={s.input} value={editLesson.board_relevance || ''}
             onChange={e => setEditLesson(p => ({ ...p, board_relevance: e.target.value }))} />
+        </div>
+        <div style={s.field}>
+          <label style={s.label}>Lesson Image (optional)</label>
+          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
+            <label style={{ display:'flex', alignItems:'center', gap:6, background:'var(--bg-elevated)', border:'1px solid var(--accent)', borderRadius:6, padding:'5px 12px', cursor:'pointer', fontSize:12, color:'var(--accent)', fontWeight:600 }}>
+              🖼 Upload Image
+              <input type="file" accept="image/*" style={{ display:'none' }} onChange={handleImageUpload} />
+            </label>
+            {editLesson.image_uploading && <span style={{ fontSize:11, color:'var(--text-muted)' }}>Uploading…</span>}
+            {editLesson.image_url && <span style={{ fontSize:11, color:'#10B981' }}>✓ Image uploaded</span>}
+          </div>
+          {editLesson.image_url && (
+            <div style={{ marginTop:6 }}>
+              <img src={editLesson.image_url} alt="lesson" style={{ maxWidth:'100%', maxHeight:160, borderRadius:8, border:'1px solid var(--border)' }} />
+              <div style={{ fontSize:10, color:'var(--text-muted)', marginTop:4, fontFamily:'monospace', wordBreak:'break-all' }}>{editLesson.image_url}</div>
+              <button style={{ fontSize:11, color:'#e05c5c', background:'none', border:'none', cursor:'pointer', marginTop:4, padding:0 }}
+                onClick={() => setEditLesson(p => ({ ...p, image_url: '' }))}>Remove image</button>
+            </div>
+          )}
+          <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:4 }}>
+            Image will be embedded at the top of the lesson. Students see it when reading.
+          </div>
         </div>
         <button style={s.btn} onClick={saveLesson} disabled={saving}>
           {saving ? 'Saving…' : 'Save Lesson'}
