@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 // ─── Supabase config ──────────────────────────────────────────────────────────
 const SUPA_URL = import.meta.env.VITE_SUPABASE_URL
@@ -241,6 +241,7 @@ export default function LessonScreen({ session, onBack }) {
   }
 
   const [fullLesson, setFullLesson] = useState(null)
+  const contentRef = useRef(null)
   const activeLesson = fullLesson || lessons.find(l => l.id === activeId);
   const completedCount = lessons.filter(l => progress[l.id]).length;
 
@@ -313,18 +314,55 @@ export default function LessonScreen({ session, onBack }) {
     )
   }
 
-  // ─── TTS Player ───────────────────────────────────────────────────────────
-  function TTSPlayer({ lesson }) {
-    const [ttsState, setTtsState] = useState('idle') // idle | playing | paused
+  // ─── TTS Player with word highlighting ───────────────────────────────────
+  function TTSPlayer({ lesson, contentRef }) {
+    const [ttsState,    setTtsState]    = useState('idle')
+    const [wordIndex,   setWordIndex]   = useState(-1)
     const [ttsAvailable] = useState(() => 'speechSynthesis' in window)
+    const uttRef = { current: null }
 
     function getPlainText(lesson) {
       const parts = []
-      if (lesson.title)         parts.push(lesson.title + '.')
+      if (lesson.title)           parts.push(lesson.title + '.')
       if (lesson.board_relevance) parts.push(lesson.board_relevance + '.')
-      if (lesson.content)       parts.push(lesson.content.replace(/[#*`>_~]/g, '').replace(/\n+/g, ' '))
-      if (lesson.memory_hook)   parts.push('Memory Hook. ' + lesson.memory_hook)
-      return parts.join(' ')
+      if (lesson.content)         parts.push(lesson.content.replace(/[#*`>_~|]/g, '').replace(/\n+/g, ' ').replace(/\s+/g, ' '))
+      if (lesson.memory_hook)     parts.push('Memory Hook. ' + lesson.memory_hook)
+      return parts.join(' ').trim()
+    }
+
+    function clearHighlight() {
+      if (!contentRef?.current) return
+      contentRef.current.querySelectorAll('[data-tts-word]').forEach(el => {
+        el.style.background = ''
+        el.style.borderRadius = ''
+        el.style.color = ''
+        el.style.padding = ''
+      })
+    }
+
+    function highlightWord(charIndex) {
+      if (!contentRef?.current) return
+      const spans = contentRef.current.querySelectorAll('[data-tts-word]')
+      spans.forEach(el => {
+        el.style.background = ''
+        el.style.borderRadius = ''
+        el.style.color = ''
+        el.style.padding = ''
+      })
+      // Find the span whose char range includes charIndex
+      for (const el of spans) {
+        const start = parseInt(el.getAttribute('data-start'))
+        const end   = parseInt(el.getAttribute('data-end'))
+        if (charIndex >= start && charIndex < end) {
+          el.style.background    = 'var(--accent)'
+          el.style.borderRadius  = '3px'
+          el.style.color         = '#0d0d0d'
+          el.style.padding       = '0 2px'
+          // Scroll into view smoothly
+          el.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+          break
+        }
+      }
     }
 
     function handlePlay() {
@@ -340,11 +378,28 @@ export default function LessonScreen({ session, onBack }) {
         return
       }
       window.speechSynthesis.cancel()
-      const utt = new SpeechSynthesisUtterance(getPlainText(lesson))
-      utt.rate  = 0.95
-      utt.pitch = 1
-      utt.onend   = () => setTtsState('idle')
-      utt.onerror = () => setTtsState('idle')
+      clearHighlight()
+
+      const text = getPlainText(lesson)
+      const utt  = new SpeechSynthesisUtterance(text)
+      utt.rate   = 0.95
+      utt.pitch  = 1
+      utt.onboundary = (e) => {
+        if (e.name === 'word') {
+          setWordIndex(e.charIndex)
+          highlightWord(e.charIndex)
+        }
+      }
+      utt.onend = () => {
+        setTtsState('idle')
+        setWordIndex(-1)
+        clearHighlight()
+      }
+      utt.onerror = () => {
+        setTtsState('idle')
+        setWordIndex(-1)
+        clearHighlight()
+      }
       window.speechSynthesis.speak(utt)
       setTtsState('playing')
     }
@@ -352,12 +407,14 @@ export default function LessonScreen({ session, onBack }) {
     function handleStop() {
       window.speechSynthesis.cancel()
       setTtsState('idle')
+      setWordIndex(-1)
+      clearHighlight()
     }
 
     if (!ttsAvailable) return null
 
     return (
-      <div style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 14px', background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', margin:'0 0 12px' }}>
+      <div style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 14px', background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', margin:'0 0 16px' }}>
         <button onClick={handlePlay} style={{ display:'flex', alignItems:'center', gap:6, background:'var(--accent-dim)', border:'1px solid var(--accent)', borderRadius:'var(--radius-sm)', padding:'7px 14px', cursor:'pointer', fontFamily:'inherit', fontSize:13, fontWeight:600, color:'var(--accent)', transition:'all 0.15s' }}>
           {ttsState === 'playing' ? '⏸ Pause' : ttsState === 'paused' ? '▶ Resume' : '▶ Listen'}
         </button>
@@ -371,6 +428,55 @@ export default function LessonScreen({ session, onBack }) {
         </span>
       </div>
     )
+  }
+
+  // ─── Wrap content words for TTS highlighting ────────────────────────────
+  function wrapContentForTTS(rawContent) {
+    if (!rawContent) return ''
+    // Get plain text version (what TTS speaks)
+    const plain = rawContent
+      .replace(/[#*`>_~|]/g, '')
+      .replace(/!?\[.*?\]\(.*?\)/g, '')
+      .replace(/\n+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+
+    // Render markdown to HTML first
+    const html = renderMarkdown(rawContent)
+
+    // Now inject data attributes into text nodes by post-processing the HTML
+    // We find each word in plain text and match it to the rendered HTML
+    // Strategy: wrap every word in the rendered HTML text nodes with a span
+    let charOffset = 0
+    const words = []
+    const wordRegex = /\S+/g
+    let m
+    while ((m = wordRegex.exec(plain)) !== null) {
+      words.push({ word: m[0], start: m.index, end: m.index + m[0].length })
+    }
+
+    // Store words globally so TTSPlayer can reference them
+    window.__ttsPlainText = plain
+    window.__ttsWords = words
+
+    // Inject spans into HTML text nodes
+    // We replace text content in HTML tags by splitting on word boundaries
+    let wordIdx = 0
+    const spanHtml = html.replace(/>([^<]+)</g, (match, textContent) => {
+      const trimmed = textContent.trim()
+      if (!trimmed) return match
+      const wrapped = textContent.replace(/(\S+)/g, (word) => {
+        if (wordIdx < words.length) {
+          const w = words[wordIdx]
+          wordIdx++
+          return `<span data-tts-word="1" data-start="${w.start}" data-end="${w.end}">${word}</span>`
+        }
+        return word
+      })
+      return `>${wrapped}<`
+    })
+
+    return spanHtml
   }
 
   // ─── Lesson Reader ────────────────────────────────────────────────────────
@@ -415,11 +521,12 @@ export default function LessonScreen({ session, onBack }) {
           </div>
 
           {/* TTS player */}
-          <TTSPlayer lesson={activeLesson} />
+          <TTSPlayer lesson={activeLesson} contentRef={contentRef} />
 
-          {/* Main content */}
-          <div style={{ fontSize:15, lineHeight:1.85, color:'var(--text-secondary)', fontFamily:'var(--font-reader)' }}
-            dangerouslySetInnerHTML={{ __html: renderMarkdown(activeLesson.content) }} />
+          {/* Main content — with TTS word wrapping */}
+          <div ref={contentRef}
+            style={{ fontSize:15, lineHeight:1.85, color:'var(--text-secondary)', fontFamily:'var(--font-reader)' }}
+            dangerouslySetInnerHTML={{ __html: wrapContentForTTS(activeLesson.content) }} />
 
           {/* Memory hook */}
           {activeLesson.memory_hook && (
