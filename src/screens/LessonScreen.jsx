@@ -134,6 +134,27 @@ function renderMarkdown(text) {
   return html
 }
 
+// Chunked lesson content — renders large files without crashing
+function LessonContent({ text, contentRef }) {
+  const CHUNK = 15000
+  const [chunks, setChunks] = React.useState(1)
+  const display = text.slice(0, CHUNK * chunks)
+  const hasMore = display.length < text.length
+  return (
+    <>
+      <div ref={contentRef} className="lesson-reader-content lesson-reader-body"
+        style={{ fontSize:15, lineHeight:1.9, color:'var(--text-secondary)', fontFamily:'var(--font-reader)' }}
+        dangerouslySetInnerHTML={{ __html: renderMarkdown(display) }} />
+      {hasMore && (
+        <button onClick={() => setChunks(c => c + 1)}
+          style={{ marginTop:16, padding:'10px 20px', background:'var(--accent-dim)', border:'1px solid var(--accent)', borderRadius:8, color:'var(--accent)', cursor:'pointer', fontFamily:'inherit', fontSize:13, fontWeight:600, width:'100%' }}>
+          Continue reading — {Math.round((text.length - display.length) / 1000)}k chars remaining ↓
+        </button>
+      )}
+    </>
+  )
+}
+
 // Plain prose renderer — auto-structures paragraphs beautifully
 function renderPlainProse(text) {
   // Step 1: normalize line breaks
@@ -488,26 +509,7 @@ export default function LessonScreen({ session, onBack }) {
           <TTSPlayer lesson={activeLesson} contentRef={contentRef} />
 
           {/* Main content — progressive chunked rendering, no size limit */}
-          {(() => {
-            const CHUNK = 15000
-            const text = activeLesson.content || ''
-            const [chunks, setChunks] = React.useState(1)
-            const display = text.slice(0, CHUNK * chunks)
-            const hasMore = display.length < text.length
-            return (
-              <>
-                <div ref={contentRef} className="lesson-reader-content lesson-reader-body"
-                  style={{ fontSize:15, lineHeight:1.9, color:'var(--text-secondary)', fontFamily:'var(--font-reader)' }}
-                  dangerouslySetInnerHTML={{ __html: renderMarkdown(display) }} />
-                {hasMore && (
-                  <button onClick={() => setChunks(c => c + 1)}
-                    style={{ marginTop:16, padding:'10px 20px', background:'var(--accent-dim)', border:'1px solid var(--accent)', borderRadius:8, color:'var(--accent)', cursor:'pointer', fontFamily:'inherit', fontSize:13, fontWeight:600, width:'100%' }}>
-                    Continue reading — {Math.round((text.length - display.length) / 1000)}k chars remaining ↓
-                  </button>
-                )}
-              </>
-            )
-          })()}
+          <LessonContent text={activeLesson.content || ''} contentRef={contentRef} />
 
           {/* Memory hook */}
           {activeLesson.memory_hook && (
