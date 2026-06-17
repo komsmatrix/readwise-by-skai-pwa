@@ -318,8 +318,8 @@ function QuestionsTab() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          password: ownerPassword,
-          action: 'r2-presign',
+          password: sessionStorage.getItem('owner_auth') || '',
+          type: 'r2-sign',
           fileName: file.name,
           fileType: file.type,
           folder: field === 'audio_url' ? 'audio' : 'infographic',
@@ -705,8 +705,8 @@ function LessonsTab() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          password: ownerPassword,
-          action: 'r2-presign',
+          password: sessionStorage.getItem('owner_auth') || '',
+          type: 'r2-sign',
           fileName: file.name,
           fileType: file.type,
           folder: field === 'audio_url' ? 'audio' : 'infographic',
