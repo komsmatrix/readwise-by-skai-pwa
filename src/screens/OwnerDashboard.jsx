@@ -643,13 +643,18 @@ function LessonsTab() {
   }
 
   async function uploadToR2(file, folder) {
-    const ext       = file.name.split('.').pop()
-    const fileName  = Date.now() + '.' + ext
+    const ext      = file.name.split('.').pop()
+    const fileName = folder + '/' + Date.now() + '.' + ext
     const ownerPass = sessionStorage.getItem('owner_auth') || ''
-    const params    = new URLSearchParams({ password: ownerPass, folder, fileName })
-    const res = await fetch('/api/get-customers?' + params.toString(), {
-      method: 'POST',
-      headers: { 'Content-Type': file.type, 'x-file-type': file.type },
+
+    // Upload via Cloudflare Worker — no CORS, no signature issues
+    const res = await fetch('https://readwise-upload.komsmatrix.workers.dev', {
+      method: 'PUT',
+      headers: {
+        'Content-Type':      file.type,
+        'X-Owner-Password':  ownerPass,
+        'X-File-Name':       fileName,
+      },
       body: file,
     })
     const data = await res.json()
