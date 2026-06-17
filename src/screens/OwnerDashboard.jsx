@@ -210,7 +210,7 @@ function QuestionsTab() {
 
     // Prompt is handled server-side in api/generate-questions.js
     try {
-      const ownerPass = sessionStorage.getItem('owner_auth') || ''
+      const ownerPass = sessionStorage.getItem('owner_auth') || sessionStorage.getItem('ownerPassword') || localStorage.getItem('owner_auth') || ''
       const res = await fetch('/api/generate-questions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -641,7 +641,7 @@ function LessonsTab() {
   async function uploadToR2(file, folder) {
     const ext = file.name.split('.').pop()
     const fileName = `${folder}/${Date.now()}.${ext}`
-    const ownerPass = sessionStorage.getItem('owner_auth')
+    const ownerPass = sessionStorage.getItem('owner_auth') || sessionStorage.getItem('ownerPassword') || localStorage.getItem('owner_auth')
 
     // Get presigned URL from API
     const res = await fetch('/api/get-customers', {
@@ -1245,7 +1245,7 @@ function KeysTab() {
   async function generate() {
     if (!name.trim() || !email.trim()) return
     setStatus('loading')
-    const ownerPass = sessionStorage.getItem('owner_auth')
+    const ownerPass = sessionStorage.getItem('owner_auth') || sessionStorage.getItem('ownerPassword') || localStorage.getItem('owner_auth')
     const res = await fetch('/api/generate-key', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
