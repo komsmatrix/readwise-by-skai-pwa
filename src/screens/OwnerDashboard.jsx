@@ -643,26 +643,18 @@ function LessonsTab() {
   }
 
   async function uploadToR2(file, folder) {
-    const ext = file.name.split('.').pop()
-    const fileName = `${folder}/${Date.now()}.${ext}`
-    const ownerPass = sessionStorage.getItem('owner_auth') || sessionStorage.getItem('ownerPassword') || localStorage.getItem('owner_auth')
-
-    // Get presigned URL from API
-    const res = await fetch('/api/get-customers', {
+    const ext       = file.name.split('.').pop()
+    const fileName  = Date.now() + '.' + ext
+    const ownerPass = sessionStorage.getItem('owner_auth') || ''
+    const params    = new URLSearchParams({ password: ownerPass, folder, fileName })
+    const res = await fetch('/api/get-customers?' + params.toString(), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: ownerPass, type: 'r2-sign', fileName, fileType: file.type }),
+      headers: { 'Content-Type': file.type, 'x-file-type': file.type },
+      body: file,
     })
-    const { uploadUrl, publicUrl, error } = await res.json()
-    if (error) throw new Error(error)
-
-    // Upload directly to R2
-    const r2res = await fetch(uploadUrl, { method: 'PUT', body: file })
-    if (!r2res.ok) {
-      const t = await r2res.text()
-      throw new Error('R2 PUT ' + r2res.status + ': ' + t.slice(0,200))
-    }
-    return publicUrl
+    const data = await res.json()
+    if (data.error) throw new Error(data.error)
+    return data.publicUrl
   }
 
   async function handleR2Upload(e, field) {
