@@ -327,10 +327,9 @@ function QuestionsTab() {
       const { uploadUrl, publicUrl, error } = await res.json()
       if (error) throw new Error(error)
 
-      // Upload directly to R2
+      // Upload directly to R2 (no Content-Type header — not in signed headers)
       await fetch(uploadUrl, {
         method: 'PUT',
-        headers: { 'Content-Type': file.type },
         body: file,
       })
 
@@ -713,10 +712,9 @@ function LessonsTab() {
       const { uploadUrl, publicUrl, error } = await res.json()
       if (error) throw new Error(error)
 
-      // Upload directly to R2
+      // Upload directly to R2 (no Content-Type header — not in signed headers)
       await fetch(uploadUrl, {
         method: 'PUT',
-        headers: { 'Content-Type': file.type },
         body: file,
       })
 
