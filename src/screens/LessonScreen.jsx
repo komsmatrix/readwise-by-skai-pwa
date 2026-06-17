@@ -325,32 +325,6 @@ export default function LessonScreen({ session, onBack }) {
     }
   }
 
-  // ─── Lesson Content (chunked to avoid crash) ─────────────────────────────
-  function LessonContent({ content }) {
-    const [showAll, setShowAll] = useState(false)
-    if (!content) return null
-    const LIMIT = 6000
-    const isLong = content.length > LIMIT
-    const text = (!isLong || showAll) ? content : content.slice(0, LIMIT)
-    return (
-      <div>
-        <div style={s.lessonContent} dangerouslySetInnerHTML={{ __html: renderMarkdown(text) }} />
-        {isLong && !showAll && (
-          <div style={{ padding: '0 20px 16px', textAlign: 'center' }}>
-            <button onClick={() => setShowAll(true)} style={{
-              background: 'var(--bg-elevated)', border: '1px solid var(--border)',
-              borderRadius: 'var(--radius-md)', padding: '10px 24px',
-              color: 'var(--accent)', fontSize: 13, fontWeight: 600,
-              cursor: 'pointer', fontFamily: 'inherit'
-            }}>
-              Show more ↓
-            </button>
-          </div>
-        )}
-      </div>
-    )
-  }
-
   // ─── TTS Player with word highlighting ───────────────────────────────────
   function TTSPlayer({ lesson, contentRef }) {
     const [ttsState, setTtsState] = useState('idle')
