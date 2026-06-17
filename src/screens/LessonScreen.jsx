@@ -142,9 +142,9 @@ function renderPlainProse(text) {
   // Step 2: if no double newlines exist, auto-split on sentence boundaries
   // This handles Tool 2 output that's one giant block of text
   if (!normalized.includes('\n\n')) {
-    // Split after ". " or ": " when followed by capital letter, every ~3-5 sentences
-    // Group sentences into paragraphs of ~4 sentences each
-    const sentences = normalized.split(/(?<=[.!?])\s+(?=[A-ZA-ZÁÉÍÓÚ\u00C0-\u017E])/)
+    // Split into sentences using a simple approach (no lookbehind for compatibility)
+    const raw = normalized.replace(/([.!?])\s+([A-ZÁÉÍÓÚ])/g, '$1\n$2')
+    const sentences = raw.split('\n').filter(s => s.trim())
     const PARA_SIZE = 4
     const groups = []
     for (let i = 0; i < sentences.length; i += PARA_SIZE) {
@@ -484,22 +484,30 @@ export default function LessonScreen({ session, onBack }) {
             </div>
           )}
 
-          {/* Audio player — top of lesson for background listening */}
-          {activeLesson.audio_url && (
-            <div style={{ marginBottom:16, background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:12, padding:'12px 16px' }}>
-              <div style={{ fontSize:10, fontWeight:700, color:'var(--accent)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:8 }}>🎧 Audio Lesson</div>
-              <audio controls style={{ width:'100%', height:36 }} src={activeLesson.audio_url} />
-              <div style={{ fontSize:10, color:'var(--text-muted)', marginTop:6 }}>Listen while you read</div>
-            </div>
-          )}
-
           {/* TTS player */}
           <TTSPlayer lesson={activeLesson} contentRef={contentRef} />
 
-          {/* Main content */}
-          <div ref={contentRef} className="lesson-reader-content lesson-reader-body"
-            style={{ fontSize:15, lineHeight:1.9, color:'var(--text-secondary)', fontFamily:'var(--font-reader)' }}
-            dangerouslySetInnerHTML={{ __html: renderMarkdown(activeLesson.content) }} />
+          {/* Main content — progressive chunked rendering, no size limit */}
+          {(() => {
+            const CHUNK = 15000
+            const text = activeLesson.content || ''
+            const [chunks, setChunks] = React.useState(1)
+            const display = text.slice(0, CHUNK * chunks)
+            const hasMore = display.length < text.length
+            return (
+              <>
+                <div ref={contentRef} className="lesson-reader-content lesson-reader-body"
+                  style={{ fontSize:15, lineHeight:1.9, color:'var(--text-secondary)', fontFamily:'var(--font-reader)' }}
+                  dangerouslySetInnerHTML={{ __html: renderMarkdown(display) }} />
+                {hasMore && (
+                  <button onClick={() => setChunks(c => c + 1)}
+                    style={{ marginTop:16, padding:'10px 20px', background:'var(--accent-dim)', border:'1px solid var(--accent)', borderRadius:8, color:'var(--accent)', cursor:'pointer', fontFamily:'inherit', fontSize:13, fontWeight:600, width:'100%' }}>
+                    Continue reading — {Math.round((text.length - display.length) / 1000)}k chars remaining ↓
+                  </button>
+                )}
+              </>
+            )
+          })()}
 
           {/* Memory hook */}
           {activeLesson.memory_hook && (
@@ -530,7 +538,12 @@ export default function LessonScreen({ session, onBack }) {
                     allowFullScreen />
                 </div>
               )}
-
+              {activeLesson.audio_url && (
+                <div style={{ marginBottom:14 }}>
+                  <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:6 }}>🎧 Audio</div>
+                  <audio controls style={{ width:'100%', borderRadius:8 }} src={activeLesson.audio_url} />
+                </div>
+              )}
               {activeLesson.infographic_url && (
                 <div style={{ marginBottom:14 }}>
                   <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:6 }}>🖼 Infographic</div>
