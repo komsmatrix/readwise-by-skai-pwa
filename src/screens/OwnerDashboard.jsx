@@ -211,7 +211,7 @@ function QuestionsTab() {
     // Prompt is handled server-side in api/generate-questions.js
     try {
       const ownerPass = sessionStorage.getItem('owner_auth') || sessionStorage.getItem('ownerPassword') || localStorage.getItem('owner_auth') || ''
-      const res = await fetch('/api/generate-questions', {
+      const res = await fetch('/api/get-customers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -314,15 +314,14 @@ function QuestionsTab() {
     setEditLesson(p => ({ ...p, [`${field}_uploading`]: true }))
     try {
       // Get presigned URL from server
-      const res = await fetch('/api/generate-questions', {
+      const res = await fetch('/api/get-customers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           password: sessionStorage.getItem('owner_auth') || '',
           type: 'r2-sign',
-          fileName: file.name,
+          fileName: (field === 'audio_url' ? 'audio' : 'infographic') + '/' + Date.now() + '.' + file.name.split('.').pop(),
           fileType: file.type,
-          folder: field === 'audio_url' ? 'audio' : 'infographic',
         }),
       })
       const { uploadUrl, publicUrl, error } = await res.json()
@@ -701,15 +700,14 @@ function LessonsTab() {
     setEditLesson(p => ({ ...p, [`${field}_uploading`]: true }))
     try {
       // Get presigned URL from server
-      const res = await fetch('/api/generate-questions', {
+      const res = await fetch('/api/get-customers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           password: sessionStorage.getItem('owner_auth') || '',
           type: 'r2-sign',
-          fileName: file.name,
+          fileName: (field === 'audio_url' ? 'audio' : 'infographic') + '/' + Date.now() + '.' + file.name.split('.').pop(),
           fileType: file.type,
-          folder: field === 'audio_url' ? 'audio' : 'infographic',
         }),
       })
       const { uploadUrl, publicUrl, error } = await res.json()
