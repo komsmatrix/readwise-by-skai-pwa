@@ -327,11 +327,17 @@ function QuestionsTab() {
       const { uploadUrl, publicUrl, error } = await res.json()
       if (error) throw new Error(error)
 
-      // Upload directly to R2 (no Content-Type header — not in signed headers)
-      await fetch(uploadUrl, {
+      // Upload directly to R2
+      console.log('R2 uploadUrl:', uploadUrl)
+      console.log('R2 publicUrl:', publicUrl)
+      const r2res = await fetch(uploadUrl, {
         method: 'PUT',
         body: file,
       })
+      console.log('R2 response status:', r2res.status)
+      const r2text = await r2res.text()
+      console.log('R2 response body:', r2text)
+      if (!r2res.ok) throw new Error('R2 PUT failed: ' + r2res.status + ' ' + r2text)
 
       setEditLesson(p => ({ ...p, [field]: publicUrl, [`${field}_uploading`]: false }))
     } catch(err) {
@@ -651,12 +657,11 @@ function LessonsTab() {
     if (error) throw new Error(error)
 
     // Upload directly to R2
-    await fetch(uploadUrl, {
-      method: 'PUT',
-      headers: { 'Content-Type': file.type },
-      body: file,
-    })
-
+    const r2res = await fetch(uploadUrl, { method: 'PUT', body: file })
+    if (!r2res.ok) {
+      const t = await r2res.text()
+      throw new Error('R2 PUT ' + r2res.status + ': ' + t.slice(0,200))
+    }
     return publicUrl
   }
 
@@ -712,11 +717,17 @@ function LessonsTab() {
       const { uploadUrl, publicUrl, error } = await res.json()
       if (error) throw new Error(error)
 
-      // Upload directly to R2 (no Content-Type header — not in signed headers)
-      await fetch(uploadUrl, {
+      // Upload directly to R2
+      console.log('R2 uploadUrl:', uploadUrl)
+      console.log('R2 publicUrl:', publicUrl)
+      const r2res = await fetch(uploadUrl, {
         method: 'PUT',
         body: file,
       })
+      console.log('R2 response status:', r2res.status)
+      const r2text = await r2res.text()
+      console.log('R2 response body:', r2text)
+      if (!r2res.ok) throw new Error('R2 PUT failed: ' + r2res.status + ' ' + r2text)
 
       setEditLesson(p => ({ ...p, [field]: publicUrl, [`${field}_uploading`]: false }))
     } catch(err) {
