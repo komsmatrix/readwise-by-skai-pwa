@@ -308,6 +308,41 @@ function QuestionsTab() {
     setCards(prev => prev.filter(c => c.id !== id))
   }
 
+  async function handleR2Upload(e, field) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setEditLesson(p => ({ ...p, [`${field}_uploading`]: true }))
+    try {
+      // Get presigned URL from server
+      const res = await fetch('/api/generate-questions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          password: ownerPassword,
+          action: 'r2-presign',
+          fileName: file.name,
+          fileType: file.type,
+          folder: field === 'audio_url' ? 'audio' : 'infographic',
+        }),
+      })
+      const { uploadUrl, publicUrl, error } = await res.json()
+      if (error) throw new Error(error)
+
+      // Upload directly to R2
+      await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type },
+        body: file,
+      })
+
+      setEditLesson(p => ({ ...p, [field]: publicUrl, [`${field}_uploading`]: false }))
+    } catch(err) {
+      alert('Upload failed: ' + err.message)
+      setEditLesson(p => ({ ...p, [`${field}_uploading`]: false }))
+    }
+    e.target.value = ''
+  }
+
   const topicMap = Object.fromEntries(topics.map(t => [t.id, t.name]))
 
   const filtered = cards.filter(c => {
@@ -603,6 +638,45 @@ function LessonsTab() {
     e.target.value = ''
   }
 
+  async function uploadToR2(file, folder) {
+    const ext = file.name.split('.').pop()
+    const fileName = `${folder}/${Date.now()}.${ext}`
+    const ownerPass = sessionStorage.getItem('owner_auth')
+
+    // Get presigned URL from API
+    const res = await fetch('/api/get-customers', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: ownerPass, type: 'r2-sign', fileName, fileType: file.type }),
+    })
+    const { uploadUrl, publicUrl, error } = await res.json()
+    if (error) throw new Error(error)
+
+    // Upload directly to R2
+    await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': file.type },
+      body: file,
+    })
+
+    return publicUrl
+  }
+
+  async function handleR2Upload(e, field) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const folder = field.includes('audio') ? 'audio' : 'infographic'
+    setEditLesson(p => ({ ...p, [field + '_uploading']: true }))
+    try {
+      const url = await uploadToR2(file, folder)
+      setEditLesson(p => ({ ...p, [field]: url, [field + '_uploading']: false }))
+    } catch(err) {
+      alert('R2 upload failed: ' + err.message)
+      setEditLesson(p => ({ ...p, [field + '_uploading']: false }))
+    }
+    e.target.value = ''
+  }
+
   async function handleImageUpload(e) {
     const file = e.target.files?.[0]
     if (!file) return
@@ -617,6 +691,41 @@ function LessonsTab() {
     } catch(err) {
       alert('Image upload failed: ' + err.message + '. Make sure lesson-images bucket exists in Supabase Storage.')
       setEditLesson(p => ({ ...p, image_uploading: false }))
+    }
+    e.target.value = ''
+  }
+
+  async function handleR2Upload(e, field) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setEditLesson(p => ({ ...p, [`${field}_uploading`]: true }))
+    try {
+      // Get presigned URL from server
+      const res = await fetch('/api/generate-questions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          password: ownerPassword,
+          action: 'r2-presign',
+          fileName: file.name,
+          fileType: file.type,
+          folder: field === 'audio_url' ? 'audio' : 'infographic',
+        }),
+      })
+      const { uploadUrl, publicUrl, error } = await res.json()
+      if (error) throw new Error(error)
+
+      // Upload directly to R2
+      await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type },
+        body: file,
+      })
+
+      setEditLesson(p => ({ ...p, [field]: publicUrl, [`${field}_uploading`]: false }))
+    } catch(err) {
+      alert('Upload failed: ' + err.message)
+      setEditLesson(p => ({ ...p, [`${field}_uploading`]: false }))
     }
     e.target.value = ''
   }
@@ -707,16 +816,32 @@ function LessonsTab() {
         {/* Audio URL */}
         <div style={s.field}>
           <label style={s.label}>🎧 Audio URL</label>
-          <input style={s.input} placeholder="https://… (Supabase storage or direct .mp3 link)"
+          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
+            <label style={{ display:'flex', alignItems:'center', gap:6, background:'var(--bg-elevated)', border:'1px solid var(--accent)', borderRadius:6, padding:'5px 12px', cursor:'pointer', fontSize:12, color:'var(--accent)', fontWeight:600 }}>
+              ☁️ Upload to R2
+              <input type="file" accept="audio/*,.mp3,.m4a,.wav" style={{ display:'none' }} onChange={e => handleR2Upload(e, 'audio_url')} />
+            </label>
+            {editLesson.audio_url_uploading && <span style={{ fontSize:11, color:'var(--text-muted)' }}>Uploading…</span>}
+            {editLesson.audio_url && !editLesson.audio_url_uploading && <span style={{ fontSize:11, color:'#10B981' }}>✓</span>}
+          </div>
+          <input style={s.input} placeholder="Or paste URL (Supabase, R2, or direct .mp3 link)"
             value={editLesson.audio_url || ''}
             onChange={e => setEditLesson(p => ({ ...p, audio_url: e.target.value }))} />
-          <div style={{ fontSize:10, color:'var(--text-muted)', marginTop:3 }}>NotebookLM audio or any direct audio file</div>
+          <div style={{ fontSize:10, color:'var(--text-muted)', marginTop:3 }}>Upload MP3 directly to Cloudflare R2 or paste any audio URL</div>
         </div>
 
         {/* Infographic URL */}
         <div style={s.field}>
           <label style={s.label}>🖼 Infographic URL</label>
-          <input style={s.input} placeholder="https://… (image link)"
+          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
+            <label style={{ display:'flex', alignItems:'center', gap:6, background:'var(--bg-elevated)', border:'1px solid var(--accent)', borderRadius:6, padding:'5px 12px', cursor:'pointer', fontSize:12, color:'var(--accent)', fontWeight:600 }}>
+              ☁️ Upload to R2
+              <input type="file" accept="image/*" style={{ display:'none' }} onChange={e => handleR2Upload(e, 'infographic_url')} />
+            </label>
+            {editLesson.infographic_url_uploading && <span style={{ fontSize:11, color:'var(--text-muted)' }}>Uploading…</span>}
+            {editLesson.infographic_url && !editLesson.infographic_url_uploading && <span style={{ fontSize:11, color:'#10B981' }}>✓</span>}
+          </div>
+          <input style={s.input} placeholder="Or paste image URL"
             value={editLesson.infographic_url || ''}
             onChange={e => setEditLesson(p => ({ ...p, infographic_url: e.target.value }))} />
         </div>
