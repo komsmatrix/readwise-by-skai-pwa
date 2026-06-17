@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
 // ─── Supabase config ──────────────────────────────────────────────────────────
 const SUPA_URL = import.meta.env.VITE_SUPABASE_URL
@@ -137,7 +137,7 @@ function renderMarkdown(text) {
 // Chunked lesson content — renders large files without crashing
 function LessonContent({ text, contentRef }) {
   const CHUNK = 15000
-  const [chunks, setChunks] = React.useState(1)
+  const [chunks, setChunks] = useState(1)
   const display = text.slice(0, CHUNK * chunks)
   const hasMore = display.length < text.length
   return (
