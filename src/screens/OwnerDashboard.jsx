@@ -313,33 +313,22 @@ function QuestionsTab() {
     if (!file) return
     setEditLesson(p => ({ ...p, [`${field}_uploading`]: true }))
     try {
-      // Get presigned URL from server
-      const res = await fetch('/api/get-customers', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          password: sessionStorage.getItem('owner_auth') || '',
-          type: 'r2-sign',
-          fileName: (field === 'audio_url' ? 'audio' : 'infographic') + '/' + Date.now() + '.' + file.name.split('.').pop(),
-          fileType: file.type,
-        }),
-      })
-      const { uploadUrl, publicUrl, error } = await res.json()
-      if (error) throw new Error(error)
-
-      // Upload directly to R2
-      console.log('R2 uploadUrl:', uploadUrl)
-      console.log('R2 publicUrl:', publicUrl)
-      const r2res = await fetch(uploadUrl, {
+      // Upload via Cloudflare Worker
+      const folder   = field === 'audio_url' ? 'audio' : 'infographic'
+      const fileName = folder + '/' + Date.now() + '.' + file.name.split('.').pop()
+      const ownerPass = sessionStorage.getItem('owner_auth') || ''
+      const res = await fetch('https://readwise-upload.komsmatrix.workers.dev', {
         method: 'PUT',
+        headers: {
+          'Content-Type':     file.type,
+          'X-Owner-Password': ownerPass,
+          'X-File-Name':      fileName,
+        },
         body: file,
       })
-      console.log('R2 response status:', r2res.status)
-      const r2text = await r2res.text()
-      console.log('R2 response body:', r2text)
-      if (!r2res.ok) throw new Error('R2 PUT failed: ' + r2res.status + ' ' + r2text)
-
-      setEditLesson(p => ({ ...p, [field]: publicUrl, [`${field}_uploading`]: false }))
+      const data = await res.json()
+      if (data.error) throw new Error(data.error)
+      setEditLesson(p => ({ ...p, [field]: data.publicUrl, [`${field}_uploading`]: false }))
     } catch(err) {
       alert('Upload failed: ' + err.message)
       setEditLesson(p => ({ ...p, [`${field}_uploading`]: false }))
@@ -700,33 +689,22 @@ function LessonsTab() {
     if (!file) return
     setEditLesson(p => ({ ...p, [`${field}_uploading`]: true }))
     try {
-      // Get presigned URL from server
-      const res = await fetch('/api/get-customers', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          password: sessionStorage.getItem('owner_auth') || '',
-          type: 'r2-sign',
-          fileName: (field === 'audio_url' ? 'audio' : 'infographic') + '/' + Date.now() + '.' + file.name.split('.').pop(),
-          fileType: file.type,
-        }),
-      })
-      const { uploadUrl, publicUrl, error } = await res.json()
-      if (error) throw new Error(error)
-
-      // Upload directly to R2
-      console.log('R2 uploadUrl:', uploadUrl)
-      console.log('R2 publicUrl:', publicUrl)
-      const r2res = await fetch(uploadUrl, {
+      // Upload via Cloudflare Worker
+      const folder   = field === 'audio_url' ? 'audio' : 'infographic'
+      const fileName = folder + '/' + Date.now() + '.' + file.name.split('.').pop()
+      const ownerPass = sessionStorage.getItem('owner_auth') || ''
+      const res = await fetch('https://readwise-upload.komsmatrix.workers.dev', {
         method: 'PUT',
+        headers: {
+          'Content-Type':     file.type,
+          'X-Owner-Password': ownerPass,
+          'X-File-Name':      fileName,
+        },
         body: file,
       })
-      console.log('R2 response status:', r2res.status)
-      const r2text = await r2res.text()
-      console.log('R2 response body:', r2text)
-      if (!r2res.ok) throw new Error('R2 PUT failed: ' + r2res.status + ' ' + r2text)
-
-      setEditLesson(p => ({ ...p, [field]: publicUrl, [`${field}_uploading`]: false }))
+      const data = await res.json()
+      if (data.error) throw new Error(data.error)
+      setEditLesson(p => ({ ...p, [field]: data.publicUrl, [`${field}_uploading`]: false }))
     } catch(err) {
       alert('Upload failed: ' + err.message)
       setEditLesson(p => ({ ...p, [`${field}_uploading`]: false }))
