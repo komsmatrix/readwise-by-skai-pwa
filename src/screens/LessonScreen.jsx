@@ -337,8 +337,7 @@ export default function LessonScreen({ session, onBack }) {
       const parts = []
       if (lesson.title)           parts.push(lesson.title + '.')
       if (lesson.board_relevance) parts.push(lesson.board_relevance + '.')
-      if (lesson.content)         parts.push(lesson.content.replace(/[#*`>_~|]/g,'').replace(/
-+/g,' ').replace(/\s+/g,' '))
+      if (lesson.content)         parts.push(lesson.content.replace(/[#*`>_~|]/g,'').replace(/[\n]+/g,' ').replace(/[\s]+/g,' '))
       if (lesson.memory_hook)     parts.push('Memory Hook. ' + lesson.memory_hook)
       return parts.join(' ').trim()
     }
