@@ -373,45 +373,54 @@ export default function LessonScreen({ session, onBack }) {
     function wrapWords() {
       if (!contentRef?.current) return []
       const spans = []
-      const walker = document.createTreeWalker(contentRef.current, NodeFilter.SHOW_TEXT)
-      const nodes = []
-      let node
-      while ((node = walker.nextNode())) {
-        if (!node.parentNode || node.parentNode.nodeName === 'SCRIPT') continue
-        if (node.textContent.trim() === '') continue
-        nodes.push(node)
-      }
-      nodes.forEach(textNode => {
-        const parent = textNode.parentNode
-        if (!parent) return
-        const frag = document.createDocumentFragment()
-        textNode.textContent.split(/(\s+)/).forEach(part => {
-          if (/^\s*$/.test(part)) {
-            frag.appendChild(document.createTextNode(part))
-          } else {
-            const sp = document.createElement('span')
-            const idx = spans.length
-            sp.setAttribute('data-tts-w', idx)
-            sp.style.cursor = 'pointer'
-            sp.style.borderRadius = '2px'
-            sp.style.transition = 'background 0.1s'
-            sp.textContent = part
-            // Click-to-start: clicking a word starts TTS from that word
-            sp.addEventListener('click', (e) => {
-              e.stopPropagation()
-              startWordRef.current = idx
-              stopAll()
-              setTimeout(() => startSpeaking(idx), 100)
+      try {
+        const walker = document.createTreeWalker(contentRef.current, NodeFilter.SHOW_TEXT)
+        const nodes = []
+        let node
+        while ((node = walker.nextNode())) {
+          if (!node.parentNode || node.parentNode.nodeName === 'SCRIPT') continue
+          if (!node.parentNode.isConnected) continue
+          if (node.textContent.trim() === '') continue
+          nodes.push(node)
+        }
+        nodes.forEach(textNode => {
+          try {
+            const parent = textNode.parentNode
+            if (!parent || !parent.isConnected) return
+            // Skip already-wrapped nodes
+            if (parent.hasAttribute && parent.hasAttribute('data-tts-w')) return
+            const frag = document.createDocumentFragment()
+            textNode.textContent.split(/(\s+)/).forEach(part => {
+              if (/^\s*$/.test(part)) {
+                frag.appendChild(document.createTextNode(part))
+              } else {
+                const sp = document.createElement('span')
+                const idx = spans.length
+                sp.setAttribute('data-tts-w', idx)
+                sp.style.cursor = 'pointer'
+                sp.style.borderRadius = '2px'
+                sp.style.transition = 'background 0.1s'
+                sp.textContent = part
+                sp.addEventListener('click', (e) => {
+                  e.stopPropagation()
+                  startWordRef.current = idx
+                  stopAll()
+                  setTimeout(() => startSpeaking(idx), 100)
+                })
+                sp.addEventListener('mouseenter', () => { if (ttsState === 'idle') sp.style.background = 'var(--accent-dim)' })
+                sp.addEventListener('mouseleave', () => { if (!sp.getAttribute('data-hl')) sp.style.background = '' })
+                spans.push(sp)
+                frag.appendChild(sp)
+              }
             })
-            // Hover hint
-            sp.addEventListener('mouseenter', () => { if (ttsState === 'idle') sp.style.background = 'var(--accent-dim)' })
-            sp.addEventListener('mouseleave', () => { if (!sp.getAttribute('data-hl')) sp.style.background = '' })
-            spans.push(sp)
-            frag.appendChild(sp)
+            parent.replaceChild(frag, textNode)
+          } catch (nodeErr) {
+            console.warn('TTS wrap node error:', nodeErr)
           }
         })
-        parent.replaceChild(frag, textNode)
-      })
+      } catch (err) {
+        console.warn('TTS wrapWords error:', err)
+      }
       wordSpansRef.current = spans
       return spans
     }
@@ -495,32 +504,60 @@ export default function LessonScreen({ session, onBack }) {
           }, msPerWord)
           intervalRef.current = tick
         }
-        // Small delay to ensure wrapWords() DOM changes have settled
-        setTimeout(() => doTick(wordSpansRef.current.length > 0 ? wordSpansRef.current : spans), 80)
+        // Wait for DOM to settle before starting tick
+        // Use 150ms delay + rAF to ensure spans are rendered
+        setTimeout(() => {
+          requestAnimationFrame(() => {
+            const readySpans = wordSpansRef.current.length > 0 ? wordSpansRef.current : spans
+            if (readySpans.length > 0) doTick(readySpans)
+            else {
+              // Last resort: try wrapping again
+              const retry = wrapWords()
+              if (retry.length > 0) doTick(retry)
+            }
+          })
+        }, 150)
       } else {
-        // Desktop: onboundary — charIndex maps directly to full text word offsets
-        // Build char offset table for ALL words (not sliced) so index is exact
-        const charOffsets = []
+        // Desktop: build a map of charIndex → word index
+        // Key insight: use the EXACT charIndex the browser will fire, not estimated
+        // We reconstruct char positions from the actual text string
+        let charWordMap = []
         let pos = 0
-        allWords.forEach(w => { charOffsets.push(pos); pos += w.length + 1 })
+        const textChars = fullText
+        // Walk through fullText char by char, mark word starts
+        let inWord = false
+        let wordIdx = 0
+        for (let i = 0; i < textChars.length; i++) {
+          const ch = textChars[i]
+          const isSpace = /\s/.test(ch)
+          if (!isSpace && !inWord) {
+            charWordMap[i] = wordIdx  // mark word start position
+            inWord = true
+          } else if (isSpace && inWord) {
+            wordIdx++
+            inWord = false
+          }
+        }
 
-        // If click-to-start: skip highlighting until we reach fromWordIdx
         let reachedStart = fromWordIdx === 0
 
         utt.onboundary = (e) => {
           if (e.name !== 'word') return
-          // Binary search for closest word index
-          let lo = 0, hi = charOffsets.length - 1, closest = 0
-          while (lo <= hi) {
-            const mid = (lo + hi) >> 1
-            if (charOffsets[mid] <= e.charIndex) { closest = mid; lo = mid + 1 }
-            else hi = mid - 1
+          // Find the word index for this exact charIndex
+          // Look for the nearest word start at or before charIndex
+          let wIdx = charWordMap[e.charIndex]
+          if (wIdx === undefined) {
+            // Scan back up to 3 chars for word start
+            for (let k = 1; k <= 3; k++) {
+              if (charWordMap[e.charIndex - k] !== undefined) { wIdx = charWordMap[e.charIndex - k]; break }
+            }
           }
+          if (wIdx === undefined) return
           if (!reachedStart) {
-            if (closest >= fromWordIdx) reachedStart = true
-            else return  // skip words before click point
+            if (wIdx >= fromWordIdx) reachedStart = true
+            else return
           }
-          hlWord(closest)
+          hlWord(wIdx)
         }
       }
     }
