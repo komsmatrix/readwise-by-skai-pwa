@@ -16,13 +16,14 @@ export default async function handler(req, res) {
 
   const { type, ...payload } = req.body
 
-  if (!type) return res.status(400).json({ error: 'type is required: welcome | blast | payout | feedback' })
+  if (!type) return res.status(400).json({ error: 'type is required: welcome | blast | payout | feedback | weekly-report' })
 
   try {
-    if (type === 'welcome')  return await handleWelcome(payload, res)
-    if (type === 'blast')    return await handleBlast(payload, res)
-    if (type === 'payout')   return await handlePayout(payload, res)
-    if (type === 'feedback') return await handleFeedback(payload, res)
+    if (type === 'welcome')       return await handleWelcome(payload, res)
+    if (type === 'blast')         return await handleBlast(payload, res)
+    if (type === 'payout')        return await handlePayout(payload, res)
+    if (type === 'feedback')      return await handleFeedback(payload, res)
+    if (type === 'weekly-report') return await handleWeeklyReport(payload, res)
     return res.status(400).json({ error: `Unknown type: ${type}` })
   } catch (err) {
     console.error(`send-email [${type}] error:`, err)
@@ -365,6 +366,248 @@ function feedbackHTML({ name, email, message, type, typeLabel }) {
     </div>
   </div>
 </div>
+</body>
+</html>`
+}
+
+// ── WEEKLY REPORT ─────────────────────────────────────────────────────────────
+// Called by Supabase pg_cron every Sunday at 8PM PH time
+// Can also be triggered manually from owner dashboard
+// POST { type: 'weekly-report', customer_id?, send_all?: true }
+
+async function handleWeeklyReport({ customer_id, send_all }, res) {
+  // Fetch customers to send to
+  let customers = []
+
+  if (send_all) {
+    const { data } = await supabase
+      .from('customers')
+      .select('id, name, email')
+      .eq('is_active', true)
+    customers = data || []
+  } else if (customer_id) {
+    const { data } = await supabase
+      .from('customers')
+      .select('id, name, email')
+      .eq('id', customer_id)
+      .single()
+    if (data) customers = [data]
+  }
+
+  if (!customers.length) return res.status(400).json({ error: 'No customers found' })
+
+  const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+  let sent = 0, failed = 0
+
+  for (const customer of customers) {
+    try {
+      // Get student exam (readiness score + exam date)
+      const { data: exam } = await supabase
+        .from('student_exams')
+        .select('readiness_score, exam_date, study_mode')
+        .eq('customer_id', customer.id)
+        .single()
+
+      // Get sessions this week
+      const { data: sessions } = await supabase
+        .from('sessions')
+        .select('id, cards_reviewed, correct, created_at')
+        .eq('customer_id', customer.id)
+        .gte('created_at', oneWeekAgo)
+
+      // Get readiness score from last week (7-14 days ago)
+      const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString()
+      const { data: oldSessions } = await supabase
+        .from('sessions')
+        .select('readiness_score_after')
+        .eq('customer_id', customer.id)
+        .gte('created_at', twoWeeksAgo)
+        .lt('created_at', oneWeekAgo)
+        .order('created_at', { ascending: false })
+        .limit(1)
+
+      // Get weak topics from topic_health
+      const { data: weakTopics } = await supabase
+        .from('topic_health')
+        .select('topic_name, health_state, mastery_pct')
+        .eq('customer_id', customer.id)
+        .in('health_state', ['Critical', 'Weak'])
+        .order('mastery_pct', { ascending: true })
+        .limit(2)
+
+      // Get streak
+      const { data: profile } = await supabase
+        .from('customers')
+        .select('streak')
+        .eq('id', customer.id)
+        .single()
+
+      // Build report data
+      const daysActive    = new Set((sessions || []).map(s => s.created_at?.slice(0, 10))).size
+      const cardsReviewed = (sessions || []).reduce((sum, s) => sum + (s.cards_reviewed || 0), 0)
+      const currentScore  = exam?.readiness_score ?? 0
+      const lastScore     = oldSessions?.[0]?.readiness_score_after ?? null
+      const scoreDiff     = lastScore !== null ? currentScore - lastScore : null
+      const streak        = profile?.streak ?? 0
+      const daysToExam    = exam?.exam_date
+        ? Math.max(0, Math.ceil((new Date(exam.exam_date) - new Date()) / (1000 * 60 * 60 * 24)))
+        : null
+
+      // Determine version: on-track vs nudge
+      const isOnTrack = daysActive >= 4 && (scoreDiff === null || scoreDiff >= 0)
+
+      const firstName = customer.name?.split(' ')[0] || 'there'
+
+      await resend.emails.send({
+        from   : 'Readwise by Skai <hello@readwisebyskai.com>',
+        to     : customer.email,
+        subject: isOnTrack
+          ? `📈 You're on track, ${firstName} — Weekly Study Report`
+          : `📋 Your weekly study report, ${firstName} — here's what needs attention`,
+        html: weeklyReportHTML({
+          firstName, currentScore, lastScore, scoreDiff,
+          daysActive, cardsReviewed, streak, weakTopics: weakTopics || [],
+          daysToExam, isOnTrack, examDate: exam?.exam_date,
+        }),
+      })
+      sent++
+    } catch (e) {
+      console.error(`Weekly report failed for ${customer.email}:`, e)
+      failed++
+    }
+  }
+
+  return res.status(200).json({ success: true, sent, failed, total: customers.length })
+}
+
+function weeklyReportHTML({
+  firstName, currentScore, lastScore, scoreDiff,
+  daysActive, cardsReviewed, streak, weakTopics,
+  daysToExam, isOnTrack, examDate,
+}) {
+  const scoreColor  = scoreDiff > 0 ? '#10B981' : scoreDiff < 0 ? '#e05c5c' : '#c9a96e'
+  const scoreTrend  = scoreDiff > 0 ? `▲ ${scoreDiff}% from last week` : scoreDiff < 0 ? `▼ ${Math.abs(scoreDiff)}% from last week` : 'No change from last week'
+  const examDateStr = examDate ? new Date(examDate).toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' }) : null
+
+  const weakTopicRows = weakTopics.length > 0
+    ? weakTopics.map(t => `
+      <tr>
+        <td style="padding:10px 14px;font-size:13px;color:#f0ede8;border-bottom:1px solid rgba(255,255,255,0.06);">${t.topic_name}</td>
+        <td style="padding:10px 14px;font-size:12px;font-weight:700;color:${t.health_state === 'Critical' ? '#e05c5c' : '#F59E0B'};border-bottom:1px solid rgba(255,255,255,0.06);text-align:right;">${t.health_state}</td>
+        <td style="padding:10px 14px;font-size:12px;color:#6b6560;border-bottom:1px solid rgba(255,255,255,0.06);text-align:right;">${t.mastery_pct ?? 0}% mastery</td>
+      </tr>`).join('')
+    : `<tr><td colspan="3" style="padding:12px 14px;font-size:13px;color:#10B981;text-align:center;">✓ No critical or weak topics this week</td></tr>`
+
+  const coachLine = weakTopics.length > 0
+    ? `You haven't mastered <strong style="color:#f0ede8;">${weakTopics[0].topic_name}</strong> yet — and it's on every LET exam. One focused session this week fixes that.`
+    : cardsReviewed === 0
+    ? `You didn't study this week. Your exam ${daysToExam ? `is in ${daysToExam} days` : 'is coming up'}. Even 10 minutes today puts you ahead.`
+    : `You're building real momentum. Keep the streak alive and focus on your weak topics.`
+
+  const nudgeBanner = !isOnTrack ? `
+    <div style="background:rgba(224,92,92,0.08);border:1px solid rgba(224,92,92,0.2);border-radius:10px;padding:14px 18px;margin-bottom:20px;">
+      <div style="font-size:12px;font-weight:700;color:#e05c5c;margin-bottom:4px;">⚠ You only studied ${daysActive} day${daysActive !== 1 ? 's' : ''} this week</div>
+      <div style="font-size:13px;color:#9a9690;line-height:1.6;">Consistent study is the #1 predictor of passing. Even 15 minutes a day makes a difference.</div>
+    </div>` : ''
+
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#0d0d0d;font-family:'Helvetica Neue',Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#0d0d0d;padding:32px 16px;">
+<tr><td align="center">
+<table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;">
+
+  <!-- Header -->
+  <tr><td style="padding:0 0 24px;">
+    <div style="font-size:18px;font-weight:700;color:#f0ede8;letter-spacing:-0.02em;">Readwise <span style="color:#c9a96e;">by Skai</span></div>
+    <div style="font-size:10px;color:#c9a96e;letter-spacing:0.08em;text-transform:uppercase;margin-top:3px;">Weekly Study Report</div>
+  </td></tr>
+
+  <!-- Main card -->
+  <tr><td style="background:#161616;border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:32px;">
+
+    <p style="margin:0 0 6px;font-size:22px;font-weight:700;color:#f0ede8;letter-spacing:-0.02em;">
+      ${isOnTrack ? `You're on track, ${firstName}. 💪` : `Here's your week, ${firstName}.`}
+    </p>
+    <p style="margin:0 0 24px;font-size:14px;color:#9a9690;line-height:1.7;">
+      ${isOnTrack
+        ? 'Great week — here\'s what your numbers look like.'
+        : 'Your weekly Readwise report. Here\'s where you stand and what needs attention.'}
+    </p>
+
+    ${nudgeBanner}
+
+    <!-- Readiness Score -->
+    <div style="background:#0d0d0d;border:1px solid rgba(201,169,110,0.2);border-radius:12px;padding:20px 24px;margin-bottom:16px;text-align:center;">
+      <div style="font-size:11px;color:#c9a96e;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;font-weight:700;">Readiness Score</div>
+      <div style="font-size:52px;font-weight:800;color:#c9a96e;line-height:1;">${currentScore}%</div>
+      ${scoreDiff !== null ? `<div style="font-size:12px;color:${scoreColor};margin-top:6px;font-weight:600;">${scoreTrend}</div>` : ''}
+      ${examDateStr ? `<div style="font-size:11px;color:#6b6560;margin-top:4px;">Exam: ${examDateStr}${daysToExam ? ` · ${daysToExam} days away` : ''}</div>` : ''}
+    </div>
+
+    <!-- Stats row -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;">
+      <tr>
+        <td width="33%" style="padding:0 4px 0 0;">
+          <div style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:14px;text-align:center;">
+            <div style="font-size:24px;font-weight:800;color:#f0ede8;">${daysActive}</div>
+            <div style="font-size:10px;color:#6b6560;margin-top:3px;text-transform:uppercase;letter-spacing:0.05em;">Days Active</div>
+          </div>
+        </td>
+        <td width="33%" style="padding:0 2px;">
+          <div style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:14px;text-align:center;">
+            <div style="font-size:24px;font-weight:800;color:#f0ede8;">${cardsReviewed}</div>
+            <div style="font-size:10px;color:#6b6560;margin-top:3px;text-transform:uppercase;letter-spacing:0.05em;">Cards Reviewed</div>
+          </div>
+        </td>
+        <td width="33%" style="padding:0 0 0 4px;">
+          <div style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:14px;text-align:center;">
+            <div style="font-size:24px;font-weight:800;color:${streak > 0 ? '#F59E0B' : '#f0ede8'};">${streak}🔥</div>
+            <div style="font-size:10px;color:#6b6560;margin-top:3px;text-transform:uppercase;letter-spacing:0.05em;">Day Streak</div>
+          </div>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Weak topics -->
+    <div style="margin-bottom:20px;">
+      <div style="font-size:11px;font-weight:700;color:#c9a96e;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">Topics That Need Attention</div>
+      <table width="100%" cellpadding="0" cellspacing="0" style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.07);border-radius:10px;overflow:hidden;">
+        ${weakTopicRows}
+      </table>
+    </div>
+
+    <!-- Coach insight -->
+    <div style="background:rgba(201,169,110,0.06);border:1px solid rgba(201,169,110,0.15);border-radius:10px;padding:16px 18px;margin-bottom:24px;">
+      <div style="font-size:10px;font-weight:700;color:#c9a96e;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">🧠 Coach Insight</div>
+      <div style="font-size:13px;color:#9a9690;line-height:1.7;">${coachLine}</div>
+    </div>
+
+    <!-- CTA -->
+    <a href="https://readwisebyskai.com" style="display:block;background:#c9a96e;color:#0d0d0d;text-decoration:none;padding:15px;border-radius:10px;font-size:15px;font-weight:700;text-align:center;margin-bottom:20px;">
+      Study Now →
+    </a>
+
+    <div style="height:1px;background:rgba(255,255,255,0.07);margin-bottom:20px;"></div>
+
+    <!-- Privacy note -->
+    <p style="margin:0;font-size:11px;color:#3a3835;line-height:1.7;text-align:center;">
+      You receive this report because you registered at readwisebyskai.com.<br/>
+      We collect your email to provide access to your account and to follow up on your study progress.<br/>
+      Reply to this email to unsubscribe from weekly reports.
+    </p>
+
+  </td></tr>
+
+  <!-- Footer -->
+  <tr><td style="padding:20px 0 0;text-align:center;">
+    <p style="margin:0;font-size:12px;color:#3a3835;">Readwise by Skai · Board Exam Operating System</p>
+  </td></tr>
+
+</table>
+</td></tr>
+</table>
 </body>
 </html>`
 }
