@@ -25,10 +25,10 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
 
   async function handleLogin() {
     if (!password) return setAuthError('Enter password')
-    const res = await fetch('/api/generate-key', {
+    const res = await fetch('/api/owner', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: 'test', email: 'test@test.com', password, isOwnerKey: false }),
+      body: JSON.stringify({ type: 'generate-key', name: 'test', email: 'test@test.com', password, isOwnerKey: false }),
     })
     const data = await res.json()
     if (data.error === 'Unauthorized') { setAuthError('Wrong password'); return }
@@ -211,10 +211,11 @@ function QuestionsTab() {
     // Prompt is handled server-side in api/generate-questions.js
     try {
       const ownerPass = sessionStorage.getItem('owner_auth') || sessionStorage.getItem('ownerPassword') || localStorage.getItem('owner_auth') || ''
-      const res = await fetch('/api/get-customers', {
+      const res = await fetch('/api/owner', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          type          : 'generate-questions',
           password      : ownerPass,
           topicName,
           topicId       : genTopic,
@@ -1290,10 +1291,10 @@ function KeysTab() {
     if (!name.trim() || !email.trim()) return
     setStatus('loading')
     const ownerPass = sessionStorage.getItem('owner_auth') || sessionStorage.getItem('ownerPassword') || localStorage.getItem('owner_auth')
-    const res = await fetch('/api/generate-key', {
+    const res = await fetch('/api/owner', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, password: ownerPass, course }),
+      body: JSON.stringify({ type: 'generate-key', name, email, password: ownerPass, course }),
     })
     const data = await res.json()
     if (data.key) {
@@ -1487,7 +1488,7 @@ function AgentsTab() {
     if (!blast.subject.trim() || !blast.message.trim()) return
     setBlasting(true)
     setBlastMsg("")
-    const res = await fetch("/api/send-agent-blast", {
+    const res = await fetch("/api/send-email", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(blast),
@@ -1523,7 +1524,7 @@ function AgentsTab() {
 
     if (!error && data) {
       // Send welcome email
-      await fetch('/api/send-agent-welcome', {
+      await fetch('/api/send-email', {
         method:'POST',
         headers:{'Content-Type':'application/json'},
         body: JSON.stringify({
@@ -1578,7 +1579,7 @@ function AgentsTab() {
     }])
 
     // Send payout email
-    await fetch('/api/send-payout-confirmation', {
+    await fetch('/api/send-email', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({

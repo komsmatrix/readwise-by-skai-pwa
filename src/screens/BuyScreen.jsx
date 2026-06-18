@@ -60,10 +60,10 @@ export default function BuyScreen() {
     if (!code.trim()) { setCodeStatus('idle'); setAgentName(''); setDiscountAmt(REFERRAL_DISC); return }
     setCodeStatus('checking')
     try {
-      const res = await fetch('/api/validate-referral', {
+      const res = await fetch('/api/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, email }),
+        body: JSON.stringify({ type: 'referral', code, email }),
       })
       const data = await res.json()
       if (data.valid) {
