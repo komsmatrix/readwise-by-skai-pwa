@@ -363,8 +363,7 @@ export default function LessonScreen({ session, onBack }) {
       if (blocks.length === 0) {
         // Fallback: split plain text into chunks if no block elements
         const text = contentRef.current.innerText || ''
-        const chunks = text.split(/
-{2,}/).filter(c => c.trim().length > 0)
+        const chunks = text.split(/[\n]{2,}/).filter(c => c.trim().length > 0)
         paraTextsRef.current = chunks
         paraSpansRef.current = []  // no DOM elements to highlight
         return chunks
