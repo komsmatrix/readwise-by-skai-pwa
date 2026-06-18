@@ -482,23 +482,7 @@ export default function LessonScreen({ session, onBack }) {
           {/* TTS player */}
           <TTSPlayer lesson={activeLesson} contentRef={contentRef} />
 
-          {/* Main content — progressive chunked rendering, no size limit */}
-          <LessonContent text={activeLesson.content || ''} contentRef={contentRef} />
-
-          {/* Memory hook */}
-          {activeLesson.memory_hook && (
-            <div style={{ marginTop:32, background:'rgba(201,168,76,0.06)', border:'1px solid rgba(201,168,76,0.2)', borderRadius:14, padding:20, position:'relative', overflow:'hidden' }}>
-              <div style={{ position:'absolute', top:0, left:0, right:0, height:3, background:'linear-gradient(90deg, var(--accent), transparent)' }} />
-              <div style={{ fontSize:11, fontWeight:700, color:'var(--accent)', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:12, display:'flex', alignItems:'center', gap:6 }}>
-                <span>🧠</span> Memory Hook
-              </div>
-              <div style={{ fontSize:14, color:'var(--text-primary)', lineHeight:1.8, fontFamily:"'DM Mono', monospace", whiteSpace:'pre-wrap' }}>
-                {activeLesson.memory_hook}
-              </div>
-            </div>
-          )}
-
-          {/* Media resources */}
+          {/* Media resources — above content so students can queue audio first */}
           {(activeLesson.video_url || activeLesson.audio_url || activeLesson.infographic_url || activeLesson.mindmap_url) && (
             <div style={{ marginTop:28, background:'var(--bg-surface)', border:'1px solid var(--border)', borderRadius:14, padding:18 }}>
               <div style={{ fontSize:11, fontWeight:700, color:'var(--accent)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:14 }}>
@@ -538,6 +522,22 @@ export default function LessonScreen({ session, onBack }) {
               )}
             </div>
           )}
+
+          {/* Memory hook */}
+          {activeLesson.memory_hook && (
+            <div style={{ marginTop:32, background:'rgba(201,168,76,0.06)', border:'1px solid rgba(201,168,76,0.2)', borderRadius:14, padding:20, position:'relative', overflow:'hidden' }}>
+              <div style={{ position:'absolute', top:0, left:0, right:0, height:3, background:'linear-gradient(90deg, var(--accent), transparent)' }} />
+              <div style={{ fontSize:11, fontWeight:700, color:'var(--accent)', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:12, display:'flex', alignItems:'center', gap:6 }}>
+                <span>🧠</span> Memory Hook
+              </div>
+              <div style={{ fontSize:14, color:'var(--text-primary)', lineHeight:1.8, fontFamily:"'DM Mono', monospace", whiteSpace:'pre-wrap' }}>
+                {activeLesson.memory_hook}
+              </div>
+            </div>
+          )}
+
+          {/* Main content — progressive chunked rendering, no size limit */}
+          <LessonContent text={activeLesson.content || ''} contentRef={contentRef} />
 
           {/* Action buttons */}
           <div style={{ marginTop:28, display:'flex', flexDirection:'column', gap:10 }}>
