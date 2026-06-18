@@ -372,7 +372,10 @@ export default function StudyScreen({ customer, studentExam, onDone }) {
             <div style={s.topicLabel}>{card.topic?.name || 'Board Review'}</div>
             <div style={s.sessionTitle}>Today's Session</div>
           </div>
-          <div style={s.modeBadge}>{mode}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+            <div style={s.modeBadge}>{mode}</div>
+            <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{idx + 1}/{cards.length}</div>
+          </div>
         </div>
 
         {/* Progress */}
@@ -388,13 +391,17 @@ export default function StudyScreen({ customer, studentExam, onDone }) {
 
         {/* Card */}
         <div style={s.cardWrap}>
-          {/* Tags */}
+          {/* Tags row */}
           <div style={s.tagRow}>
-            <span style={{ ...s.tag, background: '#1A2D1A', color: '#10B981' }}>{card.difficulty}</span>
-            <span style={{ ...s.tag, background: '#2D1A2A', color: '#8B5CF6' }}>{card.bloom_level}</span>
+            {card.difficulty && (
+              <span style={{ ...s.tag, background: '#1A2D1A', color: '#10B981' }}>{card.difficulty}</span>
+            )}
+            {card.bloom_level && (
+              <span style={{ ...s.tag, background: '#2D1A2A', color: '#8B5CF6' }}>{card.bloom_level}</span>
+            )}
             {card.topic?.board_frequency && (
               <span style={{ ...s.tag, background: 'var(--accent-dim)', color: 'var(--accent)' }}>
-                {card.topic.board_frequency}
+                {card.topic.board_frequency} freq
               </span>
             )}
           </div>
@@ -405,54 +412,66 @@ export default function StudyScreen({ customer, studentExam, onDone }) {
           {/* Choices */}
           <div style={s.choices}>
             {choices.map((choice, i) => {
-              let border = 'var(--border)', bg = 'var(--bg-elevated)', color = 'var(--text-primary)'
+              const letters = ['A', 'B', 'C', 'D']
+              let border = 'var(--border)', bg = 'var(--bg-elevated)', color = 'var(--text-secondary)', letterColor = 'var(--text-muted)'
               if (answered) {
-                if (i === correctIndex)            { border = '#10B981'; bg = 'rgba(16,185,129,0.08)'; color = '#10B981' }
-                else if (i === chosen && i !== correctIndex) { border = '#e05c5c'; bg = 'rgba(224,92,92,0.08)'; color = '#e05c5c' }
-                else { color = 'var(--text-muted)' }
+                if (i === correctIndex)                       { border = '#10B981'; bg = 'rgba(16,185,129,0.10)'; color = '#10B981'; letterColor = '#10B981' }
+                else if (i === chosen && i !== correctIndex)  { border = '#e05c5c'; bg = 'rgba(224,92,92,0.10)';  color = '#e05c5c'; letterColor = '#e05c5c' }
+                else { color = 'var(--text-muted)'; letterColor = 'var(--text-muted)' }
+              } else if (!answered) {
+                border = 'var(--border-strong)'
               }
               return (
-                <button key={i} onClick={() => pickAnswer(i)} style={{
+                <button key={i} onClick={() => pickAnswer(i)} disabled={answered} style={{
                   background: bg, border: `1.5px solid ${border}`,
-                  borderRadius: 'var(--radius-md)', padding: '11px 14px',
+                  borderRadius: 'var(--radius-md)', padding: '12px 14px',
                   fontSize: 13, cursor: answered ? 'default' : 'pointer',
                   textAlign: 'left', color, fontFamily: 'inherit',
-                  transition: 'all 0.15s',
+                  transition: 'all 0.15s', display: 'flex', alignItems: 'flex-start', gap: 10,
                 }}>
-                  {choice}
+                  <span style={{ fontWeight: 700, color: letterColor, minWidth: 16, fontSize: 12, marginTop: 1 }}>{letters[i]}</span>
+                  <span>{choice}</span>
                 </button>
               )
             })}
           </div>
 
-          {/* Explanation — with markdown rendering */}
+          {/* Explanation */}
           {answered && card.explanation && (
-            <div
-              style={s.explanation}
+            <div style={s.explanation}
               dangerouslySetInnerHTML={{ __html: renderMarkdown(card.explanation) }}
             />
           )}
         </div>
 
-        {/* Confidence + Next */}
+        {/* Confidence — shown prominently after answering */}
         {answered && (
           <>
-            <div style={s.confRow}>
-              {[['Sure', '#10B981'], ['Guessed', 'var(--accent)'], ['No Idea', '#e05c5c']].map(([label, color]) => (
-                <button key={label} onClick={() => setConf(label)} style={{
-                  flex: 1, padding: '8px 6px',
-                  background: conf === label ? `${color}18` : 'var(--bg-surface)',
-                  border: `1.5px solid ${conf === label ? color : 'var(--border)'}`,
-                  borderRadius: 'var(--radius-md)', fontSize: 11,
-                  color: conf === label ? color : 'var(--text-muted)',
-                  cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
-                }}>
-                  {label}
-                </button>
-              ))}
+            <div style={s.confSection}>
+              <div style={s.confLabel}>How confident were you?</div>
+              <div style={s.confRow}>
+                {[
+                  { label: 'Sure',    emoji: '✅', color: '#10B981' },
+                  { label: 'Guessed', emoji: '🤔', color: 'var(--accent)' },
+                  { label: 'No Idea', emoji: '❌', color: '#e05c5c' },
+                ].map(({ label, emoji, color }) => (
+                  <button key={label} onClick={() => setConf(label)} style={{
+                    flex: 1, padding: '12px 8px',
+                    background: conf === label ? `rgba(${color === '#10B981' ? '16,185,129' : color === '#e05c5c' ? '224,92,92' : '201,169,110'},0.15)` : 'var(--bg-surface)',
+                    border: `2px solid ${conf === label ? color : 'var(--border)'}`,
+                    borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: conf === label ? 700 : 400,
+                    color: conf === label ? color : 'var(--text-muted)',
+                    cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                  }}>
+                    <span style={{ fontSize: 18 }}>{emoji}</span>
+                    {label}
+                  </button>
+                ))}
+              </div>
             </div>
             <button style={s.nextBtn} onClick={nextCard}>
-              {idx + 1 >= cards.length ? 'Finish Session' : 'Next Card →'}
+              {idx + 1 >= cards.length ? '🏁 Finish Session' : 'Next Card →'}
             </button>
           </>
         )}
@@ -469,42 +488,49 @@ function getHealthColor(state) {
 
 const s = {
   root          : { flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' },
-  scroll        : { flex: 1, overflowY: 'auto' },
+  scroll        : { flex: 1, overflowY: 'auto', paddingBottom: 12 },
   center        : { flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 32, gap: 12 },
   loading       : { fontSize: 14, color: 'var(--text-muted)' },
   emptyIcon     : { fontSize: 40, marginBottom: 8 },
   emptyTitle    : { fontFamily: 'var(--font-display)', fontSize: 20, color: 'var(--text-primary)' },
   emptySub      : { fontSize: 13, color: 'var(--text-muted)', textAlign: 'center', lineHeight: 1.6 },
-  doneBtn       : { marginTop: 8, padding: '12px 28px', background: 'var(--accent)', color: '#0d0d0d', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
-  sessionHeader : { padding: '20px 20px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' },
-  topicLabel    : { fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 },
-  sessionTitle  : { fontFamily: 'var(--font-display)', fontSize: 20, color: 'var(--text-primary)' },
-  modeBadge     : { background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 20, padding: '4px 10px', fontSize: 10, color: 'var(--text-muted)' },
-  progressWrap  : { padding: '12px 20px' },
-  progressMeta  : { display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-muted)', marginBottom: 5 },
-  progressBar   : { height: 4, background: 'var(--bg-elevated)', borderRadius: 2, overflow: 'hidden' },
+  doneBtn       : { marginTop: 8, padding: '12px 28px', background: 'var(--accent)', color: '#0d0d0d', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+  // Header
+  sessionHeader : { padding: '16px 20px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' },
+  topicLabel    : { fontSize: 10, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '.06em', fontWeight: 600, marginBottom: 2 },
+  sessionTitle  : { fontFamily: 'var(--font-display)', fontSize: 18, color: 'var(--text-primary)' },
+  modeBadge     : { background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 20, padding: '3px 10px', fontSize: 10, color: 'var(--text-muted)', fontWeight: 500 },
+  // Progress
+  progressWrap  : { padding: '10px 20px' },
+  progressMeta  : { display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--text-muted)', marginBottom: 5 },
+  progressBar   : { height: 3, background: 'var(--bg-elevated)', borderRadius: 2, overflow: 'hidden' },
   progressFill  : { height: '100%', background: 'var(--accent)', borderRadius: 2, transition: 'width .4s' },
-  cardWrap      : { margin: '0 20px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: 20 },
-  tagRow        : { display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' },
-  tag           : { fontSize: 10, padding: '2px 7px', borderRadius: 10, fontWeight: 500 },
-  question      : { fontFamily: 'var(--font-display)', fontSize: 15, color: 'var(--text-primary)', lineHeight: 1.6, marginBottom: 16 },
-  choices       : { display: 'flex', flexDirection: 'column', gap: 8 },
-  explanation   : { marginTop: 12, padding: '10px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 },
-  confRow       : { display: 'flex', gap: 6, padding: '10px 20px 0' },
-  nextBtn       : { margin: '10px 20px 0', width: 'calc(100% - 40px)', background: 'var(--accent)', color: '#0d0d0d', border: 'none', borderRadius: 'var(--radius-md)', padding: 12, fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
+  // Card
+  cardWrap      : { margin: '0 16px', background: 'var(--bg-surface)', border: '1px solid var(--border-strong)', borderRadius: 'var(--radius-xl)', padding: '20px 18px', boxShadow: '0 2px 12px rgba(0,0,0,0.15)' },
+  tagRow        : { display: 'flex', gap: 5, marginBottom: 12, flexWrap: 'wrap' },
+  tag           : { fontSize: 10, padding: '2px 8px', borderRadius: 10, fontWeight: 600 },
+  question      : { fontFamily: 'var(--font-display)', fontSize: 16, color: 'var(--text-primary)', lineHeight: 1.65, marginBottom: 18 },
+  choices       : { display: 'flex', flexDirection: 'column', gap: 9 },
+  explanation   : { marginTop: 14, padding: '12px 14px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderLeft: '3px solid var(--accent)', borderRadius: '0 var(--radius-md) var(--radius-md) 0', fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7 },
+  // Confidence — upgraded
+  confSection   : { margin: '12px 16px 0' },
+  confLabel     : { fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '.05em' },
+  confRow       : { display: 'flex', gap: 8 },
+  nextBtn       : { margin: '12px 16px 0', width: 'calc(100% - 32px)', background: 'var(--accent)', color: '#0d0d0d', border: 'none', borderRadius: 'var(--radius-md)', padding: '14px', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '.01em' },
+  // Summary
   summaryWrap   : { padding: '24px 20px', display: 'flex', flexDirection: 'column', gap: 12 },
-  summaryH      : { fontFamily: 'var(--font-display)', fontSize: 24, color: 'var(--text-primary)', marginBottom: 4 },
+  summaryH      : { fontFamily: 'var(--font-display)', fontSize: 26, color: 'var(--text-primary)', marginBottom: 2 },
   summarySub    : { fontSize: 13, color: 'var(--text-muted)' },
   statsRow      : { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 },
-  statBox       : { background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: 10, textAlign: 'center' },
-  statNum       : { fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700 },
-  statLabel     : { fontSize: 10, color: 'var(--text-muted)', marginTop: 2 },
+  statBox       : { background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '12px 10px', textAlign: 'center' },
+  statNum       : { fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 700 },
+  statLabel     : { fontSize: 10, color: 'var(--text-muted)', marginTop: 3, textTransform: 'uppercase', letterSpacing: '.04em' },
   healthCard    : { background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '12px 14px' },
-  healthTitle   : { fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 8 },
-  healthRow     : { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 0', borderBottom: '1px solid var(--border)', fontSize: 12 },
+  healthTitle   : { fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 8 },
+  healthRow     : { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid var(--border)', fontSize: 12 },
   insightCard   : { background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '12px 14px' },
-  insightHead   : { fontSize: 10, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '.5px', fontWeight: 600, marginBottom: 5 },
+  insightHead   : { fontSize: 10, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '.5px', fontWeight: 600, marginBottom: 6 },
   summaryBtns   : { display: 'flex', gap: 8 },
-  btnPrimary    : { flex: 2, background: 'var(--accent)', color: '#0d0d0d', border: 'none', borderRadius: 'var(--radius-md)', padding: 12, fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
-  btnGhost      : { flex: 1, background: 'none', border: '1px solid var(--border)', color: 'var(--text-muted)', borderRadius: 'var(--radius-md)', padding: 12, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' },
+  btnPrimary    : { flex: 2, background: 'var(--accent)', color: '#0d0d0d', border: 'none', borderRadius: 'var(--radius-md)', padding: 13, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' },
+  btnGhost      : { flex: 1, background: 'none', border: '1px solid var(--border)', color: 'var(--text-muted)', borderRadius: 'var(--radius-md)', padding: 13, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' },
 }

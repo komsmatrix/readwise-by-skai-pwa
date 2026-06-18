@@ -270,35 +270,39 @@ export default function HomeScreen({ customer, studentExam, onStartStudy, onView
           )}
         </div>
 
-        {/* Streak + stats */}
-        <div style={s.statsRow}>
-          <div style={s.statChip}>
-            <span style={{ fontSize: 20 }}>🔥</span>
-            <div>
-              <div style={s.statVal}>{data?.streak ?? 0} <span style={s.statUnit}>day streak</span></div>
-              <div style={s.statSub}>Keep it going</div>
-            </div>
+        {/* Stats grid */}
+        <div style={s.statsGrid}>
+          <div style={s.statCard}>
+            <div style={s.statIcon}>🔥</div>
+            <div style={{ ...s.statVal, color: data?.streak > 0 ? '#F59E0B' : 'var(--text-primary)' }}>{data?.streak ?? 0}</div>
+            <div style={s.statSub}>day streak</div>
           </div>
-          <div style={s.statChip}>
-            <span style={{ fontSize: 20 }}>📚</span>
-            <div>
-              <div style={s.statVal}>{data?.totalReviews ?? 0}</div>
-              <div style={s.statSub}>cards reviewed</div>
-            </div>
+          <div style={s.statCard}>
+            <div style={s.statIcon}>📚</div>
+            <div style={s.statVal}>{data?.totalReviews ?? 0}</div>
+            <div style={s.statSub}>cards reviewed</div>
+          </div>
+          <div style={s.statCard}>
+            <div style={s.statIcon}>⚠️</div>
+            <div style={{ ...s.statVal, color: data?.criticalCount > 0 ? '#e05c5c' : '#10B981' }}>{data?.criticalCount ?? 0}</div>
+            <div style={s.statSub}>weak topics</div>
           </div>
         </div>
 
-        {/* Unlocked milestones */}
+        {/* Milestones */}
         {data?.unlocked?.length > 0 && (
           <div style={s.milestonesRow}>
-            <div style={s.milestonesLabel}>🏅 Milestones</div>
+            <div style={s.milestonesLabel}>🏅 Milestones unlocked</div>
             <div style={s.milestoneChips}>
               {data.unlocked.map(m => (
                 <div key={m.id} style={s.milestoneChip}>
-                  <span>{m.icon}</span>
+                  <span style={{ fontSize: 16 }}>{m.icon}</span>
                   <span style={s.milestoneChipLabel}>{m.label}</span>
                 </div>
               ))}
+              {data.unlocked.length === 0 && (
+                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Complete your first session to unlock milestones.</div>
+              )}
             </div>
           </div>
         )}
@@ -314,9 +318,11 @@ export default function HomeScreen({ customer, studentExam, onStartStudy, onView
               </button>
             </>
           ) : (
-            <div style={s.insightBody}>Complete your first study session to get personalized coaching.</div>
+            <div style={s.insightBody}>Complete your first study session to get personalized coaching based on your performance.</div>
           )}
         </div>
+
+        <div style={{ height: 8 }} />
 
         <div style={{ height: 16 }} />
       </div>
@@ -482,16 +488,17 @@ const s = {
   nbaBtns          : { display: 'flex', gap: 8 },
   btnPrimary       : { flex: 1, background: 'var(--accent)', color: '#0d0d0d', border: 'none', borderRadius: 'var(--radius-md)', padding: '9px 12px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
   btnGhost         : { background: 'none', border: '1px solid var(--border)', color: 'var(--text-muted)', borderRadius: 'var(--radius-md)', padding: '9px 14px', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' },
-  statsRow         : { display: 'flex', gap: 8, padding: '0 20px 12px' },
-  statChip         : { flex: 1, background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 8 },
-  statVal          : { fontFamily: 'var(--font-display)', fontSize: 16, color: 'var(--text-primary)' },
-  statUnit         : { fontSize: 12, fontWeight: 400, color: 'var(--text-muted)', fontFamily: 'inherit' },
-  statSub          : { fontSize: 10, color: 'var(--text-muted)' },
+  statsGrid        : { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, padding: '0 20px 12px' },
+  statCard         : { background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '12px 8px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 },
+  statIcon         : { fontSize: 18, marginBottom: 2 },
+  statVal          : { fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1 },
+  statUnit         : { fontSize: 11, fontWeight: 400, color: 'var(--text-muted)', fontFamily: 'inherit' },
+  statSub          : { fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.04em' },
   milestonesRow    : { margin: '0 20px 12px' },
-  milestonesLabel  : { fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 6 },
+  milestonesLabel  : { fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 8, fontWeight: 600 },
   milestoneChips   : { display: 'flex', gap: 6, flexWrap: 'wrap' },
-  milestoneChip    : { display: 'flex', alignItems: 'center', gap: 4, background: 'var(--accent-dim)', border: '1px solid var(--accent)', borderRadius: 20, padding: '3px 10px', fontSize: 11 },
-  milestoneChipLabel: { color: 'var(--accent)', fontWeight: 500 },
+  milestoneChip    : { display: 'flex', alignItems: 'center', gap: 5, background: 'var(--accent-dim)', border: '1px solid var(--accent)', borderRadius: 20, padding: '4px 12px', fontSize: 11 },
+  milestoneChipLabel: { color: 'var(--accent)', fontWeight: 600 },
   updatesFeed      : { margin: '12px 20px 0', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 },
   updatesLabel     : { fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.5px', fontWeight: 600, marginBottom: 2 },
   updateRow        : { display: 'flex', alignItems: 'flex-start', gap: 8 },
