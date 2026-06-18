@@ -325,91 +325,199 @@ export default function LessonScreen({ session, onBack }) {
     }
   }
 
-  // ─── TTS Player with word highlighting ───────────────────────────────────
+  // ─── TTS Player — word-index approach (works on mobile + desktop) ──────────
   function TTSPlayer({ lesson, contentRef }) {
-    const [ttsState, setTtsState] = useState('idle')
-    const [ttsAvailable] = useState(() => 'speechSynthesis' in window)
+    const [ttsState,    setTtsState]    = useState('idle')
+    const [wordIndex,   setWordIndex]   = useState(-1)
+    const [ttsAvailable]               = useState(() => 'speechSynthesis' in window)
+    const wordsRef    = useRef([])   // flat word list for mobile fallback
+    const intervalRef = useRef(null) // mobile tick timer
+    const uttRef      = useRef(null)
+    const startTimeRef = useRef(0)
+    const isMobile    = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
 
-    function getPlainText(lesson) {
+    // Build plain text + word list from lesson
+    function getPlainText() {
       const parts = []
       if (lesson.title)           parts.push(lesson.title + '.')
       if (lesson.board_relevance) parts.push(lesson.board_relevance + '.')
-      if (lesson.content)         parts.push(lesson.content.replace(/[#*`>_~|]/g, '').replace(/\n+/g, ' ').replace(/\s+/g, ' '))
+      if (lesson.content)         parts.push(lesson.content.replace(/[#*`>_~|]/g,'').replace(/\n+/g,' ').replace(/\s+/g,' '))
       if (lesson.memory_hook)     parts.push('Memory Hook. ' + lesson.memory_hook)
       return parts.join(' ').trim()
     }
 
-    function clearHighlight() {
-      document.querySelectorAll('[data-tts-hl]').forEach(el => {
-        el.style.background = ''
-        el.style.color = ''
-        el.style.borderRadius = ''
-        el.style.padding = ''
-      })
-    }
-
-    function highlightAt(charIndex, length) {
-      clearHighlight()
-      if (!contentRef?.current) return
-      // Walk all text nodes and find the one containing charIndex
+    // Pre-wrap content words into spans before speaking
+    function wrapWordsInSpans() {
+      if (!contentRef?.current) return []
       const walker = document.createTreeWalker(contentRef.current, NodeFilter.SHOW_TEXT)
-      let offset = 0
+      const nodes = []
       let node
       while ((node = walker.nextNode())) {
-        const nodeLen = node.textContent.length
-        if (offset + nodeLen > charIndex) {
-          // This node contains our word — wrap it in a span
-          const parent = node.parentNode
-          if (!parent || parent.nodeName === 'SCRIPT') { offset += nodeLen; continue }
-          const localStart = charIndex - offset
-          const before = node.textContent.slice(0, localStart)
-          const word   = node.textContent.slice(localStart, localStart + length)
-          const after  = node.textContent.slice(localStart + length)
-          const span = document.createElement('span')
-          span.setAttribute('data-tts-hl', '1')
-          span.style.background   = 'var(--accent)'
-          span.style.color        = '#0d0d0d'
-          span.style.borderRadius = '3px'
-          span.style.padding      = '0 2px'
-          span.textContent = word
-          const frag = document.createDocumentFragment()
-          if (before) frag.appendChild(document.createTextNode(before))
-          frag.appendChild(span)
-          if (after) frag.appendChild(document.createTextNode(after))
-          parent.replaceChild(frag, node)
-          span.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-          break
-        }
-        offset += nodeLen
+        if (node.parentNode?.nodeName === 'SCRIPT') continue
+        if (node.textContent.trim() === '') continue
+        nodes.push(node)
       }
+      const allWords = []
+      nodes.forEach(textNode => {
+        const parent = textNode.parentNode
+        if (!parent) return
+        const frag = document.createDocumentFragment()
+        const parts = textNode.textContent.split(/(\s+)/)
+        parts.forEach(part => {
+          if (/^\s+$/.test(part) || part === '') {
+            frag.appendChild(document.createTextNode(part))
+          } else {
+            const span = document.createElement('span')
+            span.setAttribute('data-tts-word', allWords.length)
+            span.textContent = part
+            allWords.push(span)
+            frag.appendChild(span)
+          }
+        })
+        parent.replaceChild(frag, textNode)
+      })
+      return allWords
+    }
+
+    // Unwrap all word spans back to plain text
+    function unwrapSpans() {
+      document.querySelectorAll('[data-tts-word]').forEach(span => {
+        const parent = span.parentNode
+        if (parent) {
+          parent.replaceChild(document.createTextNode(span.textContent), span)
+          parent.normalize()
+        }
+      })
+      setWordIndex(-1)
+    }
+
+    // Highlight a word by index
+    function highlightWord(idx) {
+      // Clear previous
+      document.querySelectorAll('[data-tts-word]').forEach(el => {
+        el.style.background   = ''
+        el.style.color        = ''
+        el.style.borderRadius = ''
+        el.style.padding      = ''
+      })
+      if (idx < 0) return
+      const el = document.querySelector(`[data-tts-word="${idx}"]`)
+      if (!el) return
+      el.style.background   = 'var(--accent)'
+      el.style.color        = '#0d0d0d'
+      el.style.borderRadius = '3px'
+      el.style.padding      = '0 2px'
+      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      setWordIndex(idx)
+    }
+
+    function stopAll() {
+      window.speechSynthesis.cancel()
+      if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null }
+      unwrapSpans()
+      setTtsState('idle')
     }
 
     function handlePlay() {
       if (!ttsAvailable) return
-      if (ttsState === 'playing') { window.speechSynthesis.pause(); setTtsState('paused'); return }
-      if (ttsState === 'paused')  { window.speechSynthesis.resume(); setTtsState('playing'); return }
-      window.speechSynthesis.cancel()
-      clearHighlight()
-      const text = getPlainText(lesson)
-      const utt  = new SpeechSynthesisUtterance(text)
-      utt.rate   = 0.95
-      utt.pitch  = 1
-      utt.onboundary = (e) => {
-        if (e.name === 'word' && e.charLength > 0) {
-          highlightAt(e.charIndex, e.charLength)
-        }
+
+      if (ttsState === 'playing') {
+        window.speechSynthesis.pause()
+        if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null }
+        setTtsState('paused')
+        return
       }
-      utt.onend   = () => { setTtsState('idle'); clearHighlight() }
-      utt.onerror = () => { setTtsState('idle'); clearHighlight() }
+      if (ttsState === 'paused') {
+        window.speechSynthesis.resume()
+        if (isMobile) startMobileTick()
+        setTtsState('playing')
+        return
+      }
+
+      // Fresh start
+      window.speechSynthesis.cancel()
+      unwrapSpans()
+
+      const text  = getPlainText()
+      const words = wrapWordsInSpans()
+      wordsRef.current = words
+
+      const utt = new SpeechSynthesisUtterance(text)
+      utt.rate  = 0.92
+      utt.pitch = 1
+      uttRef.current = utt
+      startTimeRef.current = Date.now()
+
+      if (!isMobile) {
+        // Desktop: use onboundary with char-to-word mapping
+        const plainWords = text.split(/\s+/)
+        const charOffsets = []
+        let pos = 0
+        plainWords.forEach(w => {
+          charOffsets.push(pos)
+          pos += w.length + 1
+        })
+
+        utt.onboundary = (e) => {
+          if (e.name !== 'word') return
+          // Find closest word index by charIndex
+          let closest = 0
+          for (let i = 0; i < charOffsets.length; i++) {
+            if (charOffsets[i] <= e.charIndex) closest = i
+            else break
+          }
+          highlightWord(closest)
+        }
+      } else {
+        // Mobile fallback: estimate word timing by elapsed time
+        startMobileTick()
+      }
+
+      utt.onend   = () => {
+        if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null }
+        unwrapSpans()
+        setTtsState('idle')
+      }
+      utt.onerror = () => {
+        if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null }
+        unwrapSpans()
+        setTtsState('idle')
+      }
+
       window.speechSynthesis.speak(utt)
       setTtsState('playing')
     }
 
-    function handleStop() {
-      window.speechSynthesis.cancel()
-      setTtsState('idle')
-      clearHighlight()
+    function startMobileTick() {
+      if (intervalRef.current) clearInterval(intervalRef.current)
+      const words       = wordsRef.current
+      const totalWords  = words.length
+      if (totalWords === 0) return
+      // Estimate: ~0.92 rate, average 3 syllables/word, ~4 syllables/sec
+      const msPerWord = (1000 / 4) * (3 / 0.92)  // ~815ms per word
+      const tickStart = Date.now()
+      let lastIdx = -1
+      intervalRef.current = setInterval(() => {
+        const elapsed = Date.now() - tickStart
+        const idx = Math.min(Math.floor(elapsed / msPerWord), totalWords - 1)
+        if (idx !== lastIdx) {
+          highlightWord(idx)
+          lastIdx = idx
+        }
+        if (idx >= totalWords - 1) {
+          clearInterval(intervalRef.current)
+          intervalRef.current = null
+        }
+      }, 200)
     }
+
+    // Cleanup on unmount
+    useEffect(() => {
+      return () => {
+        window.speechSynthesis?.cancel()
+        if (intervalRef.current) clearInterval(intervalRef.current)
+      }
+    }, [])
 
     if (!ttsAvailable) return null
 
@@ -419,7 +527,7 @@ export default function LessonScreen({ session, onBack }) {
           {ttsState === 'playing' ? '⏸ Pause' : ttsState === 'paused' ? '▶ Resume' : '▶ Listen'}
         </button>
         {ttsState !== 'idle' && (
-          <button onClick={handleStop} style={{ background:'transparent', border:'1px solid var(--border)', borderRadius:'var(--radius-sm)', padding:'7px 12px', cursor:'pointer', fontFamily:'inherit', fontSize:13, color:'var(--text-muted)', transition:'all 0.15s' }}>
+          <button onClick={stopAll} style={{ background:'transparent', border:'1px solid var(--border)', borderRadius:'var(--radius-sm)', padding:'7px 12px', cursor:'pointer', fontFamily:'inherit', fontSize:13, color:'var(--text-muted)', transition:'all 0.15s' }}>
             ⏹ Stop
           </button>
         )}
