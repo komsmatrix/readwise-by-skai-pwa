@@ -219,32 +219,20 @@ export default function App() {
             customer={sessionUser}
             studentExam={studentExam}
             onStartStudy={() => setActiveTab('study')}
-            onViewTopics={() => setActiveTab('topics')}
+            onViewTopics={() => setActiveTab('learn')}
           />
         )}
         {activeTab === 'study' && (
-          <StudyScreen
+          <StudyTab
             customer={sessionUser}
             studentExam={studentExam}
             onDone={() => setActiveTab('home')}
           />
         )}
-        {activeTab === 'mock' && (
-          <MockBoardScreen
+        {activeTab === 'learn' && (
+          <LearnTab
             customer={sessionUser}
             studentExam={studentExam}
-            onDone={() => setActiveTab('home')}
-          />
-        )}
-        {activeTab === 'topics' && (
-          <TopicsScreen
-            customer={sessionUser}
-            studentExam={studentExam}
-          />
-        )}
-        {activeTab === 'lessons' && (
-          <LessonScreen
-            session={{ customerId: sessionUser.id }}
             onBack={() => setActiveTab('home')}
           />
         )}
@@ -271,14 +259,111 @@ export default function App() {
   )
 }
 
+
+// ── Study Tab — toggles between Practice and Mock Board ──────────────────────
+function StudyTab({ customer, studentExam, onDone }) {
+  const [mode, setMode] = useState('practice') // 'practice' | 'mock'
+
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      {/* Toggle */}
+      <div style={{ display: 'flex', gap: 4, padding: '12px 16px 0', background: 'var(--bg-base)', flexShrink: 0 }}>
+        <button
+          onClick={() => setMode('practice')}
+          style={{
+            flex: 1, padding: '9px 8px', border: 'none', borderRadius: 10, fontSize: 13,
+            fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
+            background: mode === 'practice' ? 'var(--accent)' : 'var(--bg-elevated)',
+            color: mode === 'practice' ? '#0d0d0d' : 'var(--text-muted)',
+          }}>
+          ⚡ Practice
+        </button>
+        <button
+          onClick={() => setMode('mock')}
+          style={{
+            flex: 1, padding: '9px 8px', border: 'none', borderRadius: 10, fontSize: 13,
+            fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
+            background: mode === 'mock' ? 'var(--accent)' : 'var(--bg-elevated)',
+            color: mode === 'mock' ? '#0d0d0d' : 'var(--text-muted)',
+          }}>
+          📋 Mock Board
+        </button>
+      </div>
+      {/* Content */}
+      <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        {mode === 'practice' && (
+          <StudyScreen
+            customer={customer}
+            studentExam={studentExam}
+            onDone={onDone}
+          />
+        )}
+        {mode === 'mock' && (
+          <MockBoardScreen
+            customer={customer}
+            studentExam={studentExam}
+            onDone={onDone}
+          />
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── Learn Tab — toggles between Lessons and Topics ───────────────────────────
+function LearnTab({ customer, studentExam, onBack }) {
+  const [mode, setMode] = useState('lessons') // 'lessons' | 'topics'
+
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      {/* Toggle */}
+      <div style={{ display: 'flex', gap: 4, padding: '12px 16px 0', background: 'var(--bg-base)', flexShrink: 0 }}>
+        <button
+          onClick={() => setMode('lessons')}
+          style={{
+            flex: 1, padding: '9px 8px', border: 'none', borderRadius: 10, fontSize: 13,
+            fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
+            background: mode === 'lessons' ? 'var(--accent)' : 'var(--bg-elevated)',
+            color: mode === 'lessons' ? '#0d0d0d' : 'var(--text-muted)',
+          }}>
+          📚 Lessons
+        </button>
+        <button
+          onClick={() => setMode('topics')}
+          style={{
+            flex: 1, padding: '9px 8px', border: 'none', borderRadius: 10, fontSize: 13,
+            fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
+            background: mode === 'topics' ? 'var(--accent)' : 'var(--bg-elevated)',
+            color: mode === 'topics' ? '#0d0d0d' : 'var(--text-muted)',
+          }}>
+          📊 Topics
+        </button>
+      </div>
+      {/* Content */}
+      <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        {mode === 'lessons' && (
+          <LessonScreen
+            session={{ customerId: customer?.id }}
+            onBack={onBack}
+          />
+        )}
+        {mode === 'topics' && (
+          <TopicsScreen
+            customer={customer}
+            studentExam={studentExam}
+          />
+        )}
+      </div>
+    </div>
+  )
+}
+
 function BottomNav({ activeTab, setActiveTab }) {
   const tabs = [
-    { id: 'home',    label: 'Home',    icon: HomeIcon   },
-    { id: 'study',   label: 'Practice',   icon: CardsIcon  },
-    { id: 'mock',    label: 'Mock Board', icon: MockIcon   },
-    { id: 'lessons', label: 'Lessons',   icon: BookIcon   },
-    { id: 'topics',  label: 'Topics',    icon: ChartIcon  },
-    { id: 'profile', label: 'Settings',  icon: PersonIcon },
+    { id: 'home',    label: 'Home',     icon: HomeIcon   },
+    { id: 'study',   label: 'Study',    icon: CardsIcon  },
+    { id: 'learn',   label: 'Learn',    icon: BookIcon   },
+    { id: 'profile', label: 'Settings', icon: PersonIcon },
   ]
   return (
     <nav style={{ display: 'flex', justifyContent: 'space-around', padding: '10px 0 14px', background: 'var(--bg-surface)', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
