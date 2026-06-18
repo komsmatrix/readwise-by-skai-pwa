@@ -498,17 +498,39 @@ function weeklyReportHTML({
       </tr>`).join('')
     : `<tr><td colspan="3" style="padding:12px 14px;font-size:13px;color:#10B981;text-align:center;">✓ No critical or weak topics this week</td></tr>`
 
-  const coachLine = weakTopics.length > 0
-    ? `You haven't mastered <strong style="color:#f0ede8;">${weakTopics[0].topic_name}</strong> yet — and it's on every LET exam. One focused session this week fixes that.`
+  // Wellness tips — rotated randomly each week
+  const wellnessTips = [
+    { tip: 'After a tough session, go for a short walk. Even 10 minutes outside helps your brain consolidate what you just studied.', icon: '🚶' },
+    { tip: 'Sleep is when memory forms. A good night's rest does more for your score than cramming at midnight.', icon: '😴' },
+    { tip: 'Tried a mock exam this week? Don't review it immediately — step away first. A clear head catches more patterns.', icon: '🧘' },
+    { tip: 'Short breaks between sessions improve retention. Study, rest, study again. The rest is part of the process.', icon: '☕' },
+    { tip: 'Exercise, even light stretching, increases blood flow to the brain. A 15-minute walk before studying sharpens focus.', icon: '🏃' },
+    { tip: 'You don't have to study every waking hour to pass. Rest is productive. Your brain is still working when you step away.', icon: '🌿' },
+    { tip: 'After a mock exam, your instinct is to re-study everything. Instead, pick your top 2 weak topics only. Focus beats volume.', icon: '🎯' },
+  ]
+  const wellnessTip = wellnessTips[Math.floor(Math.random() * wellnessTips.length)]
+
+  const nudgeCoachLine = weakTopics.length > 0
+    ? `We're keeping an eye on <strong style="color:#f0ede8;">${weakTopics[0].topic_name}</strong> for you — it shows up often on the LET. Whenever you're ready, even one session on it this week makes a difference.`
     : cardsReviewed === 0
-    ? `You didn't study this week. Your exam ${daysToExam ? `is in ${daysToExam} days` : 'is coming up'}. Even 10 minutes today puts you ahead.`
-    : `You're building real momentum. Keep the streak alive and focus on your weak topics.`
+    ? `Life gets busy — we get it. Your study plan is still here whenever you're ready to pick it back up. Even 10 minutes counts.`
+    : `You're making progress. Keep going at your own pace — consistency over time is what moves the score.`
+
+  const onTrackCoachLine = weakTopics.length > 0
+    ? `You've put in real work this week. Keep the momentum on <strong style="color:#f0ede8;">${weakTopics[0].topic_name}</strong> — one more focused session and you'll see it move.`
+    : `You've covered the ground this week. Now let your brain catch up — rest is part of studying too.`
+
+  const coachLine = isOnTrack ? onTrackCoachLine : nudgeCoachLine
 
   const nudgeBanner = !isOnTrack ? `
-    <div style="background:rgba(224,92,92,0.08);border:1px solid rgba(224,92,92,0.2);border-radius:10px;padding:14px 18px;margin-bottom:20px;">
-      <div style="font-size:12px;font-weight:700;color:#e05c5c;margin-bottom:4px;">⚠ You only studied ${daysActive} day${daysActive !== 1 ? 's' : ''} this week</div>
-      <div style="font-size:13px;color:#9a9690;line-height:1.6;">Consistent study is the #1 predictor of passing. Even 15 minutes a day makes a difference.</div>
-    </div>` : ''
+    <div style="background:rgba(201,169,110,0.06);border:1px solid rgba(201,169,110,0.15);border-radius:10px;padding:14px 18px;margin-bottom:20px;">
+      <div style="font-size:12px;font-weight:600;color:#c9a96e;margin-bottom:4px;">We noticed you had a quieter week — and that's okay.</div>
+      <div style="font-size:13px;color:#9a9690;line-height:1.6;">Life happens. Your study plan is still here, your progress is saved, and your score is waiting to grow. Whenever you're ready, we're ready.</div>
+    </div>` : `
+    <div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);border-radius:10px;padding:14px 18px;margin-bottom:20px;">
+      <div style="font-size:12px;font-weight:600;color:#10B981;margin-bottom:4px;">You showed up this week — and that's everything.</div>
+      <div style="font-size:13px;color:#9a9690;line-height:1.6;">Passing the LET isn't about perfect weeks. It's about showing up consistently. You're doing that.</div>
+    </div>`
 
   return `<!DOCTYPE html>
 <html>
@@ -584,9 +606,15 @@ function weeklyReportHTML({
       <div style="font-size:13px;color:#9a9690;line-height:1.7;">${coachLine}</div>
     </div>
 
+    <!-- Wellness tip -->
+    <div style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:16px 18px;margin-bottom:20px;">
+      <div style="font-size:10px;font-weight:700;color:#6b6560;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">${wellnessTip.icon} This week's reminder</div>
+      <div style="font-size:13px;color:#9a9690;line-height:1.7;">${wellnessTip.tip}</div>
+    </div>
+
     <!-- CTA -->
     <a href="https://readwisebyskai.com" style="display:block;background:#c9a96e;color:#0d0d0d;text-decoration:none;padding:15px;border-radius:10px;font-size:15px;font-weight:700;text-align:center;margin-bottom:20px;">
-      Study Now →
+      ${isOnTrack ? 'Keep Going →' : 'Resume Studying →'}
     </a>
 
     <div style="height:1px;background:rgba(255,255,255,0.07);margin-bottom:20px;"></div>
