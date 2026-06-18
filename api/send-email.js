@@ -2,8 +2,8 @@
 // Merged: send-agent-welcome + send-agent-blast + send-payout-confirmation + send-feedback
 // Usage: POST { type: 'welcome' | 'blast' | 'payout' | 'feedback', ...payload }
 
-import { Resend } from 'resend'
-import { createClient } from '@supabase/supabase-js'
+const { Resend } = require('resend')
+const { createClient } = require('@supabase/supabase-js')
 
 const resend   = new Resend(process.env.RESEND_API_KEY)
 const supabase = createClient(
@@ -11,7 +11,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_KEY
 )
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
   const { type, ...payload } = req.body
