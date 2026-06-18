@@ -290,6 +290,59 @@ export default function LessonScreen({ session, onBack }) {
   const [quizResults, setQuizResults] = useState([])
   const [quizPhase,   setQuizPhase]   = useState('idle') // idle | session | summary
 
+  // ─── Lesson Bridge Quiz state (3 Qs before + after lesson) ───────────────
+  const [bridgeCards,   setBridgeCards]   = useState([])
+  const [bridgeIdx,     setBridgeIdx]     = useState(0)
+  const [bridgeChosen,  setBridgeChosen]  = useState(null)
+  const [bridgeAnswered,setBridgeAnswered]= useState(false)
+  const [bridgeResults, setBridgeResults] = useState([])
+  const [bridgePhase,   setBridgePhase]   = useState('idle') // idle | pre | post
+  const [bridgeScorePre, setBridgeScorePre] = useState(null)
+
+  async function startBridgeQuiz(topicId, phase) {
+    const data = await sbFetch(`cards?topic_id=eq.${topicId}&is_active=eq.true&select=id,question,choices,correct_index,explanation,difficulty&limit=100`)
+    if (!data?.length) {
+      // No cards — go straight to lesson
+      if (phase === 'pre') { setView('lesson'); return }
+      else { setView('lesson'); return }
+    }
+    const shuffled = data.sort(() => Math.random() - 0.5).slice(0, 3)
+    setBridgeCards(shuffled)
+    setBridgeIdx(0)
+    setBridgeChosen(null)
+    setBridgeAnswered(false)
+    setBridgeResults([])
+    setBridgePhase(phase)
+    setView('bridge')
+  }
+
+  function pickBridgeAnswer(i) {
+    if (bridgeAnswered) return
+    setBridgeChosen(i)
+    setBridgeAnswered(true)
+  }
+
+  function nextBridgeCard() {
+    const card = bridgeCards[bridgeIdx]
+    const correct = bridgeChosen === card.correct_index
+    const newResults = [...bridgeResults, { correct }]
+    setBridgeResults(newResults)
+    if (bridgeIdx + 1 >= bridgeCards.length) {
+      const score = Math.round((newResults.filter(r => r.correct).length / newResults.length) * 100)
+      if (bridgePhase === 'pre') {
+        setBridgeScorePre(score)
+        setView('lesson')  // Go to lesson after pre-quiz
+      } else {
+        // Post-quiz done — show comparison then go home
+        setBridgePhase('compare')
+      }
+    } else {
+      setBridgeIdx(i => i + 1)
+      setBridgeChosen(null)
+      setBridgeAnswered(false)
+    }
+  }
+
   async function startQuiz(topicId) {
     const data = await sbFetch(`cards?topic_id=eq.${topicId}&is_active=eq.true&select=id,question,choices,correct_index,explanation,difficulty,bloom_level&limit=100`)
     if (!data?.length) return
@@ -706,8 +759,8 @@ export default function LessonScreen({ session, onBack }) {
               </button>
             )}
             <button style={{ width:'100%', padding:'14px', background:'var(--bg-elevated)', color:'var(--accent)', border:'1px solid var(--accent)', borderRadius:12, fontSize:14, fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}
-              onClick={() => { window.speechSynthesis?.cancel(); startQuiz(selected?.id); }}>
-              🧪 Test Yourself — 10 Questions
+              onClick={() => { window.speechSynthesis?.cancel(); selected?.id ? startBridgeQuiz(selected.id, 'post') : startQuiz(selected?.id) }}>
+              🧪 Test Yourself — 3 Quick Questions
             </button>
             {progress[activeLesson.id] && (
               <button style={{ width:'100%', padding:'13px', background:'none', color:'var(--text-muted)', border:'1px solid var(--border)', borderRadius:12, fontSize:13, cursor:'pointer', fontFamily:'inherit' }}
@@ -725,6 +778,137 @@ export default function LessonScreen({ session, onBack }) {
   }
 
   // ─── Quiz Session ─────────────────────────────────────────────────────────
+  // ─── Bridge Quiz View ───────────────────────────────────────────────────
+  if (view === 'bridge' && (bridgePhase === 'pre' || bridgePhase === 'post') && bridgeCards.length > 0) {
+    const card    = bridgeCards[bridgeIdx]
+    const choices = Array.isArray(card.choices) && card.choices.length > 0 ? card.choices : []
+    const correctIndex = card.correct_index || 0
+    const letters = ['A','B','C','D']
+    const isPre   = bridgePhase === 'pre'
+
+    return (
+      <div style={s.screen}>
+        <div style={{ ...s.readerHeader, position:'sticky', top:0 }}>
+          <button style={s.backBtn} onClick={() => { setBridgePhase('idle'); setView('lesson') }}>← Skip</button>
+          <span style={s.readerTopic}>{selected?.name}</span>
+          <span style={{ fontSize:12, color:'var(--text-muted)' }}>{bridgeIdx + 1}/3</span>
+        </div>
+
+        <div style={{ padding:'16px 20px', flex:1, overflowY:'auto' }}>
+          {/* Bridge header */}
+          <div style={{ background: isPre ? 'var(--accent-dim)' : 'rgba(16,185,129,0.08)', border:`1px solid ${isPre ? 'var(--accent)' : '#10B981'}`, borderRadius:'var(--radius-md)', padding:'10px 14px', marginBottom:16 }}>
+            <div style={{ fontSize:11, fontWeight:700, color: isPre ? 'var(--accent)' : '#10B981', textTransform:'uppercase', letterSpacing:'.06em', marginBottom:2 }}>
+              {isPre ? '📋 Before the Lesson' : '✅ After the Lesson'}
+            </div>
+            <div style={{ fontSize:12, color:'var(--text-muted)' }}>
+              {isPre ? "Let's see what you already know — 3 quick questions." : "Great job reading! Let's see what stuck — 3 quick questions."}
+            </div>
+          </div>
+
+          {/* Question */}
+          <div style={{ fontFamily:'var(--font-display)', fontSize:15, color:'var(--text-primary)', lineHeight:1.65, marginBottom:16 }}>
+            {card.question}
+          </div>
+
+          {/* Choices */}
+          <div style={{ display:'flex', flexDirection:'column', gap:9, marginBottom:16 }}>
+            {choices.map((choice, i) => {
+              let border = 'var(--border-strong)', bg = 'var(--bg-elevated)', color = 'var(--text-secondary)', letterColor = 'var(--text-muted)'
+              if (bridgeAnswered) {
+                if (i === correctIndex)                         { border = '#10B981'; bg = 'rgba(16,185,129,0.10)'; color = '#10B981'; letterColor = '#10B981' }
+                else if (i === bridgeChosen && i !== correctIndex) { border = '#e05c5c'; bg = 'rgba(224,92,92,0.10)'; color = '#e05c5c'; letterColor = '#e05c5c' }
+                else { color = 'var(--text-muted)'; letterColor = 'var(--text-muted)' }
+              }
+              return (
+                <button key={i} onClick={() => pickBridgeAnswer(i)} disabled={bridgeAnswered} style={{
+                  background:bg, border:`1.5px solid ${border}`, borderRadius:'var(--radius-md)',
+                  padding:'12px 14px', fontSize:13, cursor: bridgeAnswered ? 'default' : 'pointer',
+                  textAlign:'left', color, fontFamily:'inherit', transition:'all 0.15s',
+                  display:'flex', alignItems:'flex-start', gap:10,
+                }}>
+                  <span style={{ fontWeight:700, color:letterColor, minWidth:16, fontSize:12, marginTop:1 }}>{letters[i]}</span>
+                  <span>{choice}</span>
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Explanation */}
+          {bridgeAnswered && card.explanation && (
+            <div style={{ padding:'12px 14px', background:'var(--bg-elevated)', border:'1px solid var(--border)', borderLeft:'3px solid var(--accent)', borderRadius:'0 var(--radius-md) var(--radius-md) 0', fontSize:12, color:'var(--text-secondary)', lineHeight:1.7, marginBottom:16 }}>
+              {card.explanation}
+            </div>
+          )}
+
+          {bridgeAnswered && (
+            <button onClick={nextBridgeCard} style={{
+              width:'100%', padding:14, background:'var(--accent)', color:'#0d0d0d',
+              border:'none', borderRadius:'var(--radius-md)', fontSize:14, fontWeight:700,
+              cursor:'pointer', fontFamily:'inherit',
+            }}>
+              {bridgeIdx + 1 >= bridgeCards.length
+                ? isPre ? '📖 Start the Lesson →' : '🏁 See Results →'
+                : 'Next Question →'}
+            </button>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  // ─── Bridge Compare View (before vs after) ───────────────────────────────
+  if (view === 'bridge' && bridgePhase === 'compare') {
+    const postScore = Math.round((bridgeResults.filter(r => r.correct).length / bridgeResults.length) * 100)
+    const improved  = bridgeScorePre !== null && postScore > bridgeScorePre
+    const diff      = bridgeScorePre !== null ? postScore - bridgeScorePre : null
+
+    return (
+      <div style={s.screen}>
+        <div style={{ ...s.readerHeader, position:'sticky', top:0 }}>
+          <button style={s.backBtn} onClick={() => { setBridgePhase('idle'); setView('topic') }}>← Topics</button>
+          <span style={s.readerTopic}>Lesson Complete</span>
+        </div>
+        <div style={{ padding:'24px 20px', display:'flex', flexDirection:'column', gap:16, overflowY:'auto', flex:1 }}>
+          <div style={{ textAlign:'center', marginBottom:8 }}>
+            <div style={{ fontSize:40, marginBottom:8 }}>{improved ? '📈' : '📚'}</div>
+            <div style={{ fontFamily:'var(--font-display)', fontSize:22, color:'var(--text-primary)', marginBottom:4 }}>
+              {improved ? 'You improved!' : 'Good effort!'}
+            </div>
+            <div style={{ fontSize:13, color:'var(--text-muted)' }}>
+              {improved
+                ? `Your score went up ${diff}% after reading the lesson.`
+                : 'Keep reviewing — each session builds your foundation.'}
+            </div>
+          </div>
+
+          {bridgeScorePre !== null && (
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+              <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', padding:16, textAlign:'center' }}>
+                <div style={{ fontSize:10, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'.05em', marginBottom:6 }}>Before Lesson</div>
+                <div style={{ fontFamily:'var(--font-display)', fontSize:28, fontWeight:800, color:'var(--text-muted)' }}>{bridgeScorePre}%</div>
+              </div>
+              <div style={{ background:'var(--bg-elevated)', border:`1px solid ${improved ? '#10B981' : 'var(--border)'}`, borderRadius:'var(--radius-md)', padding:16, textAlign:'center' }}>
+                <div style={{ fontSize:10, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'.05em', marginBottom:6 }}>After Lesson</div>
+                <div style={{ fontFamily:'var(--font-display)', fontSize:28, fontWeight:800, color: improved ? '#10B981' : 'var(--accent)' }}>
+                  {postScore}%{improved && <span style={{ fontSize:14 }}> ↑</span>}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <button style={{ width:'100%', padding:14, background:'var(--accent)', color:'#0d0d0d', border:'none', borderRadius:'var(--radius-md)', fontSize:14, fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}
+            onClick={() => { setBridgePhase('idle'); setView('topic') }}>
+            Back to Topics ✓
+          </button>
+          <button style={{ width:'100%', padding:13, background:'none', border:'1px solid var(--border)', color:'var(--text-muted)', borderRadius:'var(--radius-md)', fontSize:13, cursor:'pointer', fontFamily:'inherit' }}
+            onClick={() => startQuiz(selected?.id)}>
+            Take Full Quiz — 10 Questions
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   if (view === 'quiz' && quizPhase === 'session' && quizCards.length > 0) {
     const card = quizCards[quizIdx]
     const choices = Array.isArray(card.choices) && card.choices.length > 0 ? card.choices : []
@@ -888,7 +1072,11 @@ export default function LessonScreen({ session, onBack }) {
                 <button key={lesson.id} style={{ ...s.lessonCard, ...(done ? s.lessonCardDone : {}) }}
                   onClick={async () => {
                     setActiveId(lesson.id);
-                    setView("lesson");
+                    if (selected?.id) {
+                      startBridgeQuiz(selected.id, 'pre')
+                    } else {
+                      setView("lesson");
+                    }
                     setFullLesson(null);
                     const full = await sbFetch(`lessons?id=eq.${lesson.id}&select=*`);
                     if (full?.[0]) setFullLesson(full[0]);

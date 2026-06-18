@@ -276,60 +276,104 @@ export default function StudyScreen({ customer, studentExam, onDone }) {
     )
   }
 
-  // ── Summary ───────────────────────────────────────────────────────────────
+  // ── Study Receipt ────────────────────────────────────────────────────────
   if (phase === 'summary' && summary) {
-    const pct = Math.round((summary.correct / summary.total) * 100)
+    const pct         = Math.round((summary.correct / summary.total) * 100)
+    const missed      = summary.total - summary.correct
+    const grade       = pct >= 80 ? 'Strong' : pct >= 60 ? 'Good' : 'Keep Going'
+    const gradeColor  = pct >= 80 ? '#10B981' : pct >= 60 ? 'var(--accent)' : '#e05c5c'
+    const gradeEmoji  = pct >= 80 ? '🔥' : pct >= 60 ? '💪' : '📖'
+    const worstTopic  = summary.healthChanges.find(h => h.after === 'Critical' || h.after === 'Weak')
+    const improvedTopics = summary.healthChanges.filter(h => h.before !== h.after)
+
+    const coachLine = pct >= 80
+      ? 'Outstanding session. Your recall is strong — keep this up and your readiness score will reflect it.'
+      : pct >= 60
+      ? worstTopic
+        ? `Good effort. Focus on ${worstTopic.name} next — it needs one more strong session.`
+        : 'Good session. Consistency over time is what moves the score. Come back tomorrow.'
+      : worstTopic
+        ? `${worstTopic.name} needs attention. Review the rationales for your missed questions before your next session.`
+        : 'Every session builds your foundation. The missed ones are exactly what you need to review.'
+
     return (
       <div style={s.root}>
         <div style={s.scroll}>
           <div style={s.summaryWrap}>
-            <div style={{ textAlign: 'center', marginBottom: 20 }}>
-              <div style={{ fontSize: 48, marginBottom: 8 }}>🎯</div>
-              <div style={s.summaryH}>Session Complete</div>
-              <div style={s.summarySub}>{pct}% correct · {summary.total} cards reviewed</div>
+
+            {/* Score ring */}
+            <div style={{ display:'flex', flexDirection:'column', alignItems:'center', marginBottom:24 }}>
+              <div style={{
+                width:110, height:110, borderRadius:'50%',
+                border:`4px solid ${gradeColor}`,
+                display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
+                background:'var(--bg-elevated)', marginBottom:12,
+                boxShadow:`0 0 24px ${gradeColor}30`,
+              }}>
+                <div style={{ fontSize:28, lineHeight:1 }}>{gradeEmoji}</div>
+                <div style={{ fontFamily:'var(--font-display)', fontSize:26, fontWeight:800, color:gradeColor, lineHeight:1.1 }}>{pct}%</div>
+                <div style={{ fontSize:9, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'.05em' }}>accuracy</div>
+              </div>
+              <div style={{ fontFamily:'var(--font-display)', fontSize:22, color:'var(--text-primary)', marginBottom:4 }}>
+                {grade} Session
+              </div>
+              <div style={{ fontSize:12, color:'var(--text-muted)' }}>
+                {summary.total} cards reviewed · {summary.correct} correct · {missed} missed
+              </div>
             </div>
 
+            {/* Stats grid */}
             <div style={s.statsRow}>
               {[
-                { val: summary.total,   label: 'reviewed',  color: 'var(--accent)'  },
-                { val: summary.correct, label: 'correct',   color: '#10B981'        },
-                { val: summary.total - summary.correct, label: 'missed', color: '#e05c5c' },
+                { val: summary.total,   label: 'Reviewed', color: 'var(--accent)',   icon: '📚' },
+                { val: summary.correct, label: 'Correct',  color: '#10B981',         icon: '✅' },
+                { val: missed,          label: 'Missed',   color: missed === 0 ? '#10B981' : '#e05c5c', icon: missed === 0 ? '🏆' : '❌' },
               ].map(stat => (
                 <div key={stat.label} style={s.statBox}>
+                  <div style={{ fontSize:18, marginBottom:4 }}>{stat.icon}</div>
                   <div style={{ ...s.statNum, color: stat.color }}>{stat.val}</div>
                   <div style={s.statLabel}>{stat.label}</div>
                 </div>
               ))}
             </div>
 
+            {/* Topic changes */}
             {summary.healthChanges.length > 0 && (
               <div style={s.healthCard}>
-                <div style={s.healthTitle}>Topic Health Changes</div>
+                <div style={s.healthTitle}>Topic Health This Session</div>
                 {summary.healthChanges.map((h, i) => (
                   <div key={i} style={s.healthRow}>
-                    <span style={{ fontSize: 12 }}>{h.name}</span>
-                    <span style={{ fontSize: 11, fontWeight: 500, color: getHealthColor(h.after) }}>
-                      {h.before !== h.after ? `${h.before} → ${h.after}` : h.after}
-                      {h.before !== h.after ? ' ↑' : ''}
+                    <span style={{ fontSize:12, color:'var(--text-secondary)', flex:1 }}>{h.name}</span>
+                    <span style={{ fontSize:11, fontWeight:600, color: getHealthColor(h.after) }}>
+                      {h.before !== h.after ? `${h.before} → ${h.after} ↑` : h.after}
                     </span>
                   </div>
                 ))}
               </div>
             )}
 
+            {/* Coach insight */}
             <div style={s.insightCard}>
-              <div style={s.insightHead}>🧠 Coach Insight</div>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.6 }}>
-                {summary.correct / summary.total >= 0.8
-                  ? 'Strong session. Keep this consistency and your readiness score will climb steadily.'
-                  : 'Review the topics you missed — focus on high board-frequency questions first.'}
+              <div style={s.insightHead}>🧠 Coach</div>
+              <div style={{ fontSize:13, color:'var(--text-secondary)', lineHeight:1.7 }}>
+                {coachLine}
               </div>
             </div>
 
+            {/* Next step hint */}
+            {worstTopic && (
+              <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border)', borderLeft:`3px solid #e05c5c`, borderRadius:'var(--radius-md)', padding:'10px 14px' }}>
+                <div style={{ fontSize:10, color:'#e05c5c', textTransform:'uppercase', letterSpacing:'.05em', marginBottom:4, fontWeight:700 }}>Focus Next</div>
+                <div style={{ fontSize:13, color:'var(--text-primary)' }}>{worstTopic.name}</div>
+                <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:2 }}>This topic needs one more focused session</div>
+              </div>
+            )}
+
             <div style={s.summaryBtns}>
-              <button style={s.btnPrimary} onClick={onDone}>Done</button>
+              <button style={s.btnPrimary} onClick={onDone}>Done ✓</button>
               <button style={s.btnGhost} onClick={buildQueue}>Study More</button>
             </div>
+
           </div>
         </div>
       </div>
