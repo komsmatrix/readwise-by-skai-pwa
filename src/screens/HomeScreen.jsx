@@ -23,12 +23,16 @@ const MILESTONES = [
   { id: 'board_ready',  label: 'Board Ready',        icon: '🎓', check: (d) => d.score >= 85 },
 ]
 
+// Tag icon map
+const TAG_ICONS = { announcement: '📢', feature: '✨', lesson: '📚', audio: '🎧', fix: '🛠' }
+
 export default function HomeScreen({ customer, studentExam, onStartStudy, onViewTopics }) {
   const [data,        setData]        = useState(null)
   const [loading,     setLoading]     = useState(true)
   const [showBreakdown, setShowBreakdown] = useState(false)
   const [announcement, setAnnouncement] = useState(null)
   const [showAnnouncement, setShowAnnouncement] = useState(false)
+  const [updates, setUpdates]         = useState([])
 
   const daysLeft = studentExam?.exam_date ? getDaysLeft(studentExam.exam_date) : null
   const phase    = daysLeft !== null ? getPreparationPhase(daysLeft) : 'Foundation'
@@ -40,18 +44,21 @@ export default function HomeScreen({ customer, studentExam, onStartStudy, onView
 
   async function loadAnnouncement() {
     try {
-      const { data: ann } = await supabase
+      // Prefer pinned, fallback to latest active
+      const { data: anns } = await supabase
         .from('announcements')
         .select('*')
         .eq('active', true)
+        .order('is_pinned', { ascending: false })
         .order('created_at', { ascending: false })
-        .limit(1)
-        .single()
-      if (ann) {
+        .limit(5)
+      if (anns && anns.length > 0) {
+        const ann = anns[0]
         setAnnouncement(ann)
-        // Show if not already dismissed
         const dismissed = localStorage.getItem(`ann_dismissed_${ann.id}`)
         if (!dismissed) setShowAnnouncement(true)
+        // Store rest for updates feed
+        setUpdates(anns)
       }
     } catch {}
   }
@@ -145,15 +152,37 @@ export default function HomeScreen({ customer, studentExam, onStartStudy, onView
 
         {/* Announcement banner */}
         {showAnnouncement && announcement && (
-          <div style={s.announcementBanner}>
+          <div style={{ ...s.announcementBanner, ...(announcement.is_pinned ? { borderColor: 'var(--accent)', background: 'rgba(201,169,110,0.12)' } : {}) }}>
             <div style={s.announcementContent}>
-              <span style={s.announcementIcon}>📢</span>
-              <div>
-                <div style={s.announcementTitle}>{announcement.title}</div>
+              <span style={s.announcementIcon}>{TAG_ICONS[announcement.tag] || '📢'}</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 2 }}>
+                  {announcement.is_pinned && <span style={{ fontSize: 10 }}>📌</span>}
+                  <div style={s.announcementTitle}>{announcement.title}</div>
+                </div>
                 <div style={s.announcementBody}>{announcement.body}</div>
               </div>
             </div>
             <button style={s.announcementClose} onClick={dismissAnnouncement}>✕</button>
+          </div>
+        )}
+
+        {/* Updates Feed */}
+        {updates.length > 0 && !showAnnouncement && (
+          <div style={s.updatesFeed}>
+            <div style={s.updatesLabel}>📋 Recent Updates</div>
+            {updates.slice(0, 3).map(u => (
+              <div key={u.id} style={s.updateRow}>
+                <span style={s.updateIcon}>{TAG_ICONS[u.tag] || '📢'}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={s.updateTitle}>
+                    {u.is_pinned && <span style={{ marginRight: 4 }}>📌</span>}
+                    {u.title}
+                  </div>
+                  <div style={s.updateBody}>{u.body}</div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
@@ -463,6 +492,12 @@ const s = {
   milestoneChips   : { display: 'flex', gap: 6, flexWrap: 'wrap' },
   milestoneChip    : { display: 'flex', alignItems: 'center', gap: 4, background: 'var(--accent-dim)', border: '1px solid var(--accent)', borderRadius: 20, padding: '3px 10px', fontSize: 11 },
   milestoneChipLabel: { color: 'var(--accent)', fontWeight: 500 },
+  updatesFeed      : { margin: '12px 20px 0', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 },
+  updatesLabel     : { fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.5px', fontWeight: 600, marginBottom: 2 },
+  updateRow        : { display: 'flex', alignItems: 'flex-start', gap: 8 },
+  updateIcon       : { fontSize: 14, flexShrink: 0, marginTop: 1 },
+  updateTitle      : { fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 1 },
+  updateBody       : { fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' },
   insight          : { margin: '0 20px 16px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '12px 14px' },
   insightHead      : { fontSize: 10, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '.6px', fontWeight: 600, marginBottom: 6 },
   insightBody      : { fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 8 },

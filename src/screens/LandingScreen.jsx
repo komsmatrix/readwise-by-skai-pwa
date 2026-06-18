@@ -1,4 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
+import { createClient } from '@supabase/supabase-js'
+
+const _supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+)
+
+const TAG_ICONS = { announcement: '📢', feature: '✨', lesson: '📚', audio: '🎧', fix: '🛠' }
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768)
@@ -12,6 +20,24 @@ function useIsMobile() {
 
 export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
   // onGetAccess(course), onTryFree(course)
+
+  const [liveUpdates, setLiveUpdates] = useState([])
+
+  useEffect(() => {
+    async function loadUpdates() {
+      try {
+        const { data } = await _supabase
+          .from('announcements')
+          .select('id, title, body, tag, is_pinned, created_at')
+          .eq('active', true)
+          .order('is_pinned', { ascending: false })
+          .order('created_at', { ascending: false })
+          .limit(5)
+        if (data && data.length > 0) setLiveUpdates(data)
+      } catch {}
+    }
+    loadUpdates()
+  }, [])
 
   const gaugeRef    = useRef(null)
   const [pct, setPct]     = useState(0)
@@ -342,18 +368,23 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
           <div style={s.sectionEyebrow}>Platform Updates</div>
           <h2 style={s.sectionTitle}>What's new</h2>
           <div style={s.updatesList}>
-            {[
-              { date:'Jun 12', t:'Lessons tab launched',            d:'Structured lessons now live — read, learn, mark complete. Child Development first.' },
-              { date:'Jun 11', t:'1,200+ LET questions added',      d:'All 12 LET topics now have board-weighted questions with full rationales.' },
-              { date:'Jun 10', t:'Readiness Score system live',     d:'Coverage, Mastery, Consistency, Mock Exam — all four components now calculating.' },
-              { date:'Jun 5',  t:'Spaced repetition engine launched',d:'SM-2 algorithm with forgetting signal. Cards resurface exactly when you need them.' },
-            ].map(u => (
-              <div key={u.t} style={s.updateRow}>
-                <div style={s.updateDate}>{u.date}</div>
+            {(liveUpdates.length > 0 ? liveUpdates : [
+              { id:'f1', tag:'lesson',       is_pinned:false, title:'Lessons tab launched',             body:'Structured lessons now live — read, learn, mark complete. Child Development first.',    created_at:'2026-06-12' },
+              { id:'f2', tag:'feature',      is_pinned:false, title:'1,200+ LET questions added',       body:'All 12 LET topics now have board-weighted questions with full rationales.',              created_at:'2026-06-11' },
+              { id:'f3', tag:'feature',      is_pinned:false, title:'Readiness Score system live',      body:'Coverage, Mastery, Consistency, Mock Exam — all four components now calculating.',       created_at:'2026-06-10' },
+              { id:'f4', tag:'feature',      is_pinned:false, title:'Spaced repetition engine launched',body:'SM-2 algorithm with forgetting signal. Cards resurface exactly when you need them.',     created_at:'2026-06-05' },
+            ]).map(u => (
+              <div key={u.id} style={{ ...s.updateRow, ...(u.is_pinned ? { background:'rgba(201,169,110,0.07)', borderRadius:8, padding:'8px 10px', margin:'-4px -10px' } : {}) }}>
+                <div style={s.updateDate}>
+                  {u.is_pinned ? '📌' : (TAG_ICONS[u.tag] || '📢')}
+                </div>
                 <div style={s.updateDot}/>
                 <div>
-                  <div style={s.updateTitle}>{u.t}</div>
-                  <div style={s.updateDesc}>{u.d}</div>
+                  <div style={s.updateTitle}>{u.title}</div>
+                  <div style={s.updateDesc}>{u.body}</div>
+                  <div style={{ fontSize:10, color:'var(--text-muted)', marginTop:3, opacity:.6 }}>
+                    {new Date(u.created_at).toLocaleDateString('en-PH', { month:'short', day:'numeric' })}
+                  </div>
                 </div>
               </div>
             ))}

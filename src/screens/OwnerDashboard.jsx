@@ -997,10 +997,22 @@ function ResourcesTab({ topics }) {
 }
 
 // ── Announcements Tab ─────────────────────────────────────────────────────────
+const ANN_TAGS = [
+  { value: 'announcement', label: '📢 Announcement' },
+  { value: 'feature',      label: '✨ Feature' },
+  { value: 'lesson',       label: '📚 Lesson' },
+  { value: 'audio',        label: '🎧 Audio' },
+  { value: 'fix',          label: '🛠 Fix' },
+]
+
+function tagLabel(tag) {
+  return ANN_TAGS.find(t => t.value === tag)?.label || '📢 Announcement'
+}
+
 function AnnouncementsTab() {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
-  const [form, setForm] = useState({ title: '', body: '', active: true })
+  const [form, setForm] = useState({ title: '', body: '', active: true, tag: 'announcement', is_pinned: false })
   const [saving, setSaving] = useState(false)
   const [showForm, setShowForm] = useState(false)
 
@@ -1010,6 +1022,7 @@ function AnnouncementsTab() {
     const { data } = await supabase
       .from('announcements')
       .select('*')
+      .order('is_pinned', { ascending: false })
       .order('created_at', { ascending: false })
     setItems(data || [])
     setLoading(false)
@@ -1022,9 +1035,11 @@ function AnnouncementsTab() {
       title: form.title.trim(),
       body: form.body.trim(),
       active: form.active,
+      tag: form.tag,
+      is_pinned: form.is_pinned,
     }])
     setSaving(false)
-    setForm({ title: '', body: '', active: true })
+    setForm({ title: '', body: '', active: true, tag: 'announcement', is_pinned: false })
     setShowForm(false)
     loadItems()
   }
@@ -1032,6 +1047,15 @@ function AnnouncementsTab() {
   async function toggle(id, active) {
     await supabase.from('announcements').update({ active: !active }).eq('id', id)
     setItems(prev => prev.map(i => i.id === id ? { ...i, active: !active } : i))
+  }
+
+  async function togglePin(id, is_pinned) {
+    await supabase.from('announcements').update({ is_pinned: !is_pinned }).eq('id', id)
+    setItems(prev =>
+      prev
+        .map(i => i.id === id ? { ...i, is_pinned: !is_pinned } : i)
+        .sort((a, b) => (b.is_pinned ? 1 : 0) - (a.is_pinned ? 1 : 0) || new Date(b.created_at) - new Date(a.created_at))
+    )
   }
 
   async function remove(id) {
@@ -1056,10 +1080,36 @@ function AnnouncementsTab() {
               placeholder="What's new or what should students know?"
               value={form.body} onChange={e => setForm(p => ({ ...p, body: e.target.value }))} />
           </div>
-          <div style={s.checkRow}>
-            <input type="checkbox" id="active-check" checked={form.active}
-              onChange={e => setForm(p => ({ ...p, active: e.target.checked }))} />
-            <label htmlFor="active-check" style={s.checkLabel}>Active (visible to students)</label>
+          {/* Tag selector */}
+          <div style={s.field}>
+            <label style={s.label}>Tag</label>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {ANN_TAGS.map(t => (
+                <button key={t.value}
+                  style={{
+                    padding: '5px 10px', borderRadius: 20, fontSize: 12, cursor: 'pointer',
+                    border: form.tag === t.value ? '1.5px solid var(--accent)' : '1.5px solid var(--border)',
+                    background: form.tag === t.value ? 'var(--accent-dim)' : 'var(--bg-elevated)',
+                    color: form.tag === t.value ? 'var(--accent)' : 'var(--text-secondary)',
+                    fontFamily: 'inherit',
+                  }}
+                  onClick={() => setForm(p => ({ ...p, tag: t.value }))}>
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 16 }}>
+            <div style={s.checkRow}>
+              <input type="checkbox" id="active-check" checked={form.active}
+                onChange={e => setForm(p => ({ ...p, active: e.target.checked }))} />
+              <label htmlFor="active-check" style={s.checkLabel}>Active (visible to students)</label>
+            </div>
+            <div style={s.checkRow}>
+              <input type="checkbox" id="pin-check" checked={form.is_pinned}
+                onChange={e => setForm(p => ({ ...p, is_pinned: e.target.checked }))} />
+              <label htmlFor="pin-check" style={s.checkLabel}>📌 Pin to top</label>
+            </div>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button style={s.btn} onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Post'}</button>
@@ -1071,15 +1121,27 @@ function AnnouncementsTab() {
       {loading ? <Loading /> : items.length === 0 ? (
         <div style={s.empty}>No announcements yet.</div>
       ) : items.map(item => (
-        <div key={item.id} style={s.announcementCard}>
+        <div key={item.id} style={{ ...s.announcementCard, ...(item.is_pinned ? { borderColor: 'var(--accent)', background: 'var(--accent-dim)' } : {}) }}>
           <div style={s.announcementHeader}>
-            <div>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                {item.is_pinned && <span style={{ fontSize: 13 }}>📌</span>}
+                <span style={{ fontSize: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 20, padding: '2px 8px', color: 'var(--text-muted)' }}>
+                  {tagLabel(item.tag || 'announcement')}
+                </span>
+              </div>
               <div style={s.announcementTitle}>{item.title}</div>
               <div style={s.announcementDate}>
                 {new Date(item.created_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
+              <button
+                title={item.is_pinned ? 'Unpin' : 'Pin to top'}
+                style={{ ...s.statusBtn, background: item.is_pinned ? 'var(--accent-dim)' : 'var(--bg-elevated)', color: item.is_pinned ? 'var(--accent)' : 'var(--text-muted)', border: `1px solid ${item.is_pinned ? 'var(--accent)' : 'var(--border)'}` }}
+                onClick={() => togglePin(item.id, item.is_pinned)}>
+                {item.is_pinned ? '📌 Pinned' : '📌 Pin'}
+              </button>
               <button
                 style={{ ...s.statusBtn, background: item.active ? 'rgba(16,185,129,0.1)' : 'var(--bg-elevated)', color: item.active ? '#10B981' : 'var(--text-muted)', border: `1px solid ${item.active ? '#10B981' : 'var(--border)'}` }}
                 onClick={() => toggle(item.id, item.active)}>
