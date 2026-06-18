@@ -325,13 +325,35 @@ export default function LessonScreen({ session, onBack }) {
     }
   }
 
-  // ─── TTS Player — sticky bar, mobile + desktop fix ──────────────────────
+  // ─── TTS Player v3 — click-to-start, speed control, audio conflict fix ───
   function TTSPlayer({ lesson, contentRef }) {
-    const [ttsState,   setTtsState]   = useState('idle')
-    const [ttsAvailable]              = useState(() => 'speechSynthesis' in window)
-    const intervalRef  = useRef(null)
-    const wordSpansRef = useRef([])
-    const isMobile     = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+    const [ttsState,    setTtsState]    = useState('idle')       // idle | playing | paused
+    const [speed,       setSpeed]       = useState(1.0)
+    const [ttsAvailable]                = useState(() => 'speechSynthesis' in window)
+    const [audioConflict, setAudioConflict] = useState(false)    // true when page audio is playing
+    const uttRef        = useRef(null)
+    const wordSpansRef  = useRef([])
+    const startWordRef  = useRef(0)    // word index to start from (click-to-start)
+    const isMobile      = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+    const intervalRef   = useRef(null)
+
+    // Detect if page audio (<audio> element) is playing
+    useEffect(() => {
+      const checkAudio = () => {
+        const audios = document.querySelectorAll('audio')
+        const playing = Array.from(audios).some(a => !a.paused)
+        setAudioConflict(playing)
+        if (playing && ttsState === 'playing') stopAll()
+      }
+      document.addEventListener('play', checkAudio, true)
+      document.addEventListener('pause', checkAudio, true)
+      document.addEventListener('ended', checkAudio, true)
+      return () => {
+        document.removeEventListener('play', checkAudio, true)
+        document.removeEventListener('pause', checkAudio, true)
+        document.removeEventListener('ended', checkAudio, true)
+      }
+    }, [ttsState])
 
     function getPlainText() {
       const parts = []
@@ -342,6 +364,12 @@ export default function LessonScreen({ session, onBack }) {
       return parts.join(' ').trim()
     }
 
+    // Build word list from plain text (not DOM — avoids mismatch)
+    function buildWordList(text) {
+      return text.split(/\s+/).filter(w => w.length > 0)
+    }
+
+    // Wrap content DOM into clickable word spans
     function wrapWords() {
       if (!contentRef?.current) return []
       const spans = []
@@ -362,14 +390,29 @@ export default function LessonScreen({ session, onBack }) {
             frag.appendChild(document.createTextNode(part))
           } else {
             const sp = document.createElement('span')
-            sp.setAttribute('data-tts-w', spans.length)
+            const idx = spans.length
+            sp.setAttribute('data-tts-w', idx)
+            sp.style.cursor = 'pointer'
+            sp.style.borderRadius = '2px'
+            sp.style.transition = 'background 0.1s'
             sp.textContent = part
+            // Click-to-start: clicking a word starts TTS from that word
+            sp.addEventListener('click', (e) => {
+              e.stopPropagation()
+              startWordRef.current = idx
+              stopAll()
+              setTimeout(() => startSpeaking(idx), 100)
+            })
+            // Hover hint
+            sp.addEventListener('mouseenter', () => { if (ttsState === 'idle') sp.style.background = 'var(--accent-dim)' })
+            sp.addEventListener('mouseleave', () => { if (!sp.getAttribute('data-hl')) sp.style.background = '' })
             spans.push(sp)
             frag.appendChild(sp)
           }
         })
         parent.replaceChild(frag, textNode)
       })
+      wordSpansRef.current = spans
       return spans
     }
 
@@ -383,7 +426,10 @@ export default function LessonScreen({ session, onBack }) {
 
     function clearHL() {
       document.querySelectorAll('[data-tts-w]').forEach(sp => {
-        sp.style.background = ''; sp.style.color = ''; sp.style.borderRadius = ''; sp.style.padding = ''
+        sp.style.background = ''
+        sp.style.color = ''
+        sp.style.padding = ''
+        sp.removeAttribute('data-hl')
       })
     }
 
@@ -391,24 +437,10 @@ export default function LessonScreen({ session, onBack }) {
       clearHL()
       const sp = wordSpansRef.current[idx]
       if (!sp) return
-      sp.style.background   = 'var(--accent)'
-      sp.style.color        = '#0d0d0d'
-      sp.style.borderRadius = '3px'
-      sp.style.padding      = '0 2px'
-      // Scroll word into view but keep sticky bar visible — don't auto-scroll
-      // student controls scroll manually now
-    }
-
-    function startMobileTick(totalWords) {
-      if (intervalRef.current) clearInterval(intervalRef.current)
-      const msPerWord = 420  // ~420ms per word at normal speech rate
-      let idx = 0
-      const tick = setInterval(() => {
-        if (idx >= totalWords) { clearInterval(tick); intervalRef.current = null; return }
-        hlWord(idx)
-        idx++
-      }, msPerWord)
-      intervalRef.current = tick
+      sp.setAttribute('data-hl', '1')
+      sp.style.background = 'var(--accent)'
+      sp.style.color      = '#0d0d0d'
+      sp.style.padding    = '0 2px'
     }
 
     function stopAll() {
@@ -419,52 +451,50 @@ export default function LessonScreen({ session, onBack }) {
       setTtsState('idle')
     }
 
-    function handlePlay() {
-      if (!ttsAvailable) return
+    function startSpeaking(fromWordIdx = 0) {
+      if (!ttsAvailable || audioConflict) return
 
-      if (ttsState === 'playing') {
-        window.speechSynthesis.pause()
+      const fullText  = getPlainText()
+      const allWords  = buildWordList(fullText)
+      const textFrom  = allWords.slice(fromWordIdx).join(' ')
+
+      const utt = new SpeechSynthesisUtterance(textFrom)
+      utt.rate  = speed
+      utt.pitch = 1
+      utt.lang  = 'en-PH'
+      uttRef.current = utt
+
+      const onDone = () => {
         if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null }
-        setTtsState('paused')
-        return
+        clearHL(); unwrapWords(); setTtsState('idle')
       }
-      if (ttsState === 'paused') {
-        window.speechSynthesis.resume()
-        setTtsState('playing')
-        return
-      }
+      utt.onend   = onDone
+      utt.onerror = (e) => { if (e.error !== 'interrupted') onDone() }
 
-      // ── Fresh start ──────────────────────────────────────────────────────
-      stopAll()
-
-      // CRITICAL for iOS: build utterance and call speak() synchronously
-      // inside the user gesture — do DOM work after
-      const text = getPlainText()
-      const utt  = new SpeechSynthesisUtterance(text)
-      utt.rate   = 0.92
-      utt.pitch  = 1
-      utt.lang   = 'en-PH'
-
-      utt.onend   = () => { if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null } clearHL(); unwrapWords(); setTtsState('idle') }
-      utt.onerror = (e) => { if (e.error === 'interrupted') return; if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null } clearHL(); unwrapWords(); setTtsState('idle') }
-
-      // Speak immediately (satisfies iOS gesture requirement)
+      // Speak FIRST (iOS gesture requirement)
       window.speechSynthesis.speak(utt)
       setTtsState('playing')
 
-      // Now do DOM work after speak() is called
-      const spans = wrapWords()
-      wordSpansRef.current = spans
+      // DOM wrap after speak()
+      const spans = wordSpansRef.current.length > 0 ? wordSpansRef.current : wrapWords()
 
       if (isMobile) {
-        // Mobile: timer-based tick
-        startMobileTick(spans.length)
+        // Mobile: timer tick — no onboundary support
+        if (intervalRef.current) clearInterval(intervalRef.current)
+        const msPerWord = Math.round((60000 / (200 * speed)))  // ~200 wpm adjusted for speed
+        let idx = fromWordIdx
+        const tick = setInterval(() => {
+          if (idx >= spans.length) { clearInterval(tick); intervalRef.current = null; return }
+          hlWord(idx)
+          idx++
+        }, msPerWord)
+        intervalRef.current = tick
       } else {
-        // Desktop: onboundary char-to-word map
-        const plainWords = text.split(/\s+/)
+        // Desktop: onboundary — map charIndex to word index in DOM
+        // Build char offsets from the FULL word list offset by fromWordIdx
         const charOffsets = []
         let pos = 0
-        plainWords.forEach(w => { charOffsets.push(pos); pos += w.length + 1 })
+        allWords.slice(fromWordIdx).forEach(w => { charOffsets.push(pos); pos += w.length + 1 })
 
         utt.onboundary = (e) => {
           if (e.name !== 'word') return
@@ -473,60 +503,128 @@ export default function LessonScreen({ session, onBack }) {
             if (charOffsets[i] <= e.charIndex) closest = i
             else break
           }
-          hlWord(closest)
+          hlWord(fromWordIdx + closest)
         }
       }
     }
 
+    function handlePlay() {
+      if (!ttsAvailable || audioConflict) return
+      if (ttsState === 'playing') {
+        window.speechSynthesis.pause()
+        if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null }
+        setTtsState('paused')
+        return
+      }
+      if (ttsState === 'paused') {
+        window.speechSynthesis.resume()
+        if (isMobile && wordSpansRef.current.length > 0) {
+          // Resume mobile tick from current highlighted word
+          const current = document.querySelector('[data-tts-w][data-hl]')
+          const fromIdx = current ? parseInt(current.getAttribute('data-tts-w')) : 0
+          const msPerWord = Math.round(60000 / (200 * speed))
+          let idx = fromIdx
+          const tick = setInterval(() => {
+            if (idx >= wordSpansRef.current.length) { clearInterval(tick); intervalRef.current = null; return }
+            hlWord(idx); idx++
+          }, msPerWord)
+          intervalRef.current = tick
+        }
+        setTtsState('playing')
+        return
+      }
+      // Fresh start from beginning
+      stopAll()
+      setTimeout(() => startSpeaking(0), 50)
+    }
+
+    function handleSpeedChange(newSpeed) {
+      setSpeed(newSpeed)
+      if (ttsState !== 'idle') {
+        // Restart at current word with new speed
+        const current = document.querySelector('[data-tts-w][data-hl]')
+        const fromIdx = current ? parseInt(current.getAttribute('data-tts-w')) : 0
+        stopAll()
+        setTimeout(() => startSpeaking(fromIdx), 50)
+      }
+    }
+
     useEffect(() => {
-      return () => { window.speechSynthesis?.cancel(); if (intervalRef.current) clearInterval(intervalRef.current); unwrapWords() }
+      return () => {
+        window.speechSynthesis?.cancel()
+        if (intervalRef.current) clearInterval(intervalRef.current)
+        unwrapWords()
+      }
     }, [])
 
     if (!ttsAvailable) return null
 
-    // ── Sticky bar — always visible at bottom of reader ───────────────────
+    const speeds = [0.75, 1.0, 1.25, 1.5]
+
     return (
       <div style={{
         position: 'sticky', bottom: 0, zIndex: 50,
         background: 'var(--bg-surface)',
         borderTop: '1px solid var(--border)',
-        padding: '10px 16px',
-        display: 'flex', alignItems: 'center', gap: 10,
-        boxShadow: '0 -4px 16px rgba(0,0,0,0.2)',
+        padding: '8px 14px',
+        display: 'flex', alignItems: 'center', gap: 8,
+        boxShadow: '0 -4px 16px rgba(0,0,0,0.25)',
+        flexWrap: 'wrap',
       }}>
         {/* Play / Pause */}
-        <button onClick={handlePlay} style={{
-          display: 'flex', alignItems: 'center', gap: 6,
-          background: ttsState === 'playing' ? 'var(--bg-elevated)' : 'var(--accent)',
+        <button onClick={handlePlay} disabled={audioConflict} style={{
+          display: 'flex', alignItems: 'center', gap: 5,
+          background: audioConflict ? 'var(--bg-elevated)' : ttsState === 'playing' ? 'var(--bg-elevated)' : 'var(--accent)',
           border: 'none', borderRadius: 'var(--radius-md)',
-          padding: '9px 18px', cursor: 'pointer', fontFamily: 'inherit',
-          fontSize: 13, fontWeight: 700,
-          color: ttsState === 'playing' ? 'var(--text-primary)' : '#0d0d0d',
-          transition: 'all 0.15s', flexShrink: 0,
+          padding: '8px 16px', cursor: audioConflict ? 'not-allowed' : 'pointer',
+          fontFamily: 'inherit', fontSize: 13, fontWeight: 700,
+          color: audioConflict ? 'var(--text-muted)' : ttsState === 'playing' ? 'var(--text-primary)' : '#0d0d0d',
+          transition: 'all 0.15s', flexShrink: 0, opacity: audioConflict ? 0.5 : 1,
         }}>
-          {ttsState === 'playing' ? '⏸ Pause' : ttsState === 'paused' ? '▶ Resume' : '▶ Listen'}
+          {ttsState === 'playing' ? '⏸' : ttsState === 'paused' ? '▶' : '▶'}&nbsp;
+          {ttsState === 'playing' ? 'Pause' : ttsState === 'paused' ? 'Resume' : 'Listen'}
         </button>
-
-        {/* Status */}
-        <span style={{ fontSize: 12, color: 'var(--text-muted)', flex: 1 }}>
-          {ttsState === 'playing' ? 'Reading aloud — scroll freely' : ttsState === 'paused' ? 'Paused' : 'Tap to listen to this lesson'}
-        </span>
 
         {/* Stop */}
         {ttsState !== 'idle' && (
           <button onClick={stopAll} style={{
             background: 'transparent', border: '1px solid var(--border)',
-            borderRadius: 'var(--radius-sm)', padding: '8px 12px',
+            borderRadius: 'var(--radius-sm)', padding: '7px 11px',
             cursor: 'pointer', fontFamily: 'inherit', fontSize: 13,
             color: 'var(--text-muted)', flexShrink: 0,
-          }}>
-            ⏹ Stop
-          </button>
+          }}>⏹</button>
         )}
+
+        {/* Status / hint */}
+        <span style={{ fontSize: 11, color: 'var(--text-muted)', flex: 1, minWidth: 80 }}>
+          {audioConflict
+            ? '🔇 Stop audio to use TTS'
+            : ttsState === 'playing'
+            ? 'Tap any word to jump there'
+            : ttsState === 'paused'
+            ? 'Paused'
+            : 'Tap ▶ or any word to start'}
+        </span>
+
+        {/* Speed selector */}
+        <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+          {speeds.map(s => (
+            <button key={s} onClick={() => handleSpeedChange(s)} style={{
+              padding: '4px 8px', borderRadius: 6, fontSize: 11, fontWeight: speed === s ? 700 : 400,
+              border: speed === s ? '1.5px solid var(--accent)' : '1px solid var(--border)',
+              background: speed === s ? 'var(--accent-dim)' : 'transparent',
+              color: speed === s ? 'var(--accent)' : 'var(--text-muted)',
+              cursor: 'pointer', fontFamily: 'inherit',
+            }}>
+              {s}x
+            </button>
+          ))}
+        </div>
       </div>
     )
   }
 
+  // ─── Lesson Reader ────────────────────────────────────────────────────────
   // ─── Lesson Reader ────────────────────────────────────────────────────────
   if (view === "lesson" && activeLesson) {
     return (
