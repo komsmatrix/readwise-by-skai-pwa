@@ -325,290 +325,196 @@ export default function LessonScreen({ session, onBack }) {
     }
   }
 
-  // ─── TTS Player v3 — click-to-start, speed control, audio conflict fix ───
+  // ─── TTS Player v4 — paragraph highlight, works desktop + mobile ──────────
   function TTSPlayer({ lesson, contentRef }) {
-    const [ttsState,    setTtsState]    = useState('idle')       // idle | playing | paused
-    const [speed,       setSpeed]       = useState(1.0)
-    const [ttsAvailable]                = useState(() => 'speechSynthesis' in window)
-    const [audioConflict, setAudioConflict] = useState(false)    // true when page audio is playing
-    const uttRef        = useRef(null)
-    const wordSpansRef  = useRef([])
-    const startWordRef  = useRef(0)    // word index to start from (click-to-start)
-    const isMobile      = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
-    const intervalRef   = useRef(null)
+    const [ttsState,      setTtsState]      = useState('idle')
+    const [speed,         setSpeed]         = useState(1.0)
+    const [ttsAvailable]                    = useState(() => 'speechSynthesis' in window)
+    const [audioConflict, setAudioConflict] = useState(false)
+    const ttsStateRef  = useRef('idle')
+    const paraSpansRef = useRef([])   // array of <p>/<div> elements used as highlight targets
+    const paraTextsRef = useRef([])   // plain text per paragraph
+    const paraIdxRef   = useRef(0)
 
-    // Detect if page audio (<audio> element) is playing
+    const setTtsStateSync = (s) => { ttsStateRef.current = s; setTtsState(s) }
+
+    // Detect audio conflict
     useEffect(() => {
-      const checkAudio = () => {
-        const audios = document.querySelectorAll('audio')
-        const playing = Array.from(audios).some(a => !a.paused)
+      const check = () => {
+        const playing = Array.from(document.querySelectorAll('audio')).some(a => !a.paused)
         setAudioConflict(playing)
-        if (playing && ttsState === 'playing') stopAll()
+        if (playing && ttsStateRef.current === 'playing') stopAll()
       }
-      document.addEventListener('play', checkAudio, true)
-      document.addEventListener('pause', checkAudio, true)
-      document.addEventListener('ended', checkAudio, true)
+      document.addEventListener('play',  check, true)
+      document.addEventListener('pause', check, true)
+      document.addEventListener('ended', check, true)
       return () => {
-        document.removeEventListener('play', checkAudio, true)
-        document.removeEventListener('pause', checkAudio, true)
-        document.removeEventListener('ended', checkAudio, true)
+        document.removeEventListener('play',  check, true)
+        document.removeEventListener('pause', check, true)
+        document.removeEventListener('ended', check, true)
       }
-    }, [ttsState])
+    }, [])
 
-    function getPlainText() {
-      const parts = []
-      if (lesson.title)           parts.push(lesson.title + '.')
-      if (lesson.board_relevance) parts.push(lesson.board_relevance + '.')
-      if (lesson.content)         parts.push(lesson.content.replace(/[#*`>_~|]/g,'').replace(/[\n]+/g,' ').replace(/[\s]+/g,' '))
-      if (lesson.memory_hook)     parts.push('Memory Hook. ' + lesson.memory_hook)
-      return parts.join(' ').trim()
-    }
-
-    // Build word list from plain text (not DOM — avoids mismatch)
-    function buildWordList(text) {
-      return text.split(/\s+/).filter(w => w.length > 0)
-    }
-
-    // Wrap content DOM into clickable word spans
-    function wrapWords() {
+    // Build paragraph list from contentRef DOM
+    function buildParagraphs() {
       if (!contentRef?.current) return []
-      const spans = []
-      try {
-        const walker = document.createTreeWalker(contentRef.current, NodeFilter.SHOW_TEXT)
-        const nodes = []
-        let node
-        while ((node = walker.nextNode())) {
-          if (!node.parentNode || node.parentNode.nodeName === 'SCRIPT') continue
-          if (!node.parentNode.isConnected) continue
-          if (node.textContent.trim() === '') continue
-          nodes.push(node)
-        }
-        nodes.forEach(textNode => {
-          try {
-            const parent = textNode.parentNode
-            if (!parent || !parent.isConnected) return
-            // Skip already-wrapped nodes
-            if (parent.hasAttribute && parent.hasAttribute('data-tts-w')) return
-            const frag = document.createDocumentFragment()
-            textNode.textContent.split(/(\s+)/).forEach(part => {
-              if (/^\s*$/.test(part)) {
-                frag.appendChild(document.createTextNode(part))
-              } else {
-                const sp = document.createElement('span')
-                const idx = spans.length
-                sp.setAttribute('data-tts-w', idx)
-                sp.style.cursor = 'pointer'
-                sp.style.borderRadius = '2px'
-                sp.style.transition = 'background 0.1s'
-                sp.textContent = part
-                sp.addEventListener('click', (e) => {
-                  e.stopPropagation()
-                  startWordRef.current = idx
-                  stopAll()
-                  setTimeout(() => startSpeaking(idx), 100)
-                })
-                sp.addEventListener('mouseenter', () => { if (ttsState === 'idle') sp.style.background = 'var(--accent-dim)' })
-                sp.addEventListener('mouseleave', () => { if (!sp.getAttribute('data-hl')) sp.style.background = '' })
-                spans.push(sp)
-                frag.appendChild(sp)
-              }
-            })
-            parent.replaceChild(frag, textNode)
-          } catch (nodeErr) {
-            console.warn('TTS wrap node error:', nodeErr)
-          }
-        })
-      } catch (err) {
-        console.warn('TTS wrapWords error:', err)
+      // Get all block-level elements that contain text
+      const blocks = Array.from(contentRef.current.querySelectorAll('p, li, h1, h2, h3, h4, blockquote'))
+      if (blocks.length === 0) {
+        // Fallback: split plain text into chunks if no block elements
+        const text = contentRef.current.innerText || ''
+        const chunks = text.split(/
+{2,}/).filter(c => c.trim().length > 0)
+        paraTextsRef.current = chunks
+        paraSpansRef.current = []  // no DOM elements to highlight
+        return chunks
       }
-      wordSpansRef.current = spans
-      return spans
+      const texts = []
+      const els   = []
+      blocks.forEach(el => {
+        const t = (el.innerText || el.textContent || '').trim()
+        if (t.length < 3) return
+        texts.push(t)
+        els.push(el)
+      })
+      paraTextsRef.current = texts
+      paraSpansRef.current = els
+      return texts
     }
 
-    function unwrapWords() {
-      document.querySelectorAll('[data-tts-w]').forEach(sp => {
-        const p = sp.parentNode
-        if (p) { p.replaceChild(document.createTextNode(sp.textContent), sp); p.normalize() }
+    function hlParagraph(idx) {
+      // Clear previous
+      paraSpansRef.current.forEach(el => {
+        el.style.background   = ''
+        el.style.borderRadius = ''
+        el.style.transition   = ''
+        el.style.padding      = ''
+        el.style.margin       = ''
       })
-      wordSpansRef.current = []
+      const el = paraSpansRef.current[idx]
+      if (!el) return
+      el.style.background   = 'var(--accent-dim)'
+      el.style.borderRadius = '6px'
+      el.style.transition   = 'background 0.3s'
+      el.style.padding      = '2px 4px'
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
     }
 
     function clearHL() {
-      document.querySelectorAll('[data-tts-w]').forEach(sp => {
-        sp.style.background = ''
-        sp.style.color = ''
-        sp.style.padding = ''
-        sp.removeAttribute('data-hl')
+      paraSpansRef.current.forEach(el => {
+        el.style.background   = ''
+        el.style.borderRadius = ''
+        el.style.padding      = ''
       })
-    }
-
-    function hlWord(idx) {
-      clearHL()
-      const sp = wordSpansRef.current[idx]
-      if (!sp) return
-      sp.setAttribute('data-hl', '1')
-      sp.style.background = 'var(--accent)'
-      sp.style.color      = '#0d0d0d'
-      sp.style.padding    = '0 2px'
     }
 
     function stopAll() {
       window.speechSynthesis.cancel()
-      if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null }
       clearHL()
-      unwrapWords()
-      setTtsState('idle')
+      paraSpansRef.current = []
+      paraTextsRef.current = []
+      paraIdxRef.current   = 0
+      setTtsStateSync('idle')
     }
 
-    function startSpeaking(fromWordIdx = 0) {
-      if (!ttsAvailable || audioConflict) return
-
-      const fullText = getPlainText()
-      const allWords = buildWordList(fullText)
-
-      // Always speak from the beginning — slicing text causes charIndex mismatch
-      // For click-to-start: we speak full text but seek highlight to fromWordIdx
-      // This guarantees charIndex from onboundary always maps correctly to DOM spans
-      const utt = new SpeechSynthesisUtterance(fullText)
-      utt.rate  = speed
-      utt.pitch = 1
-      utt.lang  = 'en-PH'
-      uttRef.current = utt
-
-      const onDone = () => {
-        if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null }
-        clearHL(); unwrapWords(); setTtsState('idle')
+    function speakParagraphs(texts, fromIdx = 0) {
+      if (fromIdx >= texts.length || ttsStateRef.current === 'idle') {
+        clearHL()
+        setTtsStateSync('idle')
+        return
       }
-      utt.onend   = onDone
-      utt.onerror = (e) => { if (e.error !== 'interrupted') onDone() }
+      paraIdxRef.current = fromIdx
+      hlParagraph(fromIdx)
 
-      // Speak FIRST (iOS gesture requirement)
+      const utt  = new SpeechSynthesisUtterance(texts[fromIdx])
+      utt.rate   = speed
+      utt.pitch  = 1
+      utt.lang   = 'en-PH'
+
+      utt.onend = () => {
+        if (ttsStateRef.current !== 'playing') return
+        speakParagraphs(texts, fromIdx + 1)
+      }
+      utt.onerror = (e) => {
+        if (e.error === 'interrupted') return
+        clearHL(); setTtsStateSync('idle')
+      }
+
       window.speechSynthesis.speak(utt)
-      setTtsState('playing')
-
-      // Build DOM spans — must happen after speak() for iOS
-      // If already wrapped (e.g. speed change), reuse existing spans
-      const spans = wordSpansRef.current.length > 0 ? wordSpansRef.current : wrapWords()
-
-      if (isMobile) {
-        // Mobile: timer tick — onboundary not supported on iOS/Android
-        // Ensure spans exist before starting tick
-        const doTick = (spansReady) => {
-          if (intervalRef.current) clearInterval(intervalRef.current)
-          const msPerWord = Math.round(60000 / (180 * speed))  // 180wpm baseline
-          let idx = fromWordIdx
-          const tick = setInterval(() => {
-            if (idx >= spansReady.length) { clearInterval(tick); intervalRef.current = null; return }
-            hlWord(idx)
-            idx++
-          }, msPerWord)
-          intervalRef.current = tick
-        }
-        // Wait for DOM to settle before starting tick
-        // Use 150ms delay + rAF to ensure spans are rendered
-        setTimeout(() => {
-          requestAnimationFrame(() => {
-            const readySpans = wordSpansRef.current.length > 0 ? wordSpansRef.current : spans
-            if (readySpans.length > 0) doTick(readySpans)
-            else {
-              // Last resort: try wrapping again
-              const retry = wrapWords()
-              if (retry.length > 0) doTick(retry)
-            }
-          })
-        }, 150)
-      } else {
-        // Desktop: build a map of charIndex → word index
-        // Key insight: use the EXACT charIndex the browser will fire, not estimated
-        // We reconstruct char positions from the actual text string
-        let charWordMap = []
-        let pos = 0
-        const textChars = fullText
-        // Walk through fullText char by char, mark word starts
-        let inWord = false
-        let wordIdx = 0
-        for (let i = 0; i < textChars.length; i++) {
-          const ch = textChars[i]
-          const isSpace = /\s/.test(ch)
-          if (!isSpace && !inWord) {
-            charWordMap[i] = wordIdx  // mark word start position
-            inWord = true
-          } else if (isSpace && inWord) {
-            wordIdx++
-            inWord = false
-          }
-        }
-
-        let reachedStart = fromWordIdx === 0
-
-        utt.onboundary = (e) => {
-          if (e.name !== 'word') return
-          // Find the word index for this exact charIndex
-          // Look for the nearest word start at or before charIndex
-          let wIdx = charWordMap[e.charIndex]
-          if (wIdx === undefined) {
-            // Scan back up to 3 chars for word start
-            for (let k = 1; k <= 3; k++) {
-              if (charWordMap[e.charIndex - k] !== undefined) { wIdx = charWordMap[e.charIndex - k]; break }
-            }
-          }
-          if (wIdx === undefined) return
-          if (!reachedStart) {
-            if (wIdx >= fromWordIdx) reachedStart = true
-            else return
-          }
-          hlWord(wIdx)
-        }
-      }
     }
 
     function handlePlay() {
       if (!ttsAvailable || audioConflict) return
+
       if (ttsState === 'playing') {
         window.speechSynthesis.pause()
-        if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null }
-        setTtsState('paused')
+        setTtsStateSync('paused')
         return
       }
       if (ttsState === 'paused') {
         window.speechSynthesis.resume()
-        if (isMobile && wordSpansRef.current.length > 0) {
-          // Resume mobile tick from current highlighted word
-          const current = document.querySelector('[data-tts-w][data-hl]')
-          const fromIdx = current ? parseInt(current.getAttribute('data-tts-w')) : 0
-          const msPerWord = Math.round(60000 / (200 * speed))
-          let idx = fromIdx
-          const tick = setInterval(() => {
-            if (idx >= wordSpansRef.current.length) { clearInterval(tick); intervalRef.current = null; return }
-            hlWord(idx); idx++
-          }, msPerWord)
-          intervalRef.current = tick
-        }
-        setTtsState('playing')
+        setTtsStateSync('playing')
         return
       }
-      // Fresh start from beginning
+
+      // Fresh start
       stopAll()
-      setTimeout(() => startSpeaking(0), 50)
+      const texts = buildParagraphs()
+      if (texts.length === 0) return
+
+      // Speak first paragraph immediately (iOS gesture requirement)
+      setTtsStateSync('playing')
+      speakParagraphs(texts, 0)
+    }
+
+    function handleParaClick(idx) {
+      // Click any paragraph to start TTS from there
+      stopAll()
+      const texts = buildParagraphs()
+      if (texts.length === 0) return
+      setTtsStateSync('playing')
+      speakParagraphs(texts, idx)
     }
 
     function handleSpeedChange(newSpeed) {
+      const wasPlaying = ttsStateRef.current === 'playing'
+      const fromIdx    = paraIdxRef.current
+      stopAll()
       setSpeed(newSpeed)
-      if (ttsState !== 'idle') {
-        // Restart at current word with new speed
-        const current = document.querySelector('[data-tts-w][data-hl]')
-        const fromIdx = current ? parseInt(current.getAttribute('data-tts-w')) : 0
-        stopAll()
-        setTimeout(() => startSpeaking(fromIdx), 50)
+      if (wasPlaying) {
+        const texts = buildParagraphs()
+        setTimeout(() => { setTtsStateSync('playing'); speakParagraphs(texts, fromIdx) }, 50)
       }
     }
 
+    // Make paragraphs clickable when TTS is idle
     useEffect(() => {
+      if (!contentRef?.current) return
+      const blocks = Array.from(contentRef.current.querySelectorAll('p, li, h1, h2, h3, h4, blockquote'))
+      const handlers = blocks.map((el, idx) => {
+        const fn = (e) => {
+          if (ttsStateRef.current !== 'idle') return
+          e.stopPropagation()
+          stopAll()
+          const texts = buildParagraphs()
+          if (texts.length === 0) return
+          setTtsStateSync('playing')
+          speakParagraphs(texts, idx)
+        }
+        el.style.cursor = 'pointer'
+        el.addEventListener('click', fn)
+        return { el, fn }
+      })
       return () => {
-        window.speechSynthesis?.cancel()
-        if (intervalRef.current) clearInterval(intervalRef.current)
-        unwrapWords()
+        handlers.forEach(({ el, fn }) => {
+          el.removeEventListener('click', fn)
+          el.style.cursor = ''
+        })
       }
+    }, [lesson?.id])
+
+    useEffect(() => {
+      return () => { window.speechSynthesis?.cancel(); clearHL() }
     }, [])
 
     if (!ttsAvailable) return null
@@ -635,8 +541,7 @@ export default function LessonScreen({ session, onBack }) {
           color: audioConflict ? 'var(--text-muted)' : ttsState === 'playing' ? 'var(--text-primary)' : '#0d0d0d',
           transition: 'all 0.15s', flexShrink: 0, opacity: audioConflict ? 0.5 : 1,
         }}>
-          {ttsState === 'playing' ? '⏸' : ttsState === 'paused' ? '▶' : '▶'}&nbsp;
-          {ttsState === 'playing' ? 'Pause' : ttsState === 'paused' ? 'Resume' : 'Listen'}
+          {ttsState === 'playing' ? '⏸ Pause' : ttsState === 'paused' ? '▶ Resume' : '▶ Listen'}
         </button>
 
         {/* Stop */}
@@ -649,18 +554,18 @@ export default function LessonScreen({ session, onBack }) {
           }}>⏹</button>
         )}
 
-        {/* Status / hint */}
+        {/* Status */}
         <span style={{ fontSize: 11, color: 'var(--text-muted)', flex: 1, minWidth: 80 }}>
           {audioConflict
             ? '🔇 Stop audio to use TTS'
             : ttsState === 'playing'
-            ? 'Tap any word to jump there'
+            ? 'Tap any paragraph to jump'
             : ttsState === 'paused'
             ? 'Paused'
-            : 'Tap ▶ or any word to start'}
+            : 'Tap ▶ or any paragraph to start'}
         </span>
 
-        {/* Speed selector */}
+        {/* Speed */}
         <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
           {speeds.map(s => (
             <button key={s} onClick={() => handleSpeedChange(s)} style={{
