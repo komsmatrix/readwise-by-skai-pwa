@@ -530,6 +530,7 @@ export default function LessonScreen({ session, onBack }) {
   // ─── Lesson Reader ────────────────────────────────────────────────────────
   if (view === "lesson" && activeLesson) {
     return (
+      <>
       <div style={s.screen}>
         {/* Sticky header */}
         <div style={s.readerHeader}>
@@ -656,6 +657,7 @@ export default function LessonScreen({ session, onBack }) {
       </div>
       {/* Sticky TTS bar — always visible while reading */}
       <TTSPlayer lesson={activeLesson} contentRef={contentRef} />
+    </>
     );
   }
 
