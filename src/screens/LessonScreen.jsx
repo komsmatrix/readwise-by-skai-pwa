@@ -454,11 +454,13 @@ export default function LessonScreen({ session, onBack }) {
     function startSpeaking(fromWordIdx = 0) {
       if (!ttsAvailable || audioConflict) return
 
-      const fullText  = getPlainText()
-      const allWords  = buildWordList(fullText)
-      const textFrom  = allWords.slice(fromWordIdx).join(' ')
+      const fullText = getPlainText()
+      const allWords = buildWordList(fullText)
 
-      const utt = new SpeechSynthesisUtterance(textFrom)
+      // Always speak from the beginning — slicing text causes charIndex mismatch
+      // For click-to-start: we speak full text but seek highlight to fromWordIdx
+      // This guarantees charIndex from onboundary always maps correctly to DOM spans
+      const utt = new SpeechSynthesisUtterance(fullText)
       utt.rate  = speed
       utt.pitch = 1
       utt.lang  = 'en-PH'
@@ -475,35 +477,50 @@ export default function LessonScreen({ session, onBack }) {
       window.speechSynthesis.speak(utt)
       setTtsState('playing')
 
-      // DOM wrap after speak()
+      // Build DOM spans — must happen after speak() for iOS
+      // If already wrapped (e.g. speed change), reuse existing spans
       const spans = wordSpansRef.current.length > 0 ? wordSpansRef.current : wrapWords()
 
       if (isMobile) {
-        // Mobile: timer tick — no onboundary support
-        if (intervalRef.current) clearInterval(intervalRef.current)
-        const msPerWord = Math.round((60000 / (200 * speed)))  // ~200 wpm adjusted for speed
-        let idx = fromWordIdx
-        const tick = setInterval(() => {
-          if (idx >= spans.length) { clearInterval(tick); intervalRef.current = null; return }
-          hlWord(idx)
-          idx++
-        }, msPerWord)
-        intervalRef.current = tick
+        // Mobile: timer tick — onboundary not supported on iOS/Android
+        // Ensure spans exist before starting tick
+        const doTick = (spansReady) => {
+          if (intervalRef.current) clearInterval(intervalRef.current)
+          const msPerWord = Math.round(60000 / (180 * speed))  // 180wpm baseline
+          let idx = fromWordIdx
+          const tick = setInterval(() => {
+            if (idx >= spansReady.length) { clearInterval(tick); intervalRef.current = null; return }
+            hlWord(idx)
+            idx++
+          }, msPerWord)
+          intervalRef.current = tick
+        }
+        // Small delay to ensure wrapWords() DOM changes have settled
+        setTimeout(() => doTick(wordSpansRef.current.length > 0 ? wordSpansRef.current : spans), 80)
       } else {
-        // Desktop: onboundary — map charIndex to word index in DOM
-        // Build char offsets from the FULL word list offset by fromWordIdx
+        // Desktop: onboundary — charIndex maps directly to full text word offsets
+        // Build char offset table for ALL words (not sliced) so index is exact
         const charOffsets = []
         let pos = 0
-        allWords.slice(fromWordIdx).forEach(w => { charOffsets.push(pos); pos += w.length + 1 })
+        allWords.forEach(w => { charOffsets.push(pos); pos += w.length + 1 })
+
+        // If click-to-start: skip highlighting until we reach fromWordIdx
+        let reachedStart = fromWordIdx === 0
 
         utt.onboundary = (e) => {
           if (e.name !== 'word') return
-          let closest = 0
-          for (let i = 0; i < charOffsets.length; i++) {
-            if (charOffsets[i] <= e.charIndex) closest = i
-            else break
+          // Binary search for closest word index
+          let lo = 0, hi = charOffsets.length - 1, closest = 0
+          while (lo <= hi) {
+            const mid = (lo + hi) >> 1
+            if (charOffsets[mid] <= e.charIndex) { closest = mid; lo = mid + 1 }
+            else hi = mid - 1
           }
-          hlWord(fromWordIdx + closest)
+          if (!reachedStart) {
+            if (closest >= fromWordIdx) reachedStart = true
+            else return  // skip words before click point
+          }
+          hlWord(closest)
         }
       }
     }
