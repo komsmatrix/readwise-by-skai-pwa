@@ -2,14 +2,34 @@
 // Merged: send-agent-welcome + send-agent-blast + send-payout-confirmation + send-feedback
 // Usage: POST { type: 'welcome' | 'blast' | 'payout' | 'feedback', ...payload }
 
-const { Resend } = require('resend')
 const { createClient } = require('@supabase/supabase-js')
 
-const resend   = new Resend(process.env.RESEND_API_KEY)
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_KEY
 )
+
+async function sendEmail({ to, subject, html, replyTo }) {
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from    : 'Readwise by Skai <hello@readwisebyskai.com>',
+      to      : Array.isArray(to) ? to : [to],
+      subject,
+      html,
+      ...(replyTo ? { reply_to: replyTo } : {}),
+    }),
+  })
+  if (!res.ok) {
+    const err = await res.text()
+    throw new Error(`Resend error: ${err}`)
+  }
+  return res.json()
+}
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
@@ -40,7 +60,7 @@ async function handleWelcome({ name, email, referral_code, gcash_number }, res) 
   const commission = 50
   const discount   = 20
 
-  await resend.emails.send({
+  await sendEmail({
     from   : 'Readwise by Skai <skai@readwisebyskai.com>',
     to     : email,
     subject: `Welcome to Readwise Agent Program — Your Code: ${referral_code}`,
@@ -68,7 +88,7 @@ async function handleBlast({ subject, message, resource_url, resource_label }, r
   for (const agent of agents) {
     const firstName = agent.name?.split(' ')[0] || 'Agent'
     try {
-      await resend.emails.send({
+      await sendEmail({
         from   : 'Readwise by Skai <skai@readwisebyskai.com>',
         to     : agent.email,
         subject,
@@ -113,7 +133,7 @@ async function handlePayout({
     } catch (e) { console.error('Error fetching students:', e) }
   }
 
-  await resend.emails.send({
+  await sendEmail({
     from   : 'Readwise by Skai <skai@readwisebyskai.com>',
     to     : agent_email,
     subject: `💸 ₱${amount} Sent! Your Readwise Commission is Here`,
@@ -138,7 +158,7 @@ async function handleFeedback({ name, email, message, type: feedbackType }, res)
     }])
   } catch (e) { console.error('Supabase feedback store error:', e) }
 
-  await resend.emails.send({
+  await sendEmail({
     from   : 'Readwise by Skai <hello@readwisebyskai.com>',
     to     : 'skai@readwisebyskai.com',
     replyTo: email || 'noreply@readwisebyskai.com',
@@ -458,7 +478,7 @@ async function handleWeeklyReport({ customer_id, send_all }, res) {
 
       const firstName = customer.name?.split(' ')[0] || 'there'
 
-      await resend.emails.send({
+      await sendEmail({
         from   : 'Readwise by Skai <hello@readwisebyskai.com>',
         to     : customer.email,
         subject: isOnTrack
