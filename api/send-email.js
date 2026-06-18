@@ -501,11 +501,11 @@ function weeklyReportHTML({
   // Wellness tips — rotated randomly each week
   const wellnessTips = [
     { tip: 'After a tough session, go for a short walk. Even 10 minutes outside helps your brain consolidate what you just studied.', icon: '🚶' },
-    { tip: 'Sleep is when memory forms. A good night's rest does more for your score than cramming at midnight.', icon: '😴' },
-    { tip: 'Tried a mock exam this week? Don't review it immediately — step away first. A clear head catches more patterns.', icon: '🧘' },
+    { tip: "Sleep is when memory forms. A good night's rest does more for your score than cramming at midnight.", icon: "😴" },
+    { tip: "Tried a mock exam this week? Don't review it immediately — step away first. A clear head catches more patterns.", icon: "🧘" },
     { tip: 'Short breaks between sessions improve retention. Study, rest, study again. The rest is part of the process.', icon: '☕' },
     { tip: 'Exercise, even light stretching, increases blood flow to the brain. A 15-minute walk before studying sharpens focus.', icon: '🏃' },
-    { tip: 'You don't have to study every waking hour to pass. Rest is productive. Your brain is still working when you step away.', icon: '🌿' },
+    { tip: "You don't have to study every waking hour to pass. Rest is productive. Your brain is still working when you step away.", icon: "🌿" },
     { tip: 'After a mock exam, your instinct is to re-study everything. Instead, pick your top 2 weak topics only. Focus beats volume.', icon: '🎯' },
   ]
   const wellnessTip = wellnessTips[Math.floor(Math.random() * wellnessTips.length)]
