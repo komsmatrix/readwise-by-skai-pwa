@@ -417,9 +417,13 @@ export default function LessonScreen({ session, onBack }) {
     }
 
     function speakParagraphs(texts, fromIdx = 0) {
-      if (fromIdx >= texts.length || ttsStateRef.current === 'idle') {
+      if (!texts || texts.length === 0 || fromIdx >= texts.length || ttsStateRef.current === 'idle') {
         clearHL()
         setTtsStateSync('idle')
+        return
+      }
+      if (!texts[fromIdx] || texts[fromIdx].trim().length === 0) {
+        speakParagraphs(texts, fromIdx + 1)
         return
       }
       paraIdxRef.current = fromIdx
@@ -459,7 +463,10 @@ export default function LessonScreen({ session, onBack }) {
       // Fresh start
       stopAll()
       const texts = buildParagraphs()
-      if (texts.length === 0) return
+      if (!texts || texts.length === 0) {
+        alert('No content to read in this lesson yet.')
+        return
+      }
 
       // Speak first paragraph immediately (iOS gesture requirement)
       setTtsStateSync('playing')
