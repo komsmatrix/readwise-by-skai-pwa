@@ -202,13 +202,20 @@ function renderMarkdown(text) {
 
 // Chunked lesson content — renders large files without crashing
 function LessonContent({ text, contentRef }) {
+  const [fontSize, setFontSize] = useState(() => parseInt(localStorage.getItem('lesson_font_size') || '15'))
+
+  useEffect(() => {
+    const handler = () => setFontSize(parseInt(localStorage.getItem('lesson_font_size') || '15'))
+    window.addEventListener('lesson_font_changed', handler)
+    return () => window.removeEventListener('lesson_font_changed', handler)
+  }, [])
   const CHUNK = 15000
   const [chunks, setChunks] = useState(1)
   const display = text.slice(0, CHUNK * chunks)
   const hasMore = display.length < text.length
   return (
     <>
-      <div ref={contentRef} className="lesson-reader-content lesson-reader-body"
+      <div ref={contentRef} className="lesson-reader-content lesson-reader-body" style={{ fontSize }}
         style={{ fontSize:15, lineHeight:1.9, color:'var(--text-secondary)', fontFamily:'var(--font-reader)' }}
         dangerouslySetInnerHTML={{ __html: renderMarkdown(display) }} />
       {hasMore && (

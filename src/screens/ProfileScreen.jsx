@@ -21,9 +21,41 @@ const MILESTONES = [
   { id: 'mock_survivor', icon: '📝', name: 'Mock Survivor',    sub: 'Complete first mock board',trigger: 'mocks',    threshold: 1   },
 ]
 
+function FontSizePicker() {
+  const [current, setCurrent] = useState(() => parseInt(localStorage.getItem('lesson_font_size') || '15'))
+  const sizes = [
+    { label:'S', size:13, hint:'Small' },
+    { label:'M', size:15, hint:'Medium' },
+    { label:'L', size:17, hint:'Large' },
+    { label:'XL', size:20, hint:'X-Large' },
+  ]
+  return (
+    <div style={{ display:'flex', gap:8 }}>
+      {sizes.map(f => (
+        <button key={f.size} onClick={() => {
+          localStorage.setItem('lesson_font_size', String(f.size))
+          window.dispatchEvent(new Event('lesson_font_changed'))
+          setCurrent(f.size)
+        }} style={{
+          flex:1, padding:'10px 4px',
+          border:`1.5px solid ${current === f.size ? 'var(--accent)' : 'var(--border)'}`,
+          background: current === f.size ? 'var(--accent-dim)' : 'var(--bg-elevated)',
+          borderRadius:'var(--radius-md)', cursor:'pointer', fontFamily:'inherit',
+          display:'flex', flexDirection:'column', alignItems:'center', gap:3,
+        }}>
+          <span style={{ fontSize: f.size * 0.75, fontWeight:700, color: current === f.size ? 'var(--accent)' : 'var(--text-muted)', lineHeight:1 }}>A</span>
+          <span style={{ fontSize:9, color: current === f.size ? 'var(--accent)' : 'var(--text-muted)', fontWeight: current === f.size ? 700 : 400 }}>{f.hint}</span>
+        </button>
+      ))}
+    </div>
+  )
+}
+
 export default function ProfileScreen({ customer, studentExam, onSignOut, onExamUpdated }) {
   const [theme, setTheme] = useState(() => localStorage.getItem('rbs_theme') || 'dark')
   const [milestoneData, setMilestoneData] = useState(null)
+  const [, forceUpdate] = useState(0)
+  const [fontSizeKey, setFontSizeKey] = useState(0)
 
   useEffect(() => {
     if (customer?.id) loadMilestoneData()
@@ -189,6 +221,13 @@ export default function ProfileScreen({ customer, studentExam, onSignOut, onExam
             </button>
           ))}
           {saving && <div style={s.savingNote}>Saving…</div>}
+        </div>
+
+        {/* Font Size */}
+        <div style={s.sectionLabel}>Reading</div>
+        <div style={{ margin:'0 20px 12px', background:'var(--bg-surface)', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', padding:'14px 16px' }}>
+          <div style={{ fontSize:13, fontWeight:600, color:'var(--text-primary)', marginBottom:10 }}>Lesson Font Size</div>
+          <FontSizePicker />
         </div>
 
         {/* Account */}

@@ -36,6 +36,13 @@ export default function HomeScreen({ customer, studentExam, onStartStudy, onView
 
   const daysLeft = studentExam?.exam_date ? getDaysLeft(studentExam.exam_date) : null
   const phase    = daysLeft !== null ? getPreparationPhase(daysLeft) : 'Foundation'
+  const [showConfetti, setShowConfetti] = useState(false)
+  const [confettiMsg,  setConfettiMsg]  = useState('')
+  const [freezeUsed,   setFreezeUsed]   = useState(() => {
+    const d = new Date().toISOString().split('T')[0]
+    const saved = localStorage.getItem('streak_freeze_date')
+    return saved === d
+  })
 
   useEffect(() => {
     if (customer?.id && studentExam?.exam_id) loadData()
@@ -126,7 +133,14 @@ export default function HomeScreen({ customer, studentExam, onStartStudy, onView
       }
 
       // Unlocked milestones
-      const d = { score, streak, totalReviews: reviews.length, totalSessions: sessions.length }
+      // Today's reviewed count for daily goal
+      const today = new Date().toISOString().split('T')[0]
+      const todayReviewed = reviews.filter(r => r.created_at?.startsWith(today)).length
+
+      const d = { score, streak, totalReviews: reviews.length, totalSessions: sessions.length, todayReviewed }
+      // Confetti triggers
+      if (score >= 75 && score < 80) { setConfettiMsg('🎉 You hit 75% Readiness!'); setShowConfetti(true); setTimeout(() => setShowConfetti(false), 4000) }
+      if (score >= 50 && score < 55) { setConfettiMsg('🌟 Halfway there — 50% Readiness!'); setShowConfetti(true); setTimeout(() => setShowConfetti(false), 4000) }
       const unlocked = MILESTONES.filter(m => m.check(d))
 
       setData({
@@ -150,7 +164,19 @@ export default function HomeScreen({ customer, studentExam, onStartStudy, onView
     <div style={s.root}>
       <div style={s.scroll}>
 
-        {/* Announcement banner */}
+        {/* Confetti celebration overlay */}
+        {showConfetti && (
+          <div style={{ position:'fixed', top:0, left:0, right:0, zIndex:999, pointerEvents:'none' }}>
+            <ConfettiBurst />
+            <div style={{ position:'fixed', top:'50%', left:'50%', transform:'translate(-50%,-50%)', background:'var(--bg-surface)', border:'2px solid var(--accent)', borderRadius:16, padding:'20px 28px', textAlign:'center', boxShadow:'0 8px 32px rgba(0,0,0,0.4)', zIndex:1000, pointerEvents:'all' }}>
+              <div style={{ fontSize:32, marginBottom:8 }}>🎊</div>
+              <div style={{ fontFamily:'var(--font-display)', fontSize:18, color:'var(--text-primary)', marginBottom:4 }}>{confettiMsg}</div>
+              <button onClick={() => setShowConfetti(false)} style={{ marginTop:8, background:'var(--accent)', color:'#0d0d0d', border:'none', borderRadius:8, padding:'8px 20px', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>Keep Going! →</button>
+            </div>
+          </div>
+        )}
+
+      {/* Announcement banner */}
         {showAnnouncement && announcement && (
           <div style={{ ...s.announcementBanner, ...(announcement.is_pinned ? { borderColor: 'var(--accent)', background: 'rgba(201,169,110,0.12)' } : {}) }}>
             <div style={s.announcementContent}>
@@ -196,7 +222,14 @@ export default function HomeScreen({ customer, studentExam, onStartStudy, onView
             <div style={s.examBadge}>{studentExam?.exam_id || 'LET'}</div>
             <div style={s.phaseBadge}>{phase}</div>
             {daysLeft !== null && (
-              <div style={s.countdown}><span style={{ color: 'var(--accent)' }}>{daysLeft}</span> days left</div>
+              <div style={{ ...s.countdown, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
+                <div>
+                  <span style={{ color: daysLeft <= 30 ? '#e05c5c' : daysLeft <= 60 ? '#F59E0B' : 'var(--accent)', fontSize: 22, fontWeight: 800, fontFamily: 'var(--font-display)' }}>{daysLeft}</span>
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 4 }}>days left</span>
+                </div>
+                {daysLeft <= 30 && <div style={{ fontSize: 9, color: '#e05c5c', fontWeight: 700, letterSpacing: '.05em' }}>⚡ FINAL STRETCH</div>}
+                {daysLeft > 30 && daysLeft <= 60 && <div style={{ fontSize: 9, color: '#F59E0B', fontWeight: 700, letterSpacing: '.05em' }}>🔥 CRUNCH TIME</div>}
+              </div>
             )}
           </div>
         </div>
@@ -344,6 +377,87 @@ export default function HomeScreen({ customer, studentExam, onStartStudy, onView
 }
 
 // ── Breakdown Modal ───────────────────────────────────────────────────────────
+// ── Daily Goal Ring ────────────────────────────────────────────────────────
+function DailyGoalRing({ reviewed, goal, streak, freezeUsed, onFreeze }) {
+  const pct = Math.min(reviewed / goal, 1)
+  const r   = 28
+  const circ = 2 * Math.PI * r
+  const dash = pct * circ
+  const done = pct >= 1
+  const showFreeze = streak > 0 && !freezeUsed && reviewed === 0
+
+  return (
+    <div style={{ margin:'0 20px 12px', background:'var(--bg-surface)', border:`1px solid ${done ? '#10B981' : 'var(--border)'}`, borderRadius:'var(--radius-md)', padding:'12px 16px', display:'flex', alignItems:'center', gap:16 }}>
+      {/* Ring */}
+      <div style={{ position:'relative', flexShrink:0 }}>
+        <svg width={68} height={68}>
+          <circle cx={34} cy={34} r={r} fill="none" stroke="var(--bg-elevated)" strokeWidth={5}/>
+          <circle cx={34} cy={34} r={r} fill="none"
+            stroke={done ? '#10B981' : 'var(--accent)'}
+            strokeWidth={5}
+            strokeDasharray={`${dash} ${circ}`}
+            strokeLinecap="round"
+            transform="rotate(-90 34 34)"
+            style={{ transition:'stroke-dasharray 0.5s ease' }}
+          />
+        </svg>
+        <div style={{ position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)', textAlign:'center' }}>
+          <div style={{ fontSize:14, fontWeight:800, color: done ? '#10B981' : 'var(--accent)', lineHeight:1 }}>{reviewed}</div>
+          <div style={{ fontSize:8, color:'var(--text-muted)', lineHeight:1, marginTop:1 }}>/{goal}</div>
+        </div>
+      </div>
+      {/* Text */}
+      <div style={{ flex:1 }}>
+        <div style={{ fontSize:12, fontWeight:700, color:'var(--text-primary)', marginBottom:2 }}>
+          {done ? '✅ Daily Goal Complete!' : `Daily Goal — ${reviewed}/${goal} cards`}
+        </div>
+        <div style={{ fontSize:11, color:'var(--text-muted)', lineHeight:1.5 }}>
+          {done ? 'Great work today. Come back tomorrow to keep your streak alive.' :
+           `${goal - reviewed} more cards to hit your goal today.`}
+        </div>
+        {showFreeze && (
+          <button onClick={onFreeze} style={{ marginTop:6, background:'rgba(91,163,217,0.1)', border:'1px solid #5ba3d9', borderRadius:6, padding:'4px 10px', fontSize:10, fontWeight:700, color:'#5ba3d9', cursor:'pointer', fontFamily:'inherit' }}>
+            🧊 Use Streak Freeze (1 left this week)
+          </button>
+        )}
+        {freezeUsed && reviewed === 0 && (
+          <div style={{ marginTop:4, fontSize:10, color:'#5ba3d9', fontWeight:600 }}>🧊 Streak freeze used today — your streak is safe!</div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── Confetti Burst ───────────────────────────────────────────────────────────
+function ConfettiBurst() {
+  const colors = ['#c9a96e','#10B981','#5ba3d9','#F59E0B','#e05c5c','#8B5CF6']
+  const pieces = Array.from({ length: 24 }, (_, i) => ({
+    id: i,
+    color: colors[i % colors.length],
+    x: Math.random() * 100,
+    delay: Math.random() * 0.8,
+    size: 6 + Math.random() * 8,
+  }))
+  return (
+    <div style={{ position:'fixed', top:0, left:0, right:0, height:'100vh', pointerEvents:'none', overflow:'hidden' }}>
+      {pieces.map(p => (
+        <div key={p.id} style={{
+          position:'absolute', left:`${p.x}%`, top:'-10px',
+          width:p.size, height:p.size,
+          background:p.color, borderRadius:'50%',
+          animation:`confettiFall 2s ${p.delay}s ease-in forwards`,
+        }}/>
+      ))}
+      <style>{`
+        @keyframes confettiFall {
+          0%   { transform: translateY(0) rotate(0deg); opacity:1; }
+          100% { transform: translateY(110vh) rotate(720deg); opacity:0; }
+        }
+      `}</style>
+    </div>
+  )
+}
+
 function BreakdownModal({ data, score, level, daysLeft, onClose, onStartStudy, onViewTopics }) {
   const components = [
     { label: 'Coverage',    val: data.coveragePct,    color: '#06B6D4', weight: '30%', desc: 'Topics you\'ve attempted (≥3 questions each), weighted by board exam importance.' },
