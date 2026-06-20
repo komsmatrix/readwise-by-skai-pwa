@@ -21,36 +21,6 @@ const MILESTONES = [
   { id: 'mock_survivor', icon: '📝', name: 'Mock Survivor',    sub: 'Complete first mock board',trigger: 'mocks',    threshold: 1   },
 ]
 
-function FontSizePicker() {
-  const [current, setCurrent] = useState(() => parseInt(localStorage.getItem('lesson_font_size') || '15'))
-  const sizes = [
-    { label:'S', size:13, hint:'Small' },
-    { label:'M', size:15, hint:'Medium' },
-    { label:'L', size:17, hint:'Large' },
-    { label:'XL', size:20, hint:'X-Large' },
-  ]
-  return (
-    <div style={{ display:'flex', gap:8 }}>
-      {sizes.map(f => (
-        <button key={f.size} onClick={() => {
-          localStorage.setItem('lesson_font_size', String(f.size))
-          window.dispatchEvent(new Event('lesson_font_changed'))
-          setCurrent(f.size)
-        }} style={{
-          flex:1, padding:'10px 4px',
-          border:`1.5px solid ${current === f.size ? 'var(--accent)' : 'var(--border)'}`,
-          background: current === f.size ? 'var(--accent-dim)' : 'var(--bg-elevated)',
-          borderRadius:'var(--radius-md)', cursor:'pointer', fontFamily:'inherit',
-          display:'flex', flexDirection:'column', alignItems:'center', gap:3,
-        }}>
-          <span style={{ fontSize: f.size * 0.75, fontWeight:700, color: current === f.size ? 'var(--accent)' : 'var(--text-muted)', lineHeight:1 }}>A</span>
-          <span style={{ fontSize:9, color: current === f.size ? 'var(--accent)' : 'var(--text-muted)', fontWeight: current === f.size ? 700 : 400 }}>{f.hint}</span>
-        </button>
-      ))}
-    </div>
-  )
-}
-
 export default function ProfileScreen({ customer, studentExam, onSignOut, onExamUpdated }) {
   const [theme, setTheme] = useState(() => localStorage.getItem('rbs_theme') || 'dark')
   const [milestoneData, setMilestoneData] = useState(null)
@@ -221,13 +191,6 @@ export default function ProfileScreen({ customer, studentExam, onSignOut, onExam
           {saving && <div style={s.savingNote}>Saving…</div>}
         </div>
 
-        {/* Font Size */}
-        <div style={s.sectionLabel}>Reading</div>
-        <div style={{ margin:'0 20px 12px', background:'var(--bg-surface)', border:'1px solid var(--border)', borderRadius:'var(--radius-md)', padding:'14px 16px' }}>
-          <div style={{ fontSize:13, fontWeight:600, color:'var(--text-primary)', marginBottom:10 }}>Lesson Font Size</div>
-          <FontSizePicker />
-        </div>
-
         {/* Account */}
         <div style={s.sectionLabel}>Account</div>
         <div style={s.settingsList}>
@@ -248,11 +211,11 @@ export default function ProfileScreen({ customer, studentExam, onSignOut, onExam
         </div>
 
         {/* Feedback */}
-        <div style={s.sectionLabel}>Feedback & Bug Reports</div>
+        <div style={s.sectionLabel}>Feedback, Bugs & Topic Requests</div>
         <div style={{ padding:'0 20px', marginBottom:8 }}>
           {!showFeedback ? (
             <button style={s.feedbackBtn} onClick={() => setShowFeedback(true)}>
-              💬 Send Feedback or Report a Bug
+              💬 Feedback, Bug Report or Request a Topic
             </button>
           ) : (
             <div style={s.feedbackCard}>
@@ -261,6 +224,7 @@ export default function ProfileScreen({ customer, studentExam, onSignOut, onExam
                   { id:'feedback', label:'💬 Feedback' },
                   { id:'bug',      label:'🐛 Bug Report' },
                   { id:'content',  label:'📝 Content Error' },
+                  { id:'request',  label:'📚 Request Topic' },
                 ].map(t => (
                   <button key={t.id}
                     style={{ ...s.feedbackTypeBtn, ...(feedbackType === t.id ? s.feedbackTypeBtnActive : {}) }}
@@ -275,13 +239,14 @@ export default function ProfileScreen({ customer, studentExam, onSignOut, onExam
                 placeholder={
                   feedbackType === 'bug' ? 'Describe the bug — what happened, what screen, what you expected...' :
                   feedbackType === 'content' ? 'Which topic/question has an error? What should it say?' :
+                  feedbackType === 'request' ? 'What topic or subject would you like us to add? (e.g. NLE — Fundamentals of Nursing, Civil Service Math, Criminology Laws)' :
                   'What would make Readwise better for you?'
                 }
                 value={feedback}
                 onChange={e => setFeedback(e.target.value)}
               />
               {feedbackStatus === 'success' && (
-                <div style={{ fontSize:12, color:'#10B981', marginBottom:8 }}>✓ Sent! Thank you for your feedback.</div>
+                <div style={{ fontSize:12, color:'#10B981', marginBottom:8 }}>{feedbackType === 'request' ? '✓ Topic request sent! We review requests every week.' : '✓ Sent! Thank you for your feedback.'}</div>
               )}
               {feedbackStatus === 'error' && (
                 <div style={{ fontSize:12, color:'#ef4444', marginBottom:8 }}>Something went wrong. Please try again.</div>

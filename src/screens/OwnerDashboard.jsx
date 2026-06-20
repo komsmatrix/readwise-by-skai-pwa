@@ -1781,8 +1781,8 @@ function FeedbackTab() {
     setItems(prev => prev.filter(i => i.id !== id))
   }
 
-  const typeIcon = { feedback: '💬', bug: '🐛', content: '📝' }
-  const typeColor = { feedback: '#10B981', bug: '#ef4444', content: '#F59E0B' }
+  const typeIcon = { feedback: '💬', bug: '🐛', content: '📝', request: '📚' }
+  const typeColor = { feedback: '#10B981', bug: '#ef4444', content: '#F59E0B', request: '#8B5CF6' }
 
   const filtered = filter === 'all' ? items : items.filter(i => i.type === filter)
   const unread = items.filter(i => !i.read).length
@@ -1797,6 +1797,7 @@ function FeedbackTab() {
           { label: 'Bugs',     val: items.filter(i => i.type === 'bug').length,      color: '#ef4444' },
           { label: 'Content',  val: items.filter(i => i.type === 'content').length,  color: '#F59E0B' },
           { label: 'Feedback', val: items.filter(i => i.type === 'feedback').length, color: '#10B981' },
+              { label: 'Requests', val: items.filter(i => i.type === 'request').length, color: '#8B5CF6' },
         ].map(stat => (
           <div key={stat.label} style={ow.statCard}>
             <div style={{ ...ow.statVal, color: stat.color }}>{stat.val}</div>
@@ -1807,11 +1808,11 @@ function FeedbackTab() {
 
       {/* Filter */}
       <div style={s.subtabBar}>
-        {['all','feedback','bug','content'].map(f => (
+        {['all','feedback','bug','content','request'].map(f => (
           <button key={f}
             style={{ ...s.subtabBtn, ...(filter === f ? s.subtabBtnActive : {}) }}
             onClick={() => setFilter(f)}>
-            {f === 'all' ? 'All' : f === 'feedback' ? '💬 Feedback' : f === 'bug' ? '🐛 Bugs' : '📝 Content'}
+            {f === 'all' ? 'All' : f === 'feedback' ? '💬 Feedback' : f === 'bug' ? '🐛 Bugs' : f === 'content' ? '📝 Content' : '📚 Requests'}
           </button>
         ))}
       </div>
