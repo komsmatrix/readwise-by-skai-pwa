@@ -1781,6 +1781,23 @@ function FeedbackTab() {
     setItems(prev => prev.filter(i => i.id !== id))
   }
 
+  async function markDone(item) {
+    // 1. Mark as read/done in feedback table
+    await supabase.from('feedback').update({ read: true, done: true }).eq('id', item.id)
+    setItems(prev => prev.map(i => i.id === item.id ? { ...i, read: true, done: true } : i))
+
+    // 2. Auto-post an announcement about it
+    const topicName = item.message?.slice(0, 60) || 'your requested topic'
+    const announcement = `📚 New lesson available! We just uploaded a lesson based on a student request: "${topicName}". Check the Lessons tab to study it now!`
+    await supabase.from('announcements').insert({
+      content: announcement,
+      tag: 'lesson',
+      is_pinned: false,
+    })
+
+    alert('✅ Marked as done and announcement posted!')
+  }
+
   const typeIcon = { feedback: '💬', bug: '🐛', content: '📝', request: '📚' }
   const typeColor = { feedback: '#10B981', bug: '#ef4444', content: '#F59E0B', request: '#8B5CF6' }
 
@@ -1859,11 +1876,26 @@ function FeedbackTab() {
                   <div style={{ fontSize:13, color:'var(--text-secondary)', lineHeight:1.7, marginBottom:10, whiteSpace:'pre-wrap' }}>
                     {item.message}
                   </div>
-                  <div style={{ display:'flex', gap:8 }}>
+                  <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+                    {item.type === 'request' && !item.done && (
+                      <button onClick={() => markDone(item)} style={{
+                        fontSize:12, fontWeight:700, color:'#fff',
+                        background:'#8B5CF6', border:'none',
+                        padding:'6px 14px', borderRadius:6, cursor:'pointer',
+                        fontFamily:'inherit',
+                      }}>
+                        ✅ Mark Done + Post Announcement
+                      </button>
+                    )}
+                    {item.done && (
+                      <span style={{ fontSize:11, color:'#8B5CF6', fontWeight:600, padding:'5px 10px', border:'1px solid #8B5CF6', borderRadius:6 }}>
+                        ✅ Done — Lesson uploaded
+                      </span>
+                    )}
                     {item.email && (
-                      <a href={`mailto:${item.email}?subject=Re: Your Readwise Feedback`}
+                      <a href={`mailto:${item.email}?subject=Re: Your Topic Request — Now Available on Readwise!`}
                         style={{ fontSize:12, color:'var(--accent)', textDecoration:'none', padding:'5px 12px', border:'1px solid var(--accent)', borderRadius:6 }}>
-                        Reply →
+                        Notify Student →
                       </a>
                     )}
                     <button style={{ ...s.deleteBtn, fontSize:11 }} onClick={() => deleteItem(item.id)}>Delete</button>
@@ -1884,10 +1916,14 @@ function FeedbackTab() {
   id uuid primary key default gen_random_uuid(),
   name text, email text, type text, message text,
   read boolean default false,
+  done boolean default false,
   created_at timestamptz default now()
 );
 alter table feedback enable row level security;
-create policy "Service role" on feedback for all using (true);`}
+create policy "Service role" on feedback for all using (true);
+
+-- Add done column if table already exists:
+alter table feedback add column if not exists done boolean default false;`}
         </pre>
       </div>
     </div>
