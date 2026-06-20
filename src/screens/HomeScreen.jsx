@@ -134,7 +134,6 @@ export default function HomeScreen({ customer, studentExam, onStartStudy, onView
 
       // Unlocked milestones
       // Today's reviewed count for daily goal
-      const today = new Date().toISOString().split('T')[0]
       const todayReviewed = reviews.filter(r => r.created_at?.startsWith(today)).length
 
       const d = { score, streak, totalReviews: reviews.length, totalSessions: sessions.length, todayReviewed }
