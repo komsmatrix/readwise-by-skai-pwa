@@ -719,16 +719,32 @@ export default function LessonScreen({ session, onBack }) {
               <div style={{ fontSize:11, fontWeight:700, color:'var(--accent)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:14 }}>
                 📎 Resources
               </div>
-              {activeLesson.video_url && (
-                <div style={{ marginBottom:14 }}>
-                  <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:6 }}>🎬 Video</div>
-                  <iframe
-                    src={activeLesson.video_url.replace('watch?v=', 'embed/')}
-                    style={{ width:'100%', aspectRatio:'16/9', borderRadius:10, border:'none' }}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen />
-                </div>
-              )}
+              {activeLesson.video_url && (() => {
+                // Convert any YouTube URL format to embed URL
+                const getEmbedUrl = (url) => {
+                  if (!url) return ''
+                  // Already embed format
+                  if (url.includes('/embed/')) return url
+                  // youtu.be/VIDEO_ID
+                  const shortMatch = url.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/)
+                  if (shortMatch) return `https://www.youtube.com/embed/${shortMatch[1]}`
+                  // youtube.com/watch?v=VIDEO_ID
+                  const watchMatch = url.match(/[?&]v=([a-zA-Z0-9_-]{11})/)
+                  if (watchMatch) return `https://www.youtube.com/embed/${watchMatch[1]}`
+                  return url
+                }
+                const embedUrl = getEmbedUrl(activeLesson.video_url)
+                return (
+                  <div style={{ marginBottom:14 }}>
+                    <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:6 }}>🎬 Video</div>
+                    <iframe
+                      src={embedUrl}
+                      style={{ width:'100%', aspectRatio:'16/9', borderRadius:10, border:'none' }}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen />
+                  </div>
+                )
+              })()}
               {activeLesson.audio_url && (
                 <div style={{ marginBottom:14 }}>
                   <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:6 }}>🎧 Audio Reviewer</div>
