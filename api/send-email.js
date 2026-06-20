@@ -31,6 +31,73 @@ async function sendEmail({ to, subject, html, replyTo }) {
   return res.json()
 }
 
+async function handleTopicRequestDone({ topic, requester_name, send_all }, res) {
+  const { data: customers } = await supabase
+    .from('customers')
+    .select('name, email')
+    .eq('is_active', true)
+
+  if (!customers || customers.length === 0) {
+    return res.status(200).json({ ok: true, sent: 0 })
+  }
+
+  const shortTopic = topic?.slice(0, 80) || 'a new topic'
+  const requester = requester_name || 'one of your fellow reviewees'
+
+  let sent = 0
+  for (const customer of customers) {
+    const html = `
+      <div style="font-family:Georgia,serif;max-width:560px;margin:0 auto;background:#0d0d0d;color:#f0ede6;border-radius:12px;overflow:hidden;">
+        <div style="background:#1a1625;padding:28px 32px;text-align:center;border-bottom:1px solid #2a2435;">
+          <div style="font-size:32px;margin-bottom:6px;">📚</div>
+          <div style="font-family:'Georgia',serif;font-size:22px;font-weight:700;color:#c9a96e;">New Lesson Available!</div>
+          <div style="font-size:13px;color:#9ca3af;margin-top:4px;">Readwise by Skai</div>
+        </div>
+        <div style="padding:28px 32px;">
+          <p style="font-size:15px;color:#f0ede6;line-height:1.7;margin:0 0 16px;">
+            Hi ${customer.name || 'Reviewee'} 👋
+          </p>
+          <p style="font-size:15px;color:#d1cdc7;line-height:1.7;margin:0 0 16px;">
+            Great news! <strong style="color:#c9a96e;">${requester}</strong> requested a topic, and we just uploaded it to Readwise.
+          </p>
+          <div style="background:#1a1625;border:1px solid #2a2435;border-left:4px solid #c9a96e;border-radius:8px;padding:16px 20px;margin:20px 0;">
+            <div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">New Lesson</div>
+            <div style="font-size:16px;font-weight:700;color:#c9a96e;">${shortTopic}</div>
+          </div>
+          <p style="font-size:14px;color:#d1cdc7;line-height:1.7;margin:0 0 20px;">
+            Your community is growing and your voices are being heard. Every week, we build new content based on what you ask for. 
+            Open the app and check the Lessons tab — it''s ready for you right now.
+          </p>
+          <div style="text-align:center;margin:24px 0;">
+            <a href="https://readwisebyskai.com" style="display:inline-block;background:#c9a96e;color:#0d0d0d;font-weight:700;font-size:14px;padding:12px 28px;border-radius:8px;text-decoration:none;">
+              Study the New Lesson →
+            </a>
+          </div>
+          <p style="font-size:12px;color:#6b7280;text-align:center;margin:16px 0 0;">
+            Want to request a topic? Go to Profile → Feedback → 📚 Request Topic
+          </p>
+        </div>
+        <div style="background:#1a1625;padding:16px 32px;text-align:center;border-top:1px solid #2a2435;">
+          <div style="font-size:12px;color:#6b7280;">Readwise by Skai · readwisebyskai.com</div>
+          <div style="font-size:11px;color:#4b5563;margin-top:4px;">Study smarter. Remember more. Pass faster.</div>
+        </div>
+      </div>
+    `
+    try {
+      await sendEmail({
+        to: customer.email,
+        subject: `📚 New Lesson Available — ${shortTopic}`,
+        html,
+      })
+      sent++
+    } catch (e) {
+      console.error('Failed to send to', customer.email, e)
+    }
+  }
+
+  return res.status(200).json({ ok: true, sent })
+}
+
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
@@ -44,6 +111,7 @@ module.exports = async function handler(req, res) {
     if (type === 'payout')        return await handlePayout(payload, res)
     if (type === 'feedback')      return await handleFeedback(payload, res)
     if (type === 'weekly-report') return await handleWeeklyReport(payload, res)
+    if (type === 'topic-request-done') return await handleTopicRequestDone(payload, res)
     return res.status(400).json({ error: `Unknown type: ${type}` })
   } catch (err) {
     console.error(`send-email [${type}] error:`, err)

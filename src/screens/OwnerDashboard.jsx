@@ -1787,15 +1787,31 @@ function FeedbackTab() {
     setItems(prev => prev.map(i => i.id === item.id ? { ...i, read: true, done: true } : i))
 
     // 2. Auto-post an announcement about it
-    const topicName = item.message?.slice(0, 60) || 'your requested topic'
+    const topicName = item.message?.slice(0, 80) || 'your requested topic'
     const announcement = `📚 New lesson available! We just uploaded a lesson based on a student request: "${topicName}". Check the Lessons tab to study it now!`
     await supabase.from('announcements').insert({
       content: announcement,
       tag: 'lesson',
-      is_pinned: false,
+      is_pinned: true,
     })
 
-    alert('✅ Marked as done and announcement posted!')
+    // 3. Send email to ALL active students
+    try {
+      await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'topic-request-done',
+          send_all: true,
+          topic: topicName,
+          requester_name: item.name || 'one of your fellow reviewees',
+        }),
+      })
+    } catch (e) {
+      console.warn('Email send failed:', e)
+    }
+
+    alert('✅ Marked as done, announcement posted, and email sent to all students!')
   }
 
   const typeIcon = { feedback: '💬', bug: '🐛', content: '📝', request: '📚' }
