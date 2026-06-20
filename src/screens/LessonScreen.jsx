@@ -731,8 +731,21 @@ export default function LessonScreen({ session, onBack }) {
               )}
               {activeLesson.audio_url && (
                 <div style={{ marginBottom:14 }}>
-                  <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:6 }}>🎧 Audio</div>
-                  <audio controls style={{ width:'100%', borderRadius:8 }} src={activeLesson.audio_url} />
+                  <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:6 }}>🎧 Audio Reviewer</div>
+                  <a href={activeLesson.audio_url} target="_blank" rel="noopener noreferrer" style={{
+                    display:'flex', alignItems:'center', gap:10,
+                    background:'var(--bg-elevated)', border:'1px solid var(--border)',
+                    borderRadius:10, padding:'12px 16px', textDecoration:'none',
+                    color:'var(--text-primary)', fontSize:13, fontWeight:600,
+                    transition:'border-color 0.15s',
+                  }}>
+                    <span style={{ fontSize:20 }}>▶️</span>
+                    <div>
+                      <div style={{ fontSize:13, fontWeight:700, color:'var(--text-primary)' }}>Listen on YouTube</div>
+                      <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:2 }}>Audio reviewer — opens in YouTube</div>
+                    </div>
+                    <span style={{ marginLeft:'auto', fontSize:11, color:'var(--text-muted)' }}>↗</span>
+                  </a>
                 </div>
               )}
               {activeLesson.infographic_url && (

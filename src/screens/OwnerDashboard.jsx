@@ -25,10 +25,10 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
 
   async function handleLogin() {
     if (!password) return setAuthError('Enter password')
-    const res = await fetch('/api/owner', {
+    const res = await fetch('/api/generate-key', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: 'generate-key', name: 'test', email: 'test@test.com', password, isOwnerKey: false }),
+      body: JSON.stringify({ name: 'test', email: 'test@test.com', password, isOwnerKey: false }),
     })
     const data = await res.json()
     if (data.error === 'Unauthorized') { setAuthError('Wrong password'); return }
@@ -211,11 +211,10 @@ function QuestionsTab() {
     // Prompt is handled server-side in api/generate-questions.js
     try {
       const ownerPass = sessionStorage.getItem('owner_auth') || sessionStorage.getItem('ownerPassword') || localStorage.getItem('owner_auth') || ''
-      const res = await fetch('/api/owner', {
+      const res = await fetch('/api/get-customers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          type          : 'generate-questions',
           password      : ownerPass,
           topicName,
           topicId       : genTopic,
@@ -790,27 +789,19 @@ function LessonsTab() {
         {/* Video URL */}
         <div style={s.field}>
           <label style={s.label}>🎬 YouTube Video URL</label>
-          <input style={s.input} placeholder="https://youtube.com/watch?v=…"
+          <input style={s.input} placeholder="https://youtu.be/... (Full lesson video)"
             value={editLesson.video_url || ''}
             onChange={e => setEditLesson(p => ({ ...p, video_url: e.target.value }))} />
           <div style={{ fontSize:10, color:'var(--text-muted)', marginTop:3 }}>Shows as embedded video in the lesson</div>
         </div>
 
-        {/* Audio URL */}
+        {/* Audio YouTube URL */}
         <div style={s.field}>
-          <label style={s.label}>🎧 Audio URL</label>
-          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
-            <label style={{ display:'flex', alignItems:'center', gap:6, background:'var(--bg-elevated)', border:'1px solid var(--accent)', borderRadius:6, padding:'5px 12px', cursor:'pointer', fontSize:12, color:'var(--accent)', fontWeight:600 }}>
-              ☁️ Upload to R2
-              <input type="file" accept="audio/*,.mp3,.m4a,.wav" style={{ display:'none' }} onChange={e => handleR2Upload(e, 'audio_url')} />
-            </label>
-            {editLesson.audio_url_uploading && <span style={{ fontSize:11, color:'var(--text-muted)' }}>Uploading…</span>}
-            {editLesson.audio_url && !editLesson.audio_url_uploading && <span style={{ fontSize:11, color:'#10B981' }}>✓</span>}
-          </div>
-          <input style={s.input} placeholder="Or paste URL (Supabase, R2, or direct .mp3 link)"
+          <label style={s.label}>🎧 YouTube Audio Reviewer URL</label>
+          <input style={s.input} placeholder="https://youtu.be/... (Audio reviewer on YouTube)"
             value={editLesson.audio_url || ''}
             onChange={e => setEditLesson(p => ({ ...p, audio_url: e.target.value }))} />
-          <div style={{ fontSize:10, color:'var(--text-muted)', marginTop:3 }}>Upload MP3 directly to Cloudflare R2 or paste any audio URL</div>
+          <div style={{ fontSize:10, color:'var(--text-muted)', marginTop:3 }}>Links to the audio reviewer on YouTube — opens in new tab</div>
         </div>
 
         {/* Infographic URL */}
@@ -998,22 +989,10 @@ function ResourcesTab({ topics }) {
 }
 
 // ── Announcements Tab ─────────────────────────────────────────────────────────
-const ANN_TAGS = [
-  { value: 'announcement', label: '📢 Announcement' },
-  { value: 'feature',      label: '✨ Feature' },
-  { value: 'lesson',       label: '📚 Lesson' },
-  { value: 'audio',        label: '🎧 Audio' },
-  { value: 'fix',          label: '🛠 Fix' },
-]
-
-function tagLabel(tag) {
-  return ANN_TAGS.find(t => t.value === tag)?.label || '📢 Announcement'
-}
-
 function AnnouncementsTab() {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
-  const [form, setForm] = useState({ title: '', body: '', active: true, tag: 'announcement', is_pinned: false })
+  const [form, setForm] = useState({ title: '', body: '', active: true })
   const [saving, setSaving] = useState(false)
   const [showForm, setShowForm] = useState(false)
 
@@ -1023,7 +1002,6 @@ function AnnouncementsTab() {
     const { data } = await supabase
       .from('announcements')
       .select('*')
-      .order('is_pinned', { ascending: false })
       .order('created_at', { ascending: false })
     setItems(data || [])
     setLoading(false)
@@ -1036,11 +1014,9 @@ function AnnouncementsTab() {
       title: form.title.trim(),
       body: form.body.trim(),
       active: form.active,
-      tag: form.tag,
-      is_pinned: form.is_pinned,
     }])
     setSaving(false)
-    setForm({ title: '', body: '', active: true, tag: 'announcement', is_pinned: false })
+    setForm({ title: '', body: '', active: true })
     setShowForm(false)
     loadItems()
   }
@@ -1048,15 +1024,6 @@ function AnnouncementsTab() {
   async function toggle(id, active) {
     await supabase.from('announcements').update({ active: !active }).eq('id', id)
     setItems(prev => prev.map(i => i.id === id ? { ...i, active: !active } : i))
-  }
-
-  async function togglePin(id, is_pinned) {
-    await supabase.from('announcements').update({ is_pinned: !is_pinned }).eq('id', id)
-    setItems(prev =>
-      prev
-        .map(i => i.id === id ? { ...i, is_pinned: !is_pinned } : i)
-        .sort((a, b) => (b.is_pinned ? 1 : 0) - (a.is_pinned ? 1 : 0) || new Date(b.created_at) - new Date(a.created_at))
-    )
   }
 
   async function remove(id) {
@@ -1081,36 +1048,10 @@ function AnnouncementsTab() {
               placeholder="What's new or what should students know?"
               value={form.body} onChange={e => setForm(p => ({ ...p, body: e.target.value }))} />
           </div>
-          {/* Tag selector */}
-          <div style={s.field}>
-            <label style={s.label}>Tag</label>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {ANN_TAGS.map(t => (
-                <button key={t.value}
-                  style={{
-                    padding: '5px 10px', borderRadius: 20, fontSize: 12, cursor: 'pointer',
-                    border: form.tag === t.value ? '1.5px solid var(--accent)' : '1.5px solid var(--border)',
-                    background: form.tag === t.value ? 'var(--accent-dim)' : 'var(--bg-elevated)',
-                    color: form.tag === t.value ? 'var(--accent)' : 'var(--text-secondary)',
-                    fontFamily: 'inherit',
-                  }}
-                  onClick={() => setForm(p => ({ ...p, tag: t.value }))}>
-                  {t.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: 16 }}>
-            <div style={s.checkRow}>
-              <input type="checkbox" id="active-check" checked={form.active}
-                onChange={e => setForm(p => ({ ...p, active: e.target.checked }))} />
-              <label htmlFor="active-check" style={s.checkLabel}>Active (visible to students)</label>
-            </div>
-            <div style={s.checkRow}>
-              <input type="checkbox" id="pin-check" checked={form.is_pinned}
-                onChange={e => setForm(p => ({ ...p, is_pinned: e.target.checked }))} />
-              <label htmlFor="pin-check" style={s.checkLabel}>📌 Pin to top</label>
-            </div>
+          <div style={s.checkRow}>
+            <input type="checkbox" id="active-check" checked={form.active}
+              onChange={e => setForm(p => ({ ...p, active: e.target.checked }))} />
+            <label htmlFor="active-check" style={s.checkLabel}>Active (visible to students)</label>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button style={s.btn} onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Post'}</button>
@@ -1122,27 +1063,15 @@ function AnnouncementsTab() {
       {loading ? <Loading /> : items.length === 0 ? (
         <div style={s.empty}>No announcements yet.</div>
       ) : items.map(item => (
-        <div key={item.id} style={{ ...s.announcementCard, ...(item.is_pinned ? { borderColor: 'var(--accent)', background: 'var(--accent-dim)' } : {}) }}>
+        <div key={item.id} style={s.announcementCard}>
           <div style={s.announcementHeader}>
-            <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
-                {item.is_pinned && <span style={{ fontSize: 13 }}>📌</span>}
-                <span style={{ fontSize: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 20, padding: '2px 8px', color: 'var(--text-muted)' }}>
-                  {tagLabel(item.tag || 'announcement')}
-                </span>
-              </div>
+            <div>
               <div style={s.announcementTitle}>{item.title}</div>
               <div style={s.announcementDate}>
                 {new Date(item.created_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
-              <button
-                title={item.is_pinned ? 'Unpin' : 'Pin to top'}
-                style={{ ...s.statusBtn, background: item.is_pinned ? 'var(--accent-dim)' : 'var(--bg-elevated)', color: item.is_pinned ? 'var(--accent)' : 'var(--text-muted)', border: `1px solid ${item.is_pinned ? 'var(--accent)' : 'var(--border)'}` }}
-                onClick={() => togglePin(item.id, item.is_pinned)}>
-                {item.is_pinned ? '📌 Pinned' : '📌 Pin'}
-              </button>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
               <button
                 style={{ ...s.statusBtn, background: item.active ? 'rgba(16,185,129,0.1)' : 'var(--bg-elevated)', color: item.active ? '#10B981' : 'var(--text-muted)', border: `1px solid ${item.active ? '#10B981' : 'var(--border)'}` }}
                 onClick={() => toggle(item.id, item.active)}>
@@ -1291,10 +1220,10 @@ function KeysTab() {
     if (!name.trim() || !email.trim()) return
     setStatus('loading')
     const ownerPass = sessionStorage.getItem('owner_auth') || sessionStorage.getItem('ownerPassword') || localStorage.getItem('owner_auth')
-    const res = await fetch('/api/owner', {
+    const res = await fetch('/api/generate-key', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: 'generate-key', name, email, password: ownerPass, course }),
+      body: JSON.stringify({ name, email, password: ownerPass, course }),
     })
     const data = await res.json()
     if (data.key) {
@@ -1488,7 +1417,7 @@ function AgentsTab() {
     if (!blast.subject.trim() || !blast.message.trim()) return
     setBlasting(true)
     setBlastMsg("")
-    const res = await fetch("/api/send-email", {
+    const res = await fetch("/api/send-agent-blast", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(blast),
@@ -1524,7 +1453,7 @@ function AgentsTab() {
 
     if (!error && data) {
       // Send welcome email
-      await fetch('/api/send-email', {
+      await fetch('/api/send-agent-welcome', {
         method:'POST',
         headers:{'Content-Type':'application/json'},
         body: JSON.stringify({
@@ -1579,7 +1508,7 @@ function AgentsTab() {
     }])
 
     // Send payout email
-    await fetch('/api/send-email', {
+    await fetch('/api/send-payout-confirmation', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
