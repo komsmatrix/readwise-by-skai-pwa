@@ -279,6 +279,17 @@ function freqColor(freq) {
   return { "Very High": "#ef4444", "High": "#f97316", "Medium": "#eab308", "Low": "#6b7280" }[freq] || "#6b7280";
 }
 
+// Convert any YouTube URL format to embed URL
+function toYouTubeEmbed(url) {
+  if (!url) return ''
+  if (url.includes('/embed/')) return url
+  const short = url.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/)
+  if (short) return 'https://www.youtube.com/embed/' + short[1]
+  const watch = url.match(/[?&]v=([a-zA-Z0-9_-]{11})/)
+  if (watch) return 'https://www.youtube.com/embed/' + watch[1]
+  return url
+}
+
 export default function LessonScreen({ session, onBack }) {
   const [subjects,  setSubjects]  = useState([]);  // [{id, name, color, topics:[...]}]
   const [expanded,  setExpanded]  = useState({});  // subjectId → bool
@@ -719,32 +730,16 @@ export default function LessonScreen({ session, onBack }) {
               <div style={{ fontSize:11, fontWeight:700, color:'var(--accent)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:14 }}>
                 📎 Resources
               </div>
-              {activeLesson.video_url && (() => {
-                // Convert any YouTube URL format to embed URL
-                const getEmbedUrl = (url) => {
-                  if (!url) return ''
-                  // Already embed format
-                  if (url.includes('/embed/')) return url
-                  // youtu.be/VIDEO_ID
-                  const shortMatch = url.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/)
-                  if (shortMatch) return `https://www.youtube.com/embed/${shortMatch[1]}`
-                  // youtube.com/watch?v=VIDEO_ID
-                  const watchMatch = url.match(/[?&]v=([a-zA-Z0-9_-]{11})/)
-                  if (watchMatch) return `https://www.youtube.com/embed/${watchMatch[1]}`
-                  return url
-                }
-                const embedUrl = getEmbedUrl(activeLesson.video_url)
-                return (
-                  <div style={{ marginBottom:14 }}>
-                    <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:6 }}>🎬 Video</div>
-                    <iframe
-                      src={embedUrl}
-                      style={{ width:'100%', aspectRatio:'16/9', borderRadius:10, border:'none' }}
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen />
-                  </div>
-                )
-              })()}
+              {activeLesson.video_url && (
+                <div style={{ marginBottom:14 }}>
+                  <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:6 }}>🎬 Video</div>
+                  <iframe
+                    src={toYouTubeEmbed(activeLesson.video_url)}
+                    style={{ width:'100%', aspectRatio:'16/9', borderRadius:10, border:'none' }}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen />
+                </div>
+              )}
               {activeLesson.audio_url && (
                 <div style={{ marginBottom:14 }}>
                   <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:6 }}>🎧 Audio Reviewer</div>

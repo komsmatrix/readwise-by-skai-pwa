@@ -54,8 +54,6 @@ function FontSizePicker() {
 export default function ProfileScreen({ customer, studentExam, onSignOut, onExamUpdated }) {
   const [theme, setTheme] = useState(() => localStorage.getItem('rbs_theme') || 'dark')
   const [milestoneData, setMilestoneData] = useState(null)
-  const [, forceUpdate] = useState(0)
-  const [fontSizeKey, setFontSizeKey] = useState(0)
 
   useEffect(() => {
     if (customer?.id) loadMilestoneData()
