@@ -767,11 +767,27 @@ export default function LessonScreen({ session, onBack }) {
               {activeLesson.video_url && (
                 <div style={{ marginBottom:14 }}>
                   <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:6 }}>🎬 Video</div>
-                  <iframe
-                    src={toYouTubeEmbed(activeLesson.video_url)}
-                    style={{ width:'100%', aspectRatio:'16/9', borderRadius:10, border:'none' }}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen />
+                  {/iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ? (
+                    <a href={activeLesson.video_url} target="_blank" rel="noopener noreferrer" style={{
+                      display:'flex', alignItems:'center', gap:10,
+                      background:'var(--bg-elevated)', border:'1px solid var(--border)',
+                      borderRadius:10, padding:'12px 16px', textDecoration:'none',
+                      color:'var(--text-primary)',
+                    }}>
+                      <span style={{ fontSize:20 }}>🎬</span>
+                      <div style={{ flex:1 }}>
+                        <div style={{ fontSize:13, fontWeight:700, color:'var(--text-primary)' }}>Watch on YouTube</div>
+                        <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:2 }}>Opens in YouTube app</div>
+                      </div>
+                      <span style={{ fontSize:11, color:'var(--text-muted)' }}>↗</span>
+                    </a>
+                  ) : (
+                    <iframe
+                      src={toYouTubeEmbed(activeLesson.video_url)}
+                      style={{ width:'100%', aspectRatio:'16/9', borderRadius:10, border:'none' }}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen />
+                  )}
                 </div>
               )}
               {activeLesson.audio_url && (
