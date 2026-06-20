@@ -279,6 +279,40 @@ function freqColor(freq) {
   return { "Very High": "#ef4444", "High": "#f97316", "Medium": "#eab308", "Low": "#6b7280" }[freq] || "#6b7280";
 }
 
+// Fetch YouTube video title via oEmbed (no API key needed)
+function YouTubeAudioLink({ url }) {
+  const [title, setTitle] = React.useState('')
+  const [loading, setLoading] = React.useState(true)
+
+  React.useEffect(() => {
+    if (!url) return
+    setLoading(true)
+    fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`)
+      .then(r => r.json())
+      .then(d => { setTitle(d.title || ''); setLoading(false) })
+      .catch(() => { setTitle(''); setLoading(false) })
+  }, [url])
+
+  return (
+    <a href={url} target="_blank" rel="noopener noreferrer" style={{
+      display:'flex', alignItems:'center', gap:10,
+      background:'var(--bg-elevated)', border:'1px solid var(--border)',
+      borderRadius:10, padding:'12px 16px', textDecoration:'none',
+      color:'var(--text-primary)', fontSize:13, fontWeight:600,
+      transition:'border-color 0.15s',
+    }}>
+      <span style={{ fontSize:20 }}>▶️</span>
+      <div style={{ flex:1, minWidth:0 }}>
+        <div style={{ fontSize:13, fontWeight:700, color:'var(--text-primary)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+          {loading ? 'Loading...' : title || 'Listen on YouTube'}
+        </div>
+        <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:2 }}>Audio reviewer — opens in YouTube</div>
+      </div>
+      <span style={{ fontSize:11, color:'var(--text-muted)', flexShrink:0 }}>↗</span>
+    </a>
+  )
+}
+
 // Convert any YouTube URL format to embed URL
 function toYouTubeEmbed(url) {
   if (!url) return ''
@@ -743,20 +777,7 @@ export default function LessonScreen({ session, onBack }) {
               {activeLesson.audio_url && (
                 <div style={{ marginBottom:14 }}>
                   <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:6 }}>🎧 Audio Reviewer</div>
-                  <a href={activeLesson.audio_url} target="_blank" rel="noopener noreferrer" style={{
-                    display:'flex', alignItems:'center', gap:10,
-                    background:'var(--bg-elevated)', border:'1px solid var(--border)',
-                    borderRadius:10, padding:'12px 16px', textDecoration:'none',
-                    color:'var(--text-primary)', fontSize:13, fontWeight:600,
-                    transition:'border-color 0.15s',
-                  }}>
-                    <span style={{ fontSize:20 }}>▶️</span>
-                    <div>
-                      <div style={{ fontSize:13, fontWeight:700, color:'var(--text-primary)' }}>Listen on YouTube</div>
-                      <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:2 }}>Audio reviewer — opens in YouTube</div>
-                    </div>
-                    <span style={{ marginLeft:'auto', fontSize:11, color:'var(--text-muted)' }}>↗</span>
-                  </a>
+                  <YouTubeAudioLink url={activeLesson.audio_url} />
                 </div>
               )}
               {activeLesson.infographic_url && (
