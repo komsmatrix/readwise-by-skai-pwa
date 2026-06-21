@@ -211,6 +211,16 @@ export default function HomeScreen({ customer, studentExam, onStartStudy, onView
           </div>
         )}
 
+        {/* Hero Banner */}
+        <div style={s.heroBanner}>
+          <img
+            src="/images/hero-banner.png"
+            alt=""
+            style={s.heroImg}
+          />
+          <div style={s.heroFade} />
+        </div>
+
         {/* Header */}
         <div style={s.header}>
           <div>
@@ -575,6 +585,9 @@ const s = {
   announcementTitle: { fontSize: 12, fontWeight: 600, color: 'var(--accent)', marginBottom: 2 },
   announcementBody : { fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 },
   announcementClose: { background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 14, padding: 0, flexShrink: 0 },
+  heroBanner       : { position: 'relative', width: '100%', height: 160, overflow: 'hidden', marginBottom: -8 },
+  heroImg          : { width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block' },
+  heroFade         : { position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(13,13,13,0) 0%, rgba(13,13,13,0) 40%, var(--bg-base) 100%)', pointerEvents: 'none' },
   header           : { padding: '24px 20px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' },
   greeting         : { fontSize: 13, color: 'var(--text-muted)' },
   name             : { fontFamily: 'var(--font-display)', fontSize: 26, color: 'var(--text-primary)', letterSpacing: '-0.02em', lineHeight: 1.1 },
