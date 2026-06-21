@@ -219,7 +219,7 @@ export default function HomeScreen({ customer, studentExam, onStartStudy, onView
           <img
             src="/images/hero-banner.png"
             alt=""
-            style={{ ...s.heroImg, objectPosition: 'center center' }}
+            style={{ ...s.heroImg, objectPosition: 'center bottom' }}
           />
           <div style={s.heroFade} />
         </div>
