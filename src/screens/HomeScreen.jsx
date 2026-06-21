@@ -214,7 +214,7 @@ export default function HomeScreen({ customer, studentExam, onStartStudy, onView
         {/* Hero Banner */}
         <div style={{
           ...s.heroBanner,
-          height: window.innerWidth >= 768 ? 280 : 160,
+          height: window.innerWidth >= 768 ? 340 : 160,
         }}>
           <img
             src={window.innerWidth >= 768 ? '/images/hero-banner-desktop.png' : '/images/hero-banner.png'}
@@ -222,7 +222,7 @@ export default function HomeScreen({ customer, studentExam, onStartStudy, onView
             style={{
               ...s.heroImg,
               objectFit: 'cover',
-              objectPosition: window.innerWidth >= 768 ? 'center 40%' : 'center 80%',
+              objectPosition: window.innerWidth >= 768 ? 'center 30%' : 'center 80%',
             }}
           />
           <div style={s.heroFade} />
