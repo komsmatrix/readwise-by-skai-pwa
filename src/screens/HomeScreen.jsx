@@ -222,7 +222,7 @@ export default function HomeScreen({ customer, studentExam, onStartStudy, onView
             style={{
               ...s.heroImg,
               objectFit: 'cover',
-              objectPosition: window.innerWidth >= 768 ? 'center center' : 'center 80%',
+              objectPosition: window.innerWidth >= 768 ? 'center 40%' : 'center 80%',
             }}
           />
           <div style={s.heroFade} />
