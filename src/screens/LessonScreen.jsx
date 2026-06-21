@@ -324,6 +324,47 @@ function toYouTubeEmbed(url) {
   return url
 }
 
+// Extract video ID from any YouTube URL
+function getYouTubeVideoId(url) {
+  if (!url) return null
+  const short = url.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/)
+  if (short) return short[1]
+  const watch = url.match(/[?&]v=([a-zA-Z0-9_-]{11})/)
+  if (watch) return watch[1]
+  const embed = url.match(/\/embed\/([a-zA-Z0-9_-]{11})/)
+  if (embed) return embed[1]
+  return null
+}
+
+// Like + Subscribe buttons shown below YouTube video
+function YouTubeActions({ videoUrl }) {
+  const videoId = getYouTubeVideoId(videoUrl)
+  const likeUrl = videoId
+    ? `https://www.youtube.com/watch?v=${videoId}`
+    : videoUrl
+  const subscribeUrl = 'https://www.youtube.com/@readwisebyskai?sub_confirmation=1'
+
+  const btnBase = {
+    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+    padding: '9px 0', borderRadius: 8, fontSize: 13, fontWeight: 700,
+    cursor: 'pointer', textDecoration: 'none', flex: 1,
+    transition: 'opacity 0.15s',
+  }
+
+  return (
+    <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+      <a href={likeUrl} target="_blank" rel="noopener noreferrer"
+        style={{ ...btnBase, background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}>
+        👍 Like on YouTube
+      </a>
+      <a href={subscribeUrl} target="_blank" rel="noopener noreferrer"
+        style={{ ...btnBase, background: '#FF0000', border: 'none', color: '#fff' }}>
+        🔔 Subscribe
+      </a>
+    </div>
+  )
+}
+
 export default function LessonScreen({ session, onBack }) {
   const [subjects,  setSubjects]  = useState([]);  // [{id, name, color, topics:[...]}]
   const [expanded,  setExpanded]  = useState({});  // subjectId → bool
@@ -768,25 +809,31 @@ export default function LessonScreen({ session, onBack }) {
                 <div style={{ marginBottom:14 }}>
                   <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:6 }}>🎬 Video</div>
                   {/iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ? (
-                    <a href={activeLesson.video_url} target="_blank" rel="noopener noreferrer" style={{
-                      display:'flex', alignItems:'center', gap:10,
-                      background:'var(--bg-elevated)', border:'1px solid var(--border)',
-                      borderRadius:10, padding:'12px 16px', textDecoration:'none',
-                      color:'var(--text-primary)',
-                    }}>
-                      <span style={{ fontSize:20 }}>🎬</span>
-                      <div style={{ flex:1 }}>
-                        <div style={{ fontSize:13, fontWeight:700, color:'var(--text-primary)' }}>Watch on YouTube</div>
-                        <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:2 }}>Opens in YouTube app</div>
-                      </div>
-                      <span style={{ fontSize:11, color:'var(--text-muted)' }}>↗</span>
-                    </a>
+                    <>
+                      <a href={activeLesson.video_url} target="_blank" rel="noopener noreferrer" style={{
+                        display:'flex', alignItems:'center', gap:10,
+                        background:'var(--bg-elevated)', border:'1px solid var(--border)',
+                        borderRadius:10, padding:'12px 16px', textDecoration:'none',
+                        color:'var(--text-primary)',
+                      }}>
+                        <span style={{ fontSize:20 }}>🎬</span>
+                        <div style={{ flex:1 }}>
+                          <div style={{ fontSize:13, fontWeight:700, color:'var(--text-primary)' }}>Watch on YouTube</div>
+                          <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:2 }}>Opens in YouTube app</div>
+                        </div>
+                        <span style={{ fontSize:11, color:'var(--text-muted)' }}>↗</span>
+                      </a>
+                      <YouTubeActions videoUrl={activeLesson.video_url} />
+                    </>
                   ) : (
-                    <iframe
-                      src={toYouTubeEmbed(activeLesson.video_url)}
-                      style={{ width:'100%', aspectRatio:'16/9', borderRadius:10, border:'none' }}
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen />
+                    <>
+                      <iframe
+                        src={toYouTubeEmbed(activeLesson.video_url)}
+                        style={{ width:'100%', aspectRatio:'16/9', borderRadius:10, border:'none' }}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen />
+                      <YouTubeActions videoUrl={activeLesson.video_url} />
+                    </>
                   )}
                 </div>
               )}
