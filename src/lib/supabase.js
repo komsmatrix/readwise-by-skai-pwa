@@ -181,9 +181,9 @@ export async function getTopicHealth(customerId) {
 }
 
 export async function upsertTopicHealth(customerId, topicId, updates) {
-  const res = await sb('/rest/v1/topic_health', {
+  const res = await sb('/rest/v1/topic_health?on_conflict=customer_id,topic_id', {
     method : 'POST',
-    headers: { 'Prefer': 'resolution=merge-duplicates' },
+    headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
     body   : JSON.stringify({
       customer_id: customerId,
       topic_id   : topicId,

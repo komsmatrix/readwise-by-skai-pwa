@@ -147,17 +147,44 @@ export default function StudyScreen({ customer, studentExam, onDone }) {
         return
       }
 
-      // Get due cards
+      // Get due cards and already-seen card IDs
       const due = await getDueCards(customer.id)
       const dueCardIds = new Set(due.map(d => d.card_id))
 
-      // Priority: due cards first, then unseen, then random
       const dueCards    = allCards.filter(c => dueCardIds.has(c.id))
       const unseenCards = allCards.filter(c => !dueCardIds.has(c.id))
 
-      let queue = [...dueCards, ...unseenCards].slice(0, target)
+      // Shuffle both pools independently
+      const shuffledDue    = dueCards.sort(() => Math.random() - 0.5)
+      const shuffledUnseen = unseenCards.sort(() => Math.random() - 0.5)
 
-      // Shuffle
+      // Distribute unseen cards across topics round-robin
+      // so every session covers multiple topics instead of one topic dominating
+      const topicBuckets = {}
+      for (const card of shuffledUnseen) {
+        const tid = card.topic_id || 'unknown'
+        if (!topicBuckets[tid]) topicBuckets[tid] = []
+        topicBuckets[tid].push(card)
+      }
+      const buckets = Object.values(topicBuckets)
+      const spreadUnseen = []
+      let bi = 0
+      while (spreadUnseen.length < shuffledUnseen.length) {
+        const bucket = buckets[bi % buckets.length]
+        if (bucket && bucket.length > 0) spreadUnseen.push(bucket.shift())
+        bi++
+        if (buckets.every(b => b.length === 0)) break
+      }
+
+      // Due cards get up to 30% of slots, rest from spread unseen
+      const dueSlots    = Math.min(shuffledDue.length, Math.floor(target * 0.3))
+      const unseenSlots = target - dueSlots
+      let queue = [
+        ...shuffledDue.slice(0, dueSlots),
+        ...spreadUnseen.slice(0, unseenSlots),
+      ]
+
+      // Final shuffle so due cards don't cluster at the top
       queue = queue.sort(() => Math.random() - 0.5)
 
       // Start session in DB
