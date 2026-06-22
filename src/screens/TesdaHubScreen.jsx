@@ -11,7 +11,7 @@ async function sb(path) {
   return Array.isArray(data) ? data : []
 }
 
-export default function TesdaHubScreen({ customer, onOpenViewer }) {
+export default function TesdaHubScreen({ customer, onOpenViewer, onBack }) {
   const [view,           setView]           = useState('hub')
   const [qualifications, setQualifications] = useState([])
   const [subtopics,      setSubtopics]      = useState([])
@@ -70,10 +70,10 @@ export default function TesdaHubScreen({ customer, onOpenViewer }) {
     const mins = Math.floor(diff / 60000)
     const hrs  = Math.floor(diff / 3600000)
     const days = Math.floor(diff / 86400000)
-    if (mins < 1)   return 'Just now'
-    if (mins < 60)  return `${mins}m ago`
-    if (hrs  < 24)  return `${hrs}h ago`
-    if (days < 7)   return `${days}d ago`
+    if (mins < 1)  return 'Just now'
+    if (mins < 60) return `${mins}m ago`
+    if (hrs  < 24) return `${hrs}h ago`
+    if (days < 7)  return `${days}d ago`
     return new Date(iso).toLocaleDateString('en-PH', { month:'short', day:'numeric' })
   }
 
@@ -83,6 +83,8 @@ export default function TesdaHubScreen({ customer, onOpenViewer }) {
     setSubtopics([])
     setSearch('')
   }
+
+  // ── Hub view ──────────────────────────────────────────────────────────────
   if (view === 'hub') {
     const filtered = qualifications.filter(q =>
       q.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -92,6 +94,11 @@ export default function TesdaHubScreen({ customer, onOpenViewer }) {
     return (
       <div style={s.root}>
         <div style={s.scroll}>
+          {/* All Courses back button */}
+          <div style={{ padding:'12px 20px 0' }}>
+            <button onClick={onBack} style={s.backBtn}>← All Courses</button>
+          </div>
+
           <div style={s.header}>
             <div style={s.badge}>TESDA · NC Qualifications</div>
             <h1 style={s.title}>Your TESDA Bundle</h1>
@@ -143,7 +150,7 @@ export default function TesdaHubScreen({ customer, onOpenViewer }) {
               ))}
             </div>
           )}
-          <div style={{ height: 24 }} />
+          <div style={{ height:24 }} />
         </div>
       </div>
     )
@@ -162,7 +169,7 @@ export default function TesdaHubScreen({ customer, onOpenViewer }) {
           <div style={s.subHeader}>
             <button onClick={backToHub} style={s.backBtn}>← All Qualifications</button>
             <div style={s.subHeaderInner}>
-              <span style={{ fontSize: 28 }}>{activeQual?.emoji || '📋'}</span>
+              <span style={{ fontSize:28 }}>{activeQual?.emoji || '📋'}</span>
               <div>
                 <div style={s.subHeaderName}>{activeQual?.name}</div>
                 <div style={s.subHeaderNc}>{activeQual?.nc || 'NC II'} · TESDA</div>
@@ -177,7 +184,7 @@ export default function TesdaHubScreen({ customer, onOpenViewer }) {
             </div>
           )}
 
-          <div style={{ padding: '0 20px 8px' }}>
+          <div style={{ padding:'0 20px 8px' }}>
             <div style={s.searchWrap}>
               <span>🔍</span>
               <input style={s.searchInput} placeholder="Search core competencies…"
@@ -192,7 +199,6 @@ export default function TesdaHubScreen({ customer, onOpenViewer }) {
             )}
           </div>
 
-          {/* Recently opened — show if any subtopic was opened before */}
           {(() => {
             const recent = subtopics
               .filter(st => getLastOpened(st.id))
@@ -222,7 +228,7 @@ export default function TesdaHubScreen({ customer, onOpenViewer }) {
             <div style={s.center}><div style={s.muted}>Loading competencies…</div></div>
           ) : filtered.length === 0 ? (
             <div style={s.center}>
-              <div style={{ fontSize: 32, marginBottom: 12 }}>📋</div>
+              <div style={{ fontSize:32, marginBottom:12 }}>📋</div>
               <div style={s.emptyTitle}>Coming Soon</div>
               <div style={s.muted}>Core competencies for {activeQual?.name} are being prepared.</div>
             </div>
@@ -230,10 +236,7 @@ export default function TesdaHubScreen({ customer, onOpenViewer }) {
             <div style={s.listWrap}>
               {filtered.map((st, i) => (
                 <button key={st.id} style={s.stCard}
-                  onClick={() => {
-                    markOpened(st.id)
-                    onOpenViewer(st, activeQual)
-                  }}>
+                  onClick={() => { markOpened(st.id); onOpenViewer(st, activeQual) }}>
                   <div style={s.stNum}>{i + 1}</div>
                   <div style={s.stBody}>
                     <div style={s.stName}>{st.name}</div>
@@ -258,7 +261,7 @@ export default function TesdaHubScreen({ customer, onOpenViewer }) {
               ))}
             </div>
           )}
-          <div style={{ height: 24 }} />
+          <div style={{ height:24 }} />
         </div>
       </div>
     )
@@ -286,7 +289,7 @@ const s = {
   center        : { display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'40px 20px', gap:8 },
   muted         : { fontSize:13, color:'var(--text-muted)', textAlign:'center' },
   emptyTitle    : { fontSize:16, fontWeight:700, color:'var(--text-primary)', marginBottom:4 },
-  header        : { padding:'24px 20px 12px' },
+  header        : { padding:'12px 20px 12px' },
   badge         : { fontSize:10, fontWeight:600, color:'var(--accent)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:8 },
   title         : { fontFamily:'var(--font-display)', fontSize:24, color:'var(--text-primary)', marginBottom:6, lineHeight:1.2 },
   sub           : { fontSize:13, color:'var(--text-secondary)', lineHeight:1.6 },
@@ -306,8 +309,8 @@ const s = {
   ncBadge       : { fontSize:10, padding:'2px 8px', background:'var(--accent-dim)', color:'var(--accent)', borderRadius:20, fontWeight:600 },
   countBadge    : { fontSize:10, padding:'2px 8px', background:'var(--bg-elevated)', color:'var(--text-muted)', borderRadius:20, border:'1px solid var(--border)' },
   arrow         : { fontSize:20, color:'var(--text-muted)', flexShrink:0 },
-  subHeader     : { padding:'16px 20px 12px', borderBottom:'1px solid var(--border)' },
   backBtn       : { background:'none', border:'none', color:'var(--accent)', fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:'inherit', padding:'0 0 10px', display:'block' },
+  subHeader     : { padding:'16px 20px 12px', borderBottom:'1px solid var(--border)' },
   subHeaderInner: { display:'flex', alignItems:'center', gap:12 },
   subHeaderName : { fontSize:16, fontWeight:700, color:'var(--text-primary)', lineHeight:1.2 },
   subHeaderNc   : { fontSize:11, color:'var(--accent)', marginTop:2 },
