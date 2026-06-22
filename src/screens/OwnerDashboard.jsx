@@ -2010,11 +2010,14 @@ function TesdaTab() {
     const payload = {
       qualification_id: activeQual.id,
       name            : editing.name,
-      description     : editing.description || null,
-      html_url        : editing.html_url    || null,
-      video_url_1     : editing.video_url_1 || null,
-      video_url_2     : editing.video_url_2 || null,
-      infographic_url : editing.infographic_url || null,
+      description     : editing.description     || null,
+      html_url        : editing.html_url         || null,
+      html_content    : editing.html_content     || null,
+      html_url_fil    : editing.html_url_fil     || null,
+      html_content_fil: editing.html_content_fil || null,
+      video_url_1     : editing.video_url_1      || null,
+      video_url_2     : editing.video_url_2      || null,
+      infographic_url : editing.infographic_url  || null,
       is_active       : true,
       sort_order      : editing.sort_order || subtopics.length + 1,
     }
@@ -2145,6 +2148,42 @@ function TesdaTab() {
           </div>
         </div>
 
+        {/* Filipino HTML Upload */}
+        <div style={s.field}>
+          <label style={s.label}>🇵🇭 Filipino Version HTML Reviewer</label>
+          <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:10, padding:'14px 16px' }}>
+            <label style={{ display:'flex', alignItems:'center', gap:8, background:'rgba(59,130,246,0.1)', border:'1px solid rgba(59,130,246,0.3)', borderRadius:7, padding:'8px 14px', cursor:'pointer', fontSize:12, color:'#3b82f6', fontWeight:600, width:'fit-content', marginBottom:8 }}>
+              {uploading ? '⏳ Reading file…' : '📄 Upload Filipino .html file'}
+              <input type="file" accept=".html" style={{ display:'none' }} onChange={async (e) => {
+                const file = e.target.files?.[0]
+                if (!file) return
+                setUploading(true)
+                const reader = new FileReader()
+                reader.onload = (ev) => {
+                  setEditing(p => ({
+                    ...p,
+                    html_content_fil: ev.target.result,
+                    html_url_fil    : `/tesda/${file.name}`,
+                    _filFileName    : file.name,
+                  }))
+                  setUploading(false)
+                }
+                reader.readAsText(file)
+                e.target.value = ''
+              }} disabled={uploading} />
+            </label>
+            {editing._filFileName && (
+              <div style={{ fontSize:12, color:'#10B981' }}>✅ {editing._filFileName} loaded (Filipino version)</div>
+            )}
+            {editing.html_content_fil && !editing._filFileName && (
+              <div style={{ fontSize:11, color:'var(--text-muted)' }}>✅ Filipino HTML already stored in DB</div>
+            )}
+            <input style={{ ...s.input, marginTop:8 }} value={editing.html_url_fil || ''}
+              placeholder="/tesda/cookery-nc2-cc1-fil.html (optional manual path)"
+              onChange={e => setEditing(p => ({ ...p, html_url_fil: e.target.value }))} />
+          </div>
+        </div>
+
         <div style={s.field}>
           <label style={s.label}>YouTube Video Reviewer 1</label>
           <input style={s.input} value={editing.video_url_1 || ''}
@@ -2208,6 +2247,24 @@ function TesdaTab() {
               </div>
               <div style={{ display:'flex', gap:6, flexShrink:0 }}>
                 <button style={s.editBtn} onClick={() => setEditing(st)}>Edit</button>
+                {(st.html_content || st.html_url) && (
+                  <button style={{ ...s.editBtn, background:'rgba(59,130,246,0.1)', color:'#3b82f6', border:'1px solid rgba(59,130,246,0.3)' }}
+                    onClick={() => {
+                      const blob = new Blob([st.html_content || ''], { type:'text/html' })
+                      const url  = URL.createObjectURL(blob)
+                      window.open(url, '_blank')
+                    }}
+                    title="Preview HTML">👁</button>
+                )}
+                {(st.html_content || st.html_url) && (
+                  <button style={{ ...s.editBtn, background:'rgba(239,68,68,0.1)', color:'#ef4444', border:'1px solid rgba(239,68,68,0.3)' }}
+                    onClick={async () => {
+                      if (!window.confirm(`Remove HTML reviewer from "${st.name}"? The rest of the subtopic will remain.`)) return
+                      await supabase.from('tesda_subtopics').update({ html_content: null, html_url: null, html_content_fil: null, html_url_fil: null }).eq('id', st.id)
+                      await loadSubtopics(activeQual.id)
+                    }}
+                    title="Remove HTML">🗑</button>
+                )}
                 <button style={s.delBtn} onClick={() => deleteSubtopic(st.id, st.name)}>✕</button>
               </div>
             </div>
