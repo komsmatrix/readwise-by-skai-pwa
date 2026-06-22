@@ -55,7 +55,8 @@ function YouTubeCard({ url, label }) {
 function injectBase(html) {
   if (!html) return html
   if (/<base\s/i.test(html)) return html
-  return html.replace(/<head([^>]*)>/i, '<head$1><base target="_self">')
+  // Force all links to open in new tab, preventing parent app navigation
+  return html.replace(/<head([^>]*)>/i, '<head$1><base target="_blank">')
 }
 
 export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
@@ -187,7 +188,7 @@ export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
                 srcDoc={activeHtmlContent}
                 style={s.iframe}
                 title={title}
-                sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals"
+                sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals allow-popups-to-escape-sandbox allow-top-level-navigation-by-user-activation"
               />
             ) : activeHtmlUrl ? (
               <iframe
@@ -195,7 +196,7 @@ export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
                 src={activeHtmlUrl}
                 style={s.iframe}
                 title={title}
-                sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals"
+                sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals allow-popups-to-escape-sandbox allow-top-level-navigation-by-user-activation"
               />
             ) : (
               <div style={s.center}>
