@@ -9,17 +9,20 @@ const INTRO_PRICE   = 249
 const REGULAR_PRICE = 399
 const REFERRAL_DISC = 20
 
+const ALL_COURSES = [
+  { id:'LET',          name:'LET',          full:'Licensure Exam for Teachers',    price:249, regular:399, available:true,  topics:14, questions:'1,554+', type:'board' },
+  { id:'NLE',          name:'NLE',           full:'Nursing Licensure Exam',         price:249, regular:399, available:false, type:'board' },
+  { id:'NAPOLCOM',     name:'NAPOLCOM',      full:'NAPOLCOM Examination',           price:249, regular:399, available:false, type:'board' },
+  { id:'Civil Service',name:'Civil Service', full:'Civil Service Examination',      price:249, regular:399, available:false, type:'board' },
+  { id:'TESDA',        name:'TESDA',         full:'NC Qualifications Bundle',       price:99,  regular:199, available:true,  qualifications:'10+', type:'tesda' },
+]
+
 export default function BuyScreen() {
   const urlParams  = new URLSearchParams(window.location.search)
   const initCourse = urlParams.get('course') || 'LET'
   const initRef    = urlParams.get('ref') || ''
 
-  const COURSES = [
-    { id:'LET', name:'LET', full:'Licensure Exam for Teachers', price:249, available:true,  topics:12, questions:'1,200+' },
-    { id:'NLE', name:'NLE', full:'Nursing Licensure Exam',       price:249, available:false },
-    { id:'NAPOLCOM',     name:'NAPOLCOM',     full:'NAPOLCOM Examination',      price:249, available:false },
-    { id:'Civil Service', name:'Civil Service', full:'Civil Service Examination', price:249, available:false },
-  ]
+  const COURSES = ALL_COURSES
 
   const [selectedCourse, setSelectedCourse] = useState(initCourse)
   const [name,         setName]         = useState('')
@@ -54,6 +57,7 @@ export default function BuyScreen() {
 
   const activeCourse = COURSES.find(c => c.id === selectedCourse) || COURSES[0]
   const basePrice    = activeCourse.price
+  const regularPrice = activeCourse.regular
   const finalPrice   = codeStatus === 'valid' ? basePrice - discountAmt : basePrice
 
   async function checkReferralCode(code) {
@@ -159,7 +163,16 @@ export default function BuyScreen() {
 
         {activeCourse.available && (
           <div style={s.courseNote}>
-            {activeCourse.topics} topics · {activeCourse.questions} questions · Lifetime access
+            {activeCourse.type === 'tesda'
+              ? `${activeCourse.qualifications} qualifications · HTML reviewers · Lifetime access`
+              : `${activeCourse.topics} topics · ${activeCourse.questions} questions · Lifetime access`}
+          </div>
+        )}
+
+        {/* TESDA description */}
+        {selectedCourse === 'TESDA' && (
+          <div style={{ fontSize:12, color:'var(--text-secondary)', background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 12px', marginBottom:4, lineHeight:1.6 }}>
+            📋 Includes full reviewers for NC II qualifications — Cookery, Caregiving, Housekeeping, Domestic Work, Beauty Care, Electrical Installation, and more. Each reviewer has video lessons and infographics.
           </div>
         )}
 
@@ -171,13 +184,10 @@ export default function BuyScreen() {
             <div style={s.priceLabel}>Introductory Price</div>
             <div style={s.price}>
               ₱{finalPrice}
-              <span style={s.priceOld}>₱{REGULAR_PRICE}</span>
+              <span style={s.priceOld}>₱{regularPrice}</span>
             </div>
             <div style={s.priceNote}>One-time · Lifetime access</div>
           </div>
-          {studentCount > 0 && (
-            <div style={s.socialProof}>{studentCount} enrolled</div>
-          )}
         </div>
 
         {cancelled && (
