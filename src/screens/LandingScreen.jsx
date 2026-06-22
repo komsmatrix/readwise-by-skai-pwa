@@ -170,11 +170,11 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
         <div style={s.heroGlow}/>
         <div style={s.eyebrow}>
           <span style={s.eyebrowDot}/>
-          Board Exam Operating System · Philippines
+          National Exam Operating System · Philippines
         </div>
         <h1 style={s.heroTitle}>
           Know what to study.<br/>
-          <em style={{ fontStyle:'italic', color:'var(--accent)' }}>Pass your board exam.</em>
+          <em style={{ fontStyle:'italic', color:'var(--accent)' }}>Pass your national exam.</em>
         </h1>
         <p style={s.heroSub}>
           Readwise remembers what you forget, finds the gaps you can't see yourself, and tells you exactly what to do — every day until exam day.
@@ -224,7 +224,7 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
       <section style={{ ...s.section, background:'#141414' }}>
         <div style={s.container}>
           <div style={s.sectionEyebrow}>The real problem</div>
-          <h2 style={s.sectionTitle}>5 reasons students fail board exams</h2>
+          <h2 style={s.sectionTitle}>5 reasons students fail national exams</h2>
           <p style={s.sectionSub}>Readwise is built to prevent all five.</p>
           <div style={s.failGrid}>
             {[
@@ -429,7 +429,7 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
       <section style={{ ...s.section, textAlign:'center' }}>
         <div style={s.container}>
           <h2 style={{ ...s.sectionTitle, maxWidth:600, margin:'0 auto 16px' }}>
-            Your next board exam<br/>
+            Your next national exam<br/>
             <em style={{ fontStyle:'italic', color:'var(--accent)' }}>doesn't have to be your last attempt.</em>
           </h2>
           <p style={{ ...s.sectionSub, margin:'0 auto 36px' }}>
