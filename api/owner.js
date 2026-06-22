@@ -44,7 +44,7 @@ function addDays(days) {
   return d.toISOString()
 }
 
-async function handleGenerateKey({ name, email, isOwnerKey }, res) {
+async function handleGenerateKey({ name, email, isOwnerKey, course }, res) {
   if (!name || !email) return res.status(400).json({ error: 'name and email are required' })
 
   let key, exists
@@ -60,6 +60,7 @@ async function handleGenerateKey({ name, email, isOwnerKey }, res) {
     key,
     name      : name.trim(),
     email     : email.toLowerCase().trim(),
+    course    : course || 'LET',
     expires_at: expiresAt,
     is_owner  : isOwnerKey || false,
     created_at: new Date().toISOString(),
