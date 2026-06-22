@@ -184,7 +184,7 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
           <button style={s.btnGhost}   onClick={() => onTryFree(selectedCourse)}>Try Free for 1 Hour →</button>
         </div>
         <div style={s.examBadges}>
-          {['LET','NLE','NAPOLCOM','Civil Service','Criminology'].map((e,i) => (
+          {['LET','TESDA','NLE','NAPOLCOM','Civil Service','Criminology'].map((e,i) => (
             <span key={e} style={{ ...s.examBadge, ...(i===0 ? s.examBadgeActive : {}) }}>{e}</span>
           ))}
         </div>
