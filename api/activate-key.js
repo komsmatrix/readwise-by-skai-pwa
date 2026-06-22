@@ -17,7 +17,7 @@ function generateCustomerCode(name) {
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
-  const { name, email, key } = req.body
+  const { name, email, key, course } = req.body
   if (!name || !email || !key) return res.status(400).json({ success: false, reason: 'missing_fields' })
 
   const keyPattern = /^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/
@@ -61,13 +61,18 @@ export default async function handler(req, res) {
       } while (tries < 10)
     }
 
+    const courseToAdd = course || keyEntry.course || 'LET'
+    const existingCourses = existing?.courses || []
+    const courses = [...new Set([...existingCourses, courseToAdd])]
+
     const customerData = {
-      name        : name.trim(),
-      email       : emailClean,
-      key_used    : key,
-      is_active   : true,
-      activated_at: new Date().toISOString(),
+      name         : name.trim(),
+      email        : emailClean,
+      key_used     : key,
+      is_active    : true,
+      activated_at : new Date().toISOString(),
       referral_code: customerCode,
+      courses      : courses,
     }
 
     if (existing) {
@@ -144,6 +149,7 @@ export default async function handler(req, res) {
       email        : emailClean,
       referral_code: customerCode,
       is_owner     : keyEntry.is_owner || false,
+      courses      : courses,
     })
   } catch (err) {
     console.error('Activate key error:', err)

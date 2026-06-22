@@ -22,7 +22,14 @@ function addDays(days) {
   return d.toISOString()
 }
 
-function welcomeEmail({ firstName, name, email, key, appUrl }) {
+function welcomeEmail({ firstName, name, email, key, appUrl, course }) {
+  const isTesda = course === 'TESDA'
+  const heroLine = isTesda
+    ? `Your TESDA NC reviewers are ready — all qualifications, full access.`
+    : `Your payment was received. Your board exam prep starts now.`
+  const step2Label = isTesda
+    ? 'Go to the app → tap <strong style="color:#f0ede8;">TESDA</strong> → browse all NC qualifications.'
+    : `Go to the app → click <strong style="color:#f0ede8;">New Customer</strong> → enter your name <strong style="color:#f0ede8;">${name}</strong>, email <strong style="color:#f0ede8;">${email}</strong>, and the key above → tap Activate.`
   return `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
@@ -43,7 +50,7 @@ function welcomeEmail({ firstName, name, email, key, appUrl }) {
     <tr><td style="background:#161616;border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:40px;">
 
       <p style="margin:0 0 6px;font-size:24px;font-weight:700;color:#f0ede8;letter-spacing:-0.02em;">You're in, ${firstName}.</p>
-      <p style="margin:0 0 28px;font-size:15px;color:#9a9690;line-height:1.7;">Your payment was received. Your board exam prep starts now.</p>
+      <p style="margin:0 0 28px;font-size:15px;color:#9a9690;line-height:1.7;">${heroLine}</p>
 
       <div style="height:1px;background:rgba(255,255,255,0.07);margin:0 0 28px;"></div>
 
@@ -62,7 +69,7 @@ function welcomeEmail({ firstName, name, email, key, appUrl }) {
         <div style="background:#111;border:1px solid rgba(201,169,110,0.2);border-radius:8px;padding:14px 18px;margin-bottom:12px;">
           <p style="margin:0;font-family:'Courier New',monospace;font-size:22px;font-weight:700;color:#c9a96e;letter-spacing:0.12em;">${key}</p>
         </div>
-        <p style="margin:0;font-size:13px;color:#9a9690;line-height:1.6;">Go to the app → click <strong style="color:#f0ede8;">New Customer</strong> → enter your name <strong style="color:#f0ede8;">${name}</strong>, email <strong style="color:#f0ede8;">${email}</strong>, and the key above → tap Activate.</p>
+        <p style="margin:0;font-size:13px;color:#9a9690;line-height:1.6;">${step2Label}</p>
       </div>
 
       <div style="height:1px;background:rgba(255,255,255,0.07);margin:0 0 28px;"></div>
@@ -165,22 +172,36 @@ export default async function handler(req, res) {
     const agentId      = metadata.agent_id       || null
     const referralCode = metadata.referral_code  || null
     const amountPaid   = metadata.final_price    || 24900
+    const course       = metadata.course         || 'LET'
 
-    console.log('Payment data:', { name, email, agentId, referralCode, amountPaid })
+    console.log('Payment data:', { name, email, agentId, referralCode, amountPaid, course })
 
     if (!email) return res.status(400).json({ error: 'No email in payment data' })
 
     const key       = generateKey()
-    const expiresAt = addDays(30)
+    // Lifetime access — 100 years
+    const expiresAt = addDays(36500)
 
     await supabase.from('access_keys').insert({
       key,
       name      : name.trim(),
       email     : email.toLowerCase().trim(),
+      course    : course,
       expires_at: expiresAt,
       is_owner  : false,
       created_at: new Date().toISOString(),
     })
+
+    // Upsert customer — preserve existing data, add course access
+    const { data: existingCustomer } = await supabase
+      .from('customers')
+      .select('*')
+      .eq('email', email.toLowerCase().trim())
+      .single()
+
+    const courses = existingCustomer?.courses
+      ? [...new Set([...existingCustomer.courses, course])]
+      : [course]
 
     await supabase.from('customers').upsert({
       name         : name.trim(),
@@ -189,7 +210,8 @@ export default async function handler(req, res) {
       is_active    : true,
       activated_at : new Date().toISOString(),
       amount_paid  : Math.round(amountPaid / 100),
-      referral_code: referralCode || null,
+      referral_code: referralCode || existingCustomer?.referral_code || null,
+      courses      : courses,
     }, { onConflict: 'email' })
 
     if (agentId) {
@@ -204,6 +226,7 @@ export default async function handler(req, res) {
     }
 
     const firstName = name.trim().split(' ')[0]
+    const isTesda   = course === 'TESDA'
     const emailRes  = await fetch('https://api.resend.com/emails', {
       method : 'POST',
       headers: {
@@ -213,8 +236,17 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         from   : 'Readwise by Skai <hello@readwisebyskai.com>',
         to     : [email.toLowerCase().trim()],
-        subject: "You're in — your Readwise by Skai access is ready",
-        html   : welcomeEmail({ firstName, name: name.trim(), email: email.toLowerCase().trim(), key, appUrl: APP_URL }),
+        subject: isTesda
+          ? "You're in — your TESDA NC Reviewers are ready"
+          : "You're in — your Readwise by Skai access is ready",
+        html   : welcomeEmail({
+          firstName,
+          name   : name.trim(),
+          email  : email.toLowerCase().trim(),
+          key,
+          appUrl : APP_URL,
+          course,
+        }),
       }),
     })
 

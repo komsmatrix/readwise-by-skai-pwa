@@ -15,6 +15,8 @@ import TrialScreen       from './screens/TrialScreen.jsx'
 import TrialExpiredScreen from './screens/TrialExpiredScreen.jsx'
 import TrialTimer        from './components/TrialTimer.jsx'
 import MockBoardScreen   from './screens/MockBoardScreen.jsx'
+import TesdaHubScreen    from './screens/TesdaHubScreen.jsx'
+import TesdaViewerScreen from './screens/TesdaViewerScreen.jsx'
 
 // Apply saved theme on startup
 const savedTheme = localStorage.getItem('rbs_theme') || 'dark'
@@ -43,8 +45,9 @@ export default function App() {
   const [studentExam,   setStudentExam]   = useState(null)
   const [activeTab,     setActiveTab]     = useState('home')
   const [selectedCourse, setSelectedCourse] = useState('LET')
-  const [trialData,     setTrialData]     = useState(null)   // active trial session
-  const [trialExpired,  setTrialExpired]  = useState(false)  // show expired paywall
+  const [trialData,     setTrialData]     = useState(null)
+  const [trialExpired,  setTrialExpired]  = useState(false)
+  const [tesdaViewer,   setTesdaViewer]   = useState(null)  // { subtopic, qualification }
 
   useEffect(() => { init() }, [])
 
@@ -211,6 +214,35 @@ export default function App() {
     course_id:     trialData?.course_id,
   }
 
+  // Determine if this is a TESDA-only student
+  // (has TESDA in courses array but no board exam enrollment)
+  const hasTesda  = sessionUser?.courses?.includes('TESDA')
+  const hasBoard  = sessionUser?.courses?.some(c => c !== 'TESDA') || studentExam
+  const isTesdaOnly = hasTesda && !hasBoard
+
+  // TESDA viewer open
+  if (tesdaViewer) {
+    return (
+      <TesdaViewerScreen
+        subtopic={tesdaViewer.subtopic}
+        qualification={tesdaViewer.qualification}
+        onBack={() => setTesdaViewer(null)}
+      />
+    )
+  }
+
+  // TESDA-only students go to TESDA hub, not board exam app
+  if (isTesdaOnly) {
+    return (
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--bg-base)' }}>
+        <TesdaHubScreen
+          customer={sessionUser}
+          onOpenViewer={(subtopic, qualification) => setTesdaViewer({ subtopic, qualification })}
+        />
+      </div>
+    )
+  }
+
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--bg-base)' }}>
       <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
@@ -236,6 +268,12 @@ export default function App() {
             onBack={() => setActiveTab('home')}
           />
         )}
+        {activeTab === 'tesda' && (
+          <TesdaHubScreen
+            customer={sessionUser}
+            onOpenViewer={(subtopic, qualification) => setTesdaViewer({ subtopic, qualification })}
+          />
+        )}
         {activeTab === 'profile' && (
           <ProfileScreen
             customer={sessionUser}
@@ -246,9 +284,12 @@ export default function App() {
         )}
       </div>
 
-      <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
+      <BottomNav
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        showTesda={hasTesda}
+      />
 
-      {/* Trial countdown — only shown during active trial */}
       {trialData && !trialExpired && (
         <TrialTimer
           expiresAt={trialData.expires_at}
@@ -358,17 +399,18 @@ function LearnTab({ customer, studentExam, onBack }) {
   )
 }
 
-function BottomNav({ activeTab, setActiveTab }) {
+function BottomNav({ activeTab, setActiveTab, showTesda }) {
   const tabs = [
     { id: 'home',    label: 'Home',     icon: HomeIcon   },
     { id: 'study',   label: 'Study',    icon: CardsIcon  },
     { id: 'learn',   label: 'Learn',    icon: BookIcon   },
+    ...(showTesda ? [{ id: 'tesda', label: 'TESDA', icon: TesdaIcon }] : []),
     { id: 'profile', label: 'Settings', icon: PersonIcon },
   ]
   return (
     <nav style={{ display: 'flex', justifyContent: 'space-around', padding: '10px 0 14px', background: 'var(--bg-surface)', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
       {tabs.map(t => (
-        <button key={t.id} onClick={() => setActiveTab(t.id)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, background: 'none', border: 'none', cursor: 'pointer', color: activeTab === t.id ? 'var(--accent)' : 'var(--text-muted)', fontSize: 10, fontFamily: 'inherit', padding: '0 16px', transition: 'color 0.15s' }}>
+        <button key={t.id} onClick={() => setActiveTab(t.id)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, background: 'none', border: 'none', cursor: 'pointer', color: activeTab === t.id ? 'var(--accent)' : 'var(--text-muted)', fontSize: 10, fontFamily: 'inherit', padding: '0 12px', transition: 'color 0.15s' }}>
           <t.icon size={22} active={activeTab === t.id} />
           {t.label}
         </button>
@@ -418,6 +460,15 @@ function MockIcon({ size, active }) {
       <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
       <rect x="9" y="3" width="6" height="4" rx="1"/>
       <path d="M9 12h6M9 16h4"/>
+    </svg>
+  )
+}
+function TesdaIcon({ size, active }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2 : 1.5} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+      <path d="M2 17l10 5 10-5"/>
+      <path d="M2 12l10 5 10-5"/>
     </svg>
   )
 }
