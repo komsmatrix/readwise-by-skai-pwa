@@ -111,7 +111,7 @@ export default function BuyScreen() {
         <div style={s.card}>
           <div style={{ fontSize: 48, textAlign: 'center', marginBottom: 16 }}>🎓</div>
           <h1 style={s.heading}>You're in.</h1>
-          <p style={s.sub}>Check your email for your access key. You're one step closer to passing your board exam.</p>
+          <p style={s.sub}>Check your email for your access key. You're one step closer to passing your national exam.</p>
           <a href="/" style={s.btn}>Open Readwise →</a>
         </div>
       </div>
@@ -133,14 +133,14 @@ export default function BuyScreen() {
           <div style={s.brandIcon}>R</div>
           <div>
             <div style={s.brandName}>Readwise by Skai</div>
-            <div style={s.brandBy}>Board Exam Operating System</div>
+            <div style={s.brandBy}>National Exam Operating System</div>
           </div>
         </div>
 
         {/* Headline */}
-        <h1 style={s.heading}>Pass your board exam.</h1>
+        <h1 style={s.heading}>Pass your national exam.</h1>
         <p style={s.sub}>
-          Spaced repetition · Readiness Score · Daily Coaching — built for Philippine licensure examinees.
+          Spaced repetition · Readiness Score · Daily Coaching — built for Filipino board exam and TESDA examinees.
         </p>
 
         {/* Course selector */}
