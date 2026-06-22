@@ -1,0 +1,1770 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Cookery NC II Reviewer — AQ Training Center</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+
+  :root {
+    --navy-deep: #080e1f;
+    --navy-mid: #0f1a35;
+    --navy-card: #16233d;
+    --navy-raised: #1d2e4d;
+    --gold-primary: #c9a96e;
+    --gold-light: #e8d5b0;
+    --gold-dim: #7a6340;
+    --text-primary: #eef0f4;
+    --text-secondary: #9daec4;
+    --text-muted: #5e738a;
+    --red-alert: #e05252;
+    --border: rgba(201,169,110,0.18);
+    --border-subtle: rgba(255,255,255,0.06);
+    --green-safe: #4caf7d;
+  }
+
+  /* ── LOGIN SCREEN ─────────────────────────── */
+  #login-screen {
+    min-height: 100vh;
+    background: var(--navy-deep);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* decorative radial glows */
+  #login-screen::before {
+    content: '';
+    position: absolute;
+    top: -120px; left: 50%;
+    transform: translateX(-50%);
+    width: 480px; height: 480px;
+    background: radial-gradient(circle, rgba(201,169,110,0.07) 0%, transparent 65%);
+    pointer-events: none;
+  }
+  #login-screen::after {
+    content: '';
+    position: absolute;
+    bottom: -100px; right: -80px;
+    width: 360px; height: 360px;
+    background: radial-gradient(circle, rgba(96,165,250,0.04) 0%, transparent 65%);
+    pointer-events: none;
+  }
+
+  .login-logo-ring {
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(201,169,110,0.12), rgba(201,169,110,0.04));
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 24px;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .login-logo-ring::before {
+    content: '';
+    position: absolute; inset: -6px;
+    border-radius: 50%;
+    border: 1px solid rgba(201,169,110,0.08);
+  }
+  .login-logo-icon {
+    font-size: 2rem;
+    line-height: 1;
+  }
+
+  .login-eyebrow {
+    font-family: 'Inter', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--gold-dim);
+    margin-bottom: 10px;
+    text-align: center;
+  }
+
+  .login-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(1.6rem, 6vw, 2.2rem);
+    font-weight: 700;
+    color: var(--gold-primary);
+    text-align: center;
+    line-height: 1.2;
+    margin-bottom: 6px;
+    letter-spacing: 0.02em;
+  }
+
+  .login-subtitle {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--text-muted);
+    text-align: center;
+    margin-bottom: 36px;
+    letter-spacing: 0.03em;
+  }
+
+  .login-card {
+    width: 100%;
+    max-width: 400px;
+    background: var(--navy-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px 28px;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.03);
+    position: relative;
+    z-index: 1;
+  }
+
+  .login-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%; transform: translateX(-50%);
+    width: 60%; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
+    border-radius: 50%;
+  }
+
+  .field-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+
+  .field-wrap {
+    position: relative;
+    margin-bottom: 20px;
+  }
+
+  .field-input {
+    width: 100%;
+    padding: 14px 48px 14px 16px;
+    background: var(--navy-raised);
+    border: 1px solid var(--border-subtle);
+    border-radius: 10px;
+    color: var(--text-primary);
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    outline: none;
+    transition: border-color 0.25s, box-shadow 0.25s;
+    -webkit-appearance: none;
+  }
+  .field-input::placeholder { color: var(--text-muted); }
+  .field-input:focus {
+    border-color: var(--gold-primary);
+    box-shadow: 0 0 0 3px rgba(201,169,110,0.12);
+  }
+  .field-input.error {
+    border-color: var(--red-alert);
+    box-shadow: 0 0 0 3px rgba(224,82,82,0.1);
+    animation: shake 0.35s ease;
+  }
+
+  .eye-toggle {
+    position: absolute;
+    right: 14px; top: 50%;
+    transform: translateY(-50%);
+    background: none; border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px;
+    font-size: 16px;
+    line-height: 1;
+    transition: color 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .eye-toggle:hover { color: var(--gold-primary); }
+
+  .login-btn {
+    width: 100%;
+    padding: 15px;
+    background: linear-gradient(135deg, #b8894e, var(--gold-primary));
+    border: none;
+    border-radius: 10px;
+    color: #0a0f1e;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+    box-shadow: 0 4px 20px rgba(201,169,110,0.25);
+    -webkit-tap-highlight-color: transparent;
+    margin-top: 4px;
+  }
+  .login-btn:active {
+    transform: scale(0.98);
+    opacity: 0.9;
+  }
+  .login-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* Error message */
+  .error-msg {
+    display: none;
+    background: rgba(224,82,82,0.1);
+    border: 1px solid rgba(224,82,82,0.3);
+    border-left: 3px solid var(--red-alert);
+    border-radius: 8px;
+    padding: 11px 14px;
+    margin-bottom: 18px;
+    font-size: 13px;
+    color: #f0b0b0;
+    line-height: 1.5;
+  }
+  .error-msg.visible { display: block; animation: fadeIn 0.2s ease; }
+
+  /* Success flash */
+  .success-flash {
+    display: none;
+    background: rgba(76,175,125,0.1);
+    border: 1px solid rgba(76,175,125,0.3);
+    border-left: 3px solid var(--green-safe);
+    border-radius: 8px;
+    padding: 11px 14px;
+    margin-bottom: 18px;
+    font-size: 13px;
+    color: #a7d9bf;
+  }
+  .success-flash.visible { display: block; animation: fadeIn 0.2s ease; }
+
+  /* Date badge */
+  .date-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-subtle);
+    font-size: 11.5px;
+    color: var(--text-muted);
+  }
+  .date-badge span { color: var(--gold-dim); font-size: 13px; }
+
+  /* Footer */
+  .login-footer {
+    margin-top: 28px;
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+    z-index: 1;
+    position: relative;
+  }
+  .login-footer strong { color: var(--gold-dim); }
+
+  /* Animations */
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    20% { transform: translateX(-6px); }
+    40% { transform: translateX(6px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .login-card { animation: fadeUp 0.5s ease both; }
+  .login-logo-ring { animation: fadeUp 0.4s ease both; }
+  .login-eyebrow { animation: fadeUp 0.45s 0.05s ease both; }
+  .login-title { animation: fadeUp 0.45s 0.08s ease both; }
+  .login-subtitle { animation: fadeUp 0.45s 0.11s ease both; }
+
+  /* ── REVIEWER SCREEN ──────────────────────── */
+  #reviewer-screen {
+    display: none;
+  }
+  #reviewer-screen.visible {
+    display: block;
+  }
+
+  /* Loading overlay */
+  #loading-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: var(--navy-deep);
+    z-index: 9999;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+  }
+  #loading-overlay.visible { display: flex; }
+  .loader-ring {
+    width: 48px; height: 48px;
+    border: 3px solid var(--border-subtle);
+    border-top-color: var(--gold-primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loader-text {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.1rem;
+    color: var(--gold-primary);
+    letter-spacing: 0.06em;
+  }
+  .loader-sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    letter-spacing: 0.08em;
+  }
+
+</style>
+</head>
+<body>
+
+<!-- ── LOADING OVERLAY ─────────────────────────────── -->
+<div id="loading-overlay">
+  <div class="loader-ring"></div>
+  <div class="loader-text">Opening Reviewer…</div>
+  <div class="loader-sub">Please wait</div>
+</div>
+
+<!-- ── LOGIN SCREEN ───────────────────────────────── -->
+<div id="login-screen">
+
+  <div class="login-logo-ring">
+    <span class="login-logo-icon">🍳</span>
+  </div>
+
+  <div class="login-eyebrow">AQ Training Center</div>
+  <h1 class="login-title">Cookery NC II<br>Reviewer</h1>
+  <p class="login-subtitle">PSAA Assessment Companion · 2026 Edition</p>
+
+  <div class="login-card">
+
+    <div class="error-msg" id="errorMsg"></div>
+    <div class="success-flash" id="successMsg">✓ Access granted. Opening your reviewer…</div>
+
+    <label class="field-label" for="passInput">Access Password</label>
+    <div class="field-wrap">
+      <input
+        class="field-input"
+        type="password"
+        id="passInput"
+        placeholder="Enter your password"
+        autocomplete="current-password"
+        autocorrect="off"
+        autocapitalize="none"
+        spellcheck="false"
+        onkeydown="if(event.key==='Enter')attemptLogin()"
+      >
+      <button class="eye-toggle" type="button" onclick="toggleEye()" id="eyeBtn" aria-label="Show password">
+        👁
+      </button>
+    </div>
+
+    <button class="login-btn" id="loginBtn" onclick="attemptLogin()">
+      Enter Reviewer
+    </button>
+
+    <div class="date-badge">
+      <span>📅</span>
+      <span id="todayLabel">—</span>
+    </div>
+
+  </div>
+
+  <div class="login-footer">
+    For authorized users only &nbsp;·&nbsp; <strong>AQ Training Center</strong>
+  </div>
+
+</div>
+
+<!-- ── REVIEWER SCREEN (injected on unlock) ──────── -->
+<div id="reviewer-screen"></div>
+
+<script>
+(function() {
+
+  // ── Hashed passwords (SHA-256) ────────────────────
+  const HASH_BEFORE_JULY12  = "f049646dcf4a3de6a65eb04e49276ec216a2f0841dcc6b4d594a859f2fe3e913";
+  const HASH_FROM_JULY12    = "492828a03446d24e83830a8f973d40e6e69c7e20c1a09014a280cc0153ca2fcd";
+
+  // ── Date logic ────────────────────────────────────
+  function getCorrectHash() {
+    const now  = new Date();
+    const y    = now.getFullYear();
+    const m    = now.getMonth() + 1; // 1-based
+    const d    = now.getDate();
+    // From July 12 onward (any year) use new password
+    if ((m > 7) || (m === 7 && d >= 12)) {
+      return HASH_FROM_JULY12;
+    }
+    return HASH_BEFORE_JULY12;
+  }
+
+  // ── Simple SHA-256 in pure JS (no external lib) ───
+  async function sha256(message) {
+    const msgBuffer   = new TextEncoder().encode(message);
+    const hashBuffer  = await crypto.subtle.digest('SHA-256', msgBuffer);
+    const hashArray   = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  // ── Display today's date ──────────────────────────
+  const now = new Date();
+  const dayNames  = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const monNames  = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('todayLabel').textContent =
+    dayNames[now.getDay()] + ', ' + monNames[now.getMonth()] + ' ' + now.getDate() + ', ' + now.getFullYear();
+
+  // ── Eye toggle ────────────────────────────────────
+  window.toggleEye = function() {
+    const inp = document.getElementById('passInput');
+    const btn = document.getElementById('eyeBtn');
+    if (inp.type === 'password') {
+      inp.type = 'text';
+      btn.textContent = '🙈';
+    } else {
+      inp.type = 'password';
+      btn.textContent = '👁';
+    }
+  };
+
+  // ── Show error ─────────────────────────────────────
+  function showError(msg) {
+    const el = document.getElementById('errorMsg');
+    el.textContent = msg;
+    el.classList.add('visible');
+    const inp = document.getElementById('passInput');
+    inp.classList.add('error');
+    inp.value = '';
+    setTimeout(() => inp.classList.remove('error'), 500);
+    setTimeout(() => { el.classList.remove('visible'); }, 4000);
+  }
+
+  // ── Attempt login ──────────────────────────────────
+  window.attemptLogin = async function() {
+    const btn   = document.getElementById('loginBtn');
+    const inp   = document.getElementById('passInput');
+    const val   = inp.value.trim();
+
+    if (!val) {
+      showError('Please enter your password.');
+      inp.focus();
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Verifying…';
+
+    try {
+      const inputHash   = await sha256(val);
+      const correctHash = getCorrectHash();
+
+      if (inputHash === correctHash) {
+        // Success
+        document.getElementById('successMsg').classList.add('visible');
+        btn.textContent = '✓ Access Granted';
+
+        setTimeout(() => {
+          // Show loading overlay
+          document.getElementById('loading-overlay').classList.add('visible');
+
+          setTimeout(() => {
+            // Hide login, show reviewer
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('loading-overlay').classList.remove('visible');
+
+            const reviewerDiv = document.getElementById('reviewer-screen');
+            reviewerDiv.classList.add('visible');
+
+            // Inject the reviewer HTML into a shadow-like container
+            reviewerDiv.innerHTML = REVIEWER_CONTENT;
+
+            // Re-run any scripts inside the injected content
+            reviewerDiv.querySelectorAll('script').forEach(oldScript => {
+              const newScript = document.createElement('script');
+              newScript.textContent = oldScript.textContent;
+              document.body.appendChild(newScript);
+              oldScript.remove();
+            });
+
+          }, 1200);
+        }, 700);
+
+      } else {
+        btn.disabled  = false;
+        btn.textContent = 'Enter Reviewer';
+        showError('Incorrect password. Please check with your trainer and try again.');
+      }
+    } catch(e) {
+      btn.disabled  = false;
+      btn.textContent = 'Enter Reviewer';
+      showError('An error occurred. Please try again.');
+    }
+  };
+
+})();
+</script>
+
+<!-- ── REVIEWER CONTENT (embedded, gated) ─────────── -->
+<script id="reviewerData" type="text/plain"><!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TESDA Cookery NC II — PSAA Assessment Reviewer 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy-deep: #080e1f;
+    --navy-mid: #0f1a35;
+    --navy-card: #16233d;
+    --navy-raised: #1d2e4d;
+    --gold-primary: #c9a96e;
+    --gold-light: #e8d5b0;
+    --gold-dim: #7a6340;
+    --text-primary: #eef0f4;
+    --text-secondary: #9daec4;
+    --text-muted: #5e738a;
+    --red-alert: #e05252;
+    --red-dim: rgba(224,82,82,0.12);
+    --green-safe: #4caf7d;
+    --green-dim: rgba(76,175,125,0.1);
+    --blue-tip: #60a5fa;
+    --blue-dim: rgba(96,165,250,0.1);
+    --border: rgba(201,169,110,0.18);
+    --border-subtle: rgba(255,255,255,0.06);
+    --shadow: 0 8px 32px rgba(0,0,0,0.45);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body { font-family: 'Inter', sans-serif; background: var(--navy-deep); color: var(--text-primary); line-height: 1.65; font-size: 15px; }
+
+  /* HEADER */
+  .site-header { background: linear-gradient(180deg,#050b1a 0%,var(--navy-mid) 100%); border-bottom: 1px solid var(--border); padding: 0 24px; position: sticky; top: 0; z-index: 200; }
+  .header-inner { max-width: 1100px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 14px 0; flex-wrap: wrap; }
+  .header-brand { display: flex; flex-direction: column; }
+  .header-brand .eyebrow { font-family: 'JetBrains Mono',monospace; font-size: 10px; letter-spacing: .2em; color: var(--gold-dim); text-transform: uppercase; margin-bottom: 2px; }
+  .header-brand h1 { font-family: 'Cormorant Garamond',serif; font-size: 1.45rem; font-weight: 700; color: var(--gold-primary); letter-spacing: .04em; line-height: 1.2; }
+  .search-wrap { flex: 1; min-width: 200px; max-width: 380px; }
+  .search-wrap input { width: 100%; padding: 9px 16px; background: var(--navy-card); border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); font-family: 'Inter',sans-serif; font-size: 13.5px; outline: none; transition: border-color .2s,box-shadow .2s; }
+  .search-wrap input::placeholder { color: var(--text-muted); }
+  .search-wrap input:focus { border-color: var(--gold-primary); box-shadow: 0 0 0 3px rgba(201,169,110,.12); }
+
+  /* NAV */
+  .tab-nav { background: var(--navy-mid); border-bottom: 1px solid var(--border-subtle); padding: 0 24px; position: sticky; top: 65px; z-index: 100; overflow-x: auto; scrollbar-width: none; }
+  .tab-nav::-webkit-scrollbar { display: none; }
+  .tab-list { max-width: 1100px; margin: 0 auto; display: flex; list-style: none; }
+  .tab-list li a { display: block; padding: 13px 16px; font-size: 12px; font-weight: 500; letter-spacing: .04em; color: var(--text-secondary); text-decoration: none; white-space: nowrap; border-bottom: 2px solid transparent; transition: color .2s,border-color .2s; }
+  .tab-list li a:hover { color: var(--gold-light); border-bottom-color: var(--gold-dim); }
+
+  /* LAYOUT */
+  .page-body { max-width: 1100px; margin: 36px auto; padding: 0 24px; display: flex; flex-direction: column; gap: 32px; }
+
+  /* HERO */
+  .hero-banner { background: linear-gradient(135deg,#0d1a36 0%,#1a2c50 100%); border: 1px solid var(--border); border-radius: 10px; padding: 36px 40px; position: relative; overflow: hidden; }
+  .hero-banner::before { content:''; position: absolute; top:-40px; right:-40px; width:200px; height:200px; background: radial-gradient(circle,rgba(201,169,110,.07) 0%,transparent 70%); pointer-events: none; }
+  .hero-banner .label { font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:.2em; color:var(--gold-dim); text-transform:uppercase; margin-bottom:10px; }
+  .hero-banner h2 { font-family:'Cormorant Garamond',serif; font-size:2.1rem; font-weight:700; color:var(--gold-primary); line-height:1.2; margin-bottom:10px; }
+  .hero-banner p { color:var(--text-secondary); max-width:560px; font-size:14px; }
+  .hero-meta { display:flex; gap:24px; margin-top:22px; flex-wrap:wrap; }
+  .hero-meta-item { display:flex; flex-direction:column; gap:2px; }
+  .hero-meta-item .val { font-family:'Cormorant Garamond',serif; font-size:1.6rem; font-weight:600; color:var(--gold-primary); }
+  .hero-meta-item .key { font-size:11px; color:var(--text-muted); letter-spacing:.08em; text-transform:uppercase; }
+
+  /* CARD */
+  .section-card { background:var(--navy-card); border:1px solid var(--border-subtle); border-radius:10px; overflow:hidden; box-shadow:var(--shadow); }
+  .section-card.hidden { display:none; }
+  .card-header { padding:18px 28px 16px; border-bottom:1px solid var(--border-subtle); display:flex; align-items:center; gap:14px; }
+  .card-num { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--gold-dim); background:rgba(201,169,110,.08); border:1px solid var(--border); padding:3px 9px; border-radius:4px; letter-spacing:.1em; flex-shrink:0; }
+  .card-header h2 { font-family:'Cormorant Garamond',serif; font-size:1.35rem; font-weight:700; color:var(--gold-light); letter-spacing:.02em; }
+  .card-body { padding:24px 28px; }
+
+  /* ALERTS */
+  .alert { background:var(--red-dim); border:1px solid rgba(224,82,82,.35); border-left:4px solid var(--red-alert); border-radius:6px; padding:16px 18px; margin-bottom:20px; }
+  .alert .alert-title { font-size:11.5px; font-weight:600; color:var(--red-alert); letter-spacing:.12em; text-transform:uppercase; margin-bottom:8px; display:flex; align-items:center; gap:7px; }
+  .alert .alert-title::before { content:'⚠'; font-size:13px; }
+  .alert ul { padding-left:18px; }
+  .alert li { color:#f0b0b0; font-size:13.5px; margin-bottom:4px; }
+
+  .info-box { background:rgba(201,169,110,.06); border:1px solid var(--border); border-left:4px solid var(--gold-primary); border-radius:6px; padding:14px 18px; margin-bottom:20px; }
+  .info-box p,.info-box li { font-size:13.5px; color:var(--text-secondary); }
+  .info-box strong { color:var(--gold-light); }
+  .info-box ul { padding-left:18px; margin-top:6px; }
+  .info-box li { margin-bottom:4px; }
+
+  /* PRO TIP BOX */
+  .pro-tip { background:var(--blue-dim); border:1px solid rgba(96,165,250,.25); border-left:4px solid var(--blue-tip); border-radius:6px; padding:14px 18px; margin:12px 0; }
+  .pro-tip .tip-label { font-size:10.5px; font-weight:700; letter-spacing:.15em; text-transform:uppercase; color:var(--blue-tip); margin-bottom:6px; display:flex; align-items:center; gap:6px; }
+  .pro-tip .tip-label::before { content:'★'; }
+  .pro-tip p,.pro-tip li { font-size:13px; color:#b8d4f5; }
+  .pro-tip ul { padding-left:16px; margin-top:4px; }
+  .pro-tip li { margin-bottom:3px; }
+
+  /* SUCCESS BOX */
+  .success-box { background:var(--green-dim); border:1px solid rgba(76,175,125,.25); border-left:4px solid var(--green-safe); border-radius:6px; padding:14px 18px; margin:12px 0; }
+  .success-box .suc-label { font-size:10.5px; font-weight:700; letter-spacing:.15em; text-transform:uppercase; color:var(--green-safe); margin-bottom:6px; }
+  .success-box p,.success-box li { font-size:13px; color:#a7d9bf; }
+  .success-box ul { padding-left:16px; margin-top:4px; }
+  .success-box li { margin-bottom:3px; }
+
+  /* SUBSECTION */
+  .subsection-title { font-size:12px; font-weight:600; letter-spacing:.15em; text-transform:uppercase; color:var(--gold-dim); margin:22px 0 12px; display:flex; align-items:center; gap:10px; }
+  .subsection-title::after { content:''; flex:1; height:1px; background:var(--border-subtle); }
+
+  /* TABLES */
+  .data-table { width:100%; border-collapse:collapse; margin:10px 0; }
+  .data-table th { background:rgba(201,169,110,.08); color:var(--gold-primary); font-size:11px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; padding:11px 16px; text-align:left; border-bottom:1px solid var(--border); }
+  .data-table td { padding:11px 16px; font-size:13.5px; border-bottom:1px solid var(--border-subtle); vertical-align:top; color:var(--text-primary); }
+  .data-table tbody tr:last-child td { border-bottom:none; }
+  .data-table tbody tr:hover td { background:rgba(255,255,255,.025); }
+  .data-table td.metric { font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--gold-primary); white-space:nowrap; }
+  .data-table td.context { color:var(--text-secondary); font-size:13px; }
+
+  /* TDZ BADGE */
+  .tdz-badge { display:inline-flex; align-items:center; gap:8px; background:linear-gradient(90deg,rgba(224,82,82,.15),rgba(255,140,0,.1)); border:1px solid rgba(224,82,82,.3); border-radius:6px; padding:12px 18px; margin:10px 0 20px; font-size:13.5px; flex-wrap:wrap; }
+  .tdz-badge strong { color:var(--red-alert); }
+  .tdz-badge span { color:var(--text-secondary); }
+
+  /* PILLS */
+  .pill { display:inline-block; padding:3px 10px; border-radius:20px; font-size:11.5px; font-weight:500; letter-spacing:.04em; }
+  .pill-gold { background:rgba(201,169,110,.15); color:var(--gold-primary); border:1px solid var(--border); }
+  .pill-red { background:rgba(224,82,82,.12); color:var(--red-alert); border:1px solid rgba(224,82,82,.25); }
+  .pill-green { background:rgba(76,175,125,.12); color:var(--green-safe); border:1px solid rgba(76,175,125,.25); }
+  .pill-blue { background:rgba(96,165,250,.12); color:var(--blue-tip); border:1px solid rgba(96,165,250,.25); }
+
+  /* KNIFE */
+  .knife-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:12px; margin:10px 0; }
+  .knife-part { background:var(--navy-raised); border:1px solid var(--border-subtle); border-radius:8px; padding:14px 16px; }
+  .knife-part .part-name { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--gold-primary); margin-bottom:5px; font-weight:500; }
+  .knife-part .part-desc { font-size:12.5px; color:var(--text-secondary); }
+
+  /* CUTS */
+  .cuts-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:12px; margin:10px 0; }
+  .cut-card { background:var(--navy-raised); border:1px solid var(--border-subtle); border-radius:8px; padding:16px; transition:border-color .2s; }
+  .cut-card:hover { border-color:var(--border); }
+  .cut-card .cut-name { font-family:'Cormorant Garamond',serif; font-size:1.1rem; font-weight:700; color:var(--gold-light); margin-bottom:4px; }
+  .cut-card .cut-dim { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--gold-primary); margin-bottom:6px; }
+  .cut-card .cut-note { font-size:12px; color:var(--text-secondary); }
+  .cut-card .cut-tip { font-size:11.5px; color:var(--blue-tip); margin-top:6px; padding-top:6px; border-top:1px solid var(--border-subtle); }
+  .cut-card .cut-tip::before { content:'★ '; }
+
+  /* SAUCES */
+  .sauce-list { display:flex; flex-direction:column; gap:10px; margin:10px 0; }
+  .sauce-item { background:var(--navy-raised); border:1px solid var(--border-subtle); border-radius:8px; padding:14px 18px; display:flex; align-items:flex-start; gap:16px; }
+  .sauce-num { font-family:'Cormorant Garamond',serif; font-size:1.5rem; font-weight:600; color:var(--gold-dim); min-width:28px; line-height:1; padding-top:2px; }
+  .sauce-content .sauce-name { font-weight:600; color:var(--gold-light); margin-bottom:3px; font-size:14.5px; }
+  .sauce-content .sauce-desc { font-size:13px; color:var(--text-secondary); }
+  .sauce-content .sauce-tip { font-size:12px; color:var(--blue-tip); margin-top:5px; }
+  .sauce-content .sauce-tip::before { content:'★ Tip: '; font-weight:600; }
+
+  /* FLASHCARDS */
+  .flashcard-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(290px,1fr)); gap:16px; }
+  .flashcard { background:var(--navy-raised); border:1px solid var(--border-subtle); border-radius:8px; cursor:pointer; overflow:hidden; transition:border-color .25s,box-shadow .25s; user-select:none; }
+  .flashcard:hover { border-color:var(--border); box-shadow:0 4px 20px rgba(0,0,0,.3); }
+  .flashcard.revealed { border-color:rgba(201,169,110,.35); }
+  .flashcard .fc-q { padding:18px 20px; font-size:13.5px; font-weight:500; color:var(--text-primary); line-height:1.55; }
+  .flashcard .fc-hint { padding:6px 20px 10px; font-size:11px; color:var(--text-muted); display:flex; align-items:center; gap:5px; }
+  .flashcard .fc-hint::before { content:'▶'; font-size:8px; }
+  .flashcard.revealed .fc-hint::before { content:'▼'; }
+  .flashcard .fc-a { background:rgba(201,169,110,.05); border-top:1px solid var(--border); padding:16px 20px; font-size:13px; color:var(--text-secondary); line-height:1.6; display:none; }
+  .flashcard.revealed .fc-a { display:block; }
+  .flashcard .fc-a strong { color:var(--gold-primary); }
+
+  /* TIMELINE */
+  .timeline { display:flex; flex-direction:column; gap:0; }
+  .tl-item { display:flex; gap:18px; }
+  .tl-spine { display:flex; flex-direction:column; align-items:center; flex-shrink:0; }
+  .tl-dot { width:10px; height:10px; background:var(--gold-primary); border-radius:50%; margin-top:4px; flex-shrink:0; }
+  .tl-line { width:1px; flex:1; background:var(--border); min-height:20px; }
+  .tl-item:last-child .tl-line { display:none; }
+  .tl-content { padding-bottom:18px; }
+  .tl-time { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--gold-primary); margin-bottom:4px; }
+  .tl-label { font-weight:600; font-size:14px; color:var(--text-primary); margin-bottom:4px; }
+  .tl-detail { font-size:13px; color:var(--text-secondary); }
+  .tl-tip { font-size:12px; color:var(--blue-tip); margin-top:5px; }
+  .tl-tip::before { content:'★ '; }
+
+  /* UNIFORM */
+  .uniform-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:12px; }
+  .uniform-item { background:var(--navy-raised); border:1px solid var(--border-subtle); border-radius:8px; padding:14px 16px; }
+  .uniform-item .ui-label { font-size:12px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--gold-dim); margin-bottom:5px; }
+  .uniform-item .ui-spec { font-size:13px; color:var(--text-primary); margin-bottom:5px; }
+  .uniform-item .ui-critical { font-size:12px; color:#f0b0b0; }
+  .uniform-item .ui-critical::before { content:'• '; color:var(--red-alert); }
+
+  /* HAZARD */
+  .hazard-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:12px; margin:10px 0; }
+  .hazard-col { background:var(--navy-raised); border:1px solid var(--border-subtle); border-radius:8px; padding:14px 16px; }
+  .hazard-col .haz-type { font-size:11px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; margin-bottom:8px; padding-bottom:7px; border-bottom:1px solid var(--border-subtle); }
+  .hazard-col.physical .haz-type { color:#f59e0b; }
+  .hazard-col.chemical .haz-type { color:#a78bfa; }
+  .hazard-col.biological .haz-type { color:var(--red-alert); }
+  .hazard-col ul { padding-left:16px; }
+  .hazard-col li { font-size:12.5px; color:var(--text-secondary); margin-bottom:3px; }
+
+  /* LISTS */
+  .styled-list { padding-left:0; list-style:none; }
+  .styled-list li { padding:7px 0 7px 20px; border-bottom:1px solid var(--border-subtle); font-size:13.5px; color:var(--text-secondary); position:relative; }
+  .styled-list li::before { content:'—'; position:absolute; left:0; color:var(--gold-dim); }
+  .styled-list li:last-child { border-bottom:none; }
+  .styled-list li strong { color:var(--text-primary); }
+
+  /* METHOD CARDS */
+  .method-cards { display:flex; flex-direction:column; gap:10px; }
+  .method-card { display:flex; gap:14px; background:var(--navy-raised); border:1px solid var(--border-subtle); border-radius:8px; padding:14px 16px; align-items:flex-start; }
+  .method-num { font-family:'Cormorant Garamond',serif; font-size:1.6rem; font-weight:700; color:var(--gold-primary); line-height:1; min-width:24px; }
+  .method-label { font-weight:600; font-size:14px; color:var(--text-primary); margin-bottom:3px; }
+  .method-detail { font-size:13px; color:var(--text-secondary); }
+
+  /* PRO TIPS GRID */
+  .protip-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:14px; margin:10px 0; }
+  .protip-card { background:var(--navy-raised); border:1px solid rgba(96,165,250,.2); border-radius:8px; padding:16px 18px; }
+  .protip-card .pt-icon { font-size:1.3rem; margin-bottom:8px; }
+  .protip-card .pt-title { font-weight:600; font-size:13.5px; color:var(--blue-tip); margin-bottom:6px; }
+  .protip-card .pt-body { font-size:13px; color:var(--text-secondary); line-height:1.6; }
+
+  /* PLATING */
+  .plating-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:12px; margin:10px 0; }
+  .plating-card { background:var(--navy-raised); border:1px solid var(--border-subtle); border-radius:8px; padding:14px 16px; }
+  .plating-card .pl-title { font-size:13px; font-weight:600; color:var(--gold-light); margin-bottom:5px; }
+  .plating-card .pl-body { font-size:12.5px; color:var(--text-secondary); }
+  .plating-card .pl-do { font-size:12px; color:var(--green-safe); margin-top:6px; }
+  .plating-card .pl-do::before { content:'✓ '; }
+  .plating-card .pl-dont { font-size:12px; color:#f0b0b0; margin-top:2px; }
+  .plating-card .pl-dont::before { content:'✗ '; }
+
+  /* TWO-COL */
+  .two-col { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  @media (max-width:640px) { .two-col { grid-template-columns:1fr; } }
+
+  /* MINDSET CARDS */
+  .mindset-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:12px; margin:10px 0; }
+  .mindset-card { background:var(--navy-raised); border:1px solid rgba(201,169,110,.15); border-radius:8px; padding:16px 18px; border-top:3px solid var(--gold-dim); }
+  .mindset-card .mc-title { font-family:'Cormorant Garamond',serif; font-size:1.05rem; font-weight:700; color:var(--gold-primary); margin-bottom:6px; }
+  .mindset-card .mc-body { font-size:12.5px; color:var(--text-secondary); line-height:1.6; }
+
+  /* BOTTOM */
+  .page-bottom { height:60px; }
+  .no-results { text-align:center; padding:60px 20px; color:var(--text-muted); display:none; }
+  .no-results .nr-icon { font-size:36px; margin-bottom:12px; }
+
+  ::-webkit-scrollbar { width:6px; height:6px; }
+  ::-webkit-scrollbar-track { background:var(--navy-deep); }
+  ::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+
+  @media (max-width:700px) {
+    .header-inner { flex-direction:column; align-items:flex-start; gap:10px; }
+    .search-wrap { max-width:100%; }
+    .card-body { padding:18px 16px; }
+    .card-header { padding:14px 16px; }
+    .hero-banner { padding:24px 20px; }
+    .hero-banner h2 { font-size:1.5rem; }
+    .flashcard-grid { grid-template-columns:1fr; }
+  }
+
+  @media print {
+    body { background:#fff; color:#000; }
+    .site-header,.tab-nav,.search-wrap,.fc-hint { display:none !important; }
+    .section-card { background:#fff; border:1px solid #ccc; box-shadow:none; }
+    .card-header { border-bottom:2px solid #000; }
+    .card-header h2,.card-num { color:#000 !important; }
+    .data-table th { background:#f0f0f0; color:#000; }
+    .data-table td,.data-table th { border-bottom:1px solid #ccc; color:#000; }
+    .flashcard .fc-a { display:block !important; }
+    .pro-tip,.success-box { border:1px solid #999; }
+  }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <div class="header-brand">
+      <span class="eyebrow">TESDA · PSAA Assessment Center · 2026</span>
+      <h1>Cookery NC II Reviewer</h1>
+    </div>
+    <div class="search-wrap">
+      <input type="text" id="searchInput" placeholder="Search topics, cuts, temps, tips…" oninput="filterSections()" autocomplete="off">
+    </div>
+  </div>
+</header>
+
+<nav class="tab-nav">
+  <ul class="tab-list">
+    <li><a href="#psaa-intel">PSAA Intel</a></li>
+    <li><a href="#grooming">Grooming</a></li>
+    <li><a href="#food-safety">Food Safety</a></li>
+    <li><a href="#knife-skills">Knife Skills</a></li>
+    <li><a href="#cookery">Cookery</a></li>
+    <li><a href="#plating">Plating</a></li>
+    <li><a href="#dish-guides">Dish Guides</a></li>
+    <li><a href="#workstation">Workstation</a></li>
+    <li><a href="#protips">Pro Tips</a></li>
+    <li><a href="#mindset">Mindset</a></li>
+    <li><a href="#oral-bank">Oral Q&amp;A</a></li>
+    <li><a href="#mock-scenario">Mock Scenario</a></li>
+  </ul>
+</nav>
+
+<div class="page-body" id="mainContent">
+
+  <!-- HERO -->
+  <div class="hero-banner">
+    <div class="label">Comprehensive Study Reference — Updated &amp; Expanded</div>
+    <h2>TESDA Cookery NC II<br>Assessment Manual</h2>
+    <p>PSAA-specific preparation covering all competency criteria, food safety variables, technical specifications, pro tips, dish guides, plating standards, and oral examination answers.</p>
+    <div class="hero-meta">
+      <div class="hero-meta-item"><span class="val">12</span><span class="key">Core Sections</span></div>
+      <div class="hero-meta-item"><span class="val">6</span><span class="key">Precision Cuts</span></div>
+      <div class="hero-meta-item"><span class="val">7</span><span class="key">Temp Parameters</span></div>
+      <div class="hero-meta-item"><span class="val">20+</span><span class="key">Oral Q&amp;A Cards</span></div>
+      <div class="hero-meta-item"><span class="val">90 min</span><span class="key">Exam Window</span></div>
+    </div>
+  </div>
+
+  <!-- PART 01: PSAA INTEL -->
+  <section class="section-card" id="psaa-intel" data-search>
+    <div class="card-header"><span class="card-num">PART 01</span><h2>PSAA Strategic Intelligence</h2></div>
+    <div class="card-body">
+      <div class="alert">
+        <div class="alert-title">Automatic Non-Competency Triggers</div>
+        <ul>
+          <li>Serving undercooked poultry — verified by assessor's digital probe thermometer at the table</li>
+          <li>Severe cross-contamination — e.g., raw chicken and salad greens on the same unsanitized board</li>
+          <li>Exceeding the time limit by more than 5 minutes</li>
+          <li>Failing to reach the core sanitization temperature during pot and utensil washing</li>
+          <li>Reporting to the assessment area without complete PPE (uniform, hairnet, proper footwear)</li>
+        </ul>
+      </div>
+
+      <div class="subsection-title">Assessment Methods</div>
+      <ul class="styled-list">
+        <li><strong>Direct Observation</strong> — Assessors monitor posture, knife grip, sanitation habits, and safety compliance throughout the entire session</li>
+        <li><strong>Practical Demonstration</strong> — Execution of designated recipes within strict, unextended time ceilings</li>
+        <li><strong>Product Evaluation</strong> — Sensory and technical analysis of finished dishes: temperature, flavor balance, texture, and plate presentation</li>
+        <li><strong>Oral Questioning</strong> — Private face-to-face verbal examination on food theory, safety metrics, and contingency procedures</li>
+      </ul>
+
+      <div class="subsection-title">High-Frequency Exam Menus (PSAA Rotation)</div>
+      <div class="two-col">
+        <div class="info-box">
+          <strong>Set Alpha</strong>
+          <ul>
+            <li>Cream of Mushroom Soup</li>
+            <li>Garden Salad with French Vinaigrette</li>
+            <li>Classic Club Sandwich</li>
+          </ul>
+        </div>
+        <div class="info-box">
+          <strong>Set Beta</strong>
+          <ul>
+            <li>Consommé (clarity-critical clear soup)</li>
+            <li>Potato Salad with Mayonnaise-Based Dressing</li>
+            <li>Chicken Duxelles / Ballotine</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="pro-tip">
+        <div class="tip-label">Time Management Rule</div>
+        <p>Treat the first 15 minutes as sacred — use it <strong>exclusively for Mise en Place</strong>. Batch your knife work: dice all aromatics (onion, celery, carrot) in one go for both your soup and any starch component. One cleaning cycle, double the output.</p>
+      </div>
+
+      <div class="subsection-title">What Assessors Watch For (Beyond the Recipe)</div>
+      <ul class="styled-list">
+        <li><strong>Station discipline</strong> — is your workspace organized or chaotic throughout?</li>
+        <li><strong>Sanitation frequency</strong> — are you wiping and sanitizing between raw and cooked ingredient handling?</li>
+        <li><strong>Knife safety posture</strong> — curl grip on the guide hand, blade contact on knuckles, not fingertips</li>
+        <li><strong>Waste management</strong> — scraps disposed of cleanly; no clutter accumulating on the board</li>
+        <li><strong>Composure under pressure</strong> — calm, methodical movement signals competence to the assessor</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- PART 02: GROOMING -->
+  <section class="section-card" id="grooming" data-search>
+    <div class="card-header"><span class="card-num">PART 02</span><h2>Professional Grooming & Uniform Standards</h2></div>
+    <div class="card-body">
+      <p style="color:var(--text-secondary);font-size:13.5px;margin-bottom:18px;">Strict adherence to professional apparel is evaluated immediately upon entry into the PSAA briefing area. Any non-compliance is recorded before you even touch a knife.</p>
+
+      <div class="uniform-grid">
+        <div class="uniform-item">
+          <div class="ui-label">Chef's Jacket</div>
+          <div class="ui-spec">Double-breasted, pure white, clean-pressed cotton or poly-blend. Long sleeves down to wrists.</div>
+          <div class="ui-critical">Fully buttoned to the neck; no non-standard visible undershirts</div>
+        </div>
+        <div class="uniform-item">
+          <div class="ui-label">Apron</div>
+          <div class="ui-spec">White utility bib or waist apron, secured snugly.</div>
+          <div class="ui-critical">Free of oil spots, charcoal marks, or chemical stains at the start</div>
+        </div>
+        <div class="uniform-item">
+          <div class="ui-label">Chef's Hat / Hairnet</div>
+          <div class="ui-spec">White toque or professional skull cap paired with a high-density hairnet underneath.</div>
+          <div class="ui-critical">100% of hair must be completely contained within the net boundary</div>
+        </div>
+        <div class="uniform-item">
+          <div class="ui-label">Kitchen Trousers</div>
+          <div class="ui-spec">Black-and-white houndstooth or solid black utility trousers only.</div>
+          <div class="ui-critical">No jeans, cargo pants, or sweatpants permitted</div>
+        </div>
+        <div class="uniform-item">
+          <div class="ui-label">Footwear</div>
+          <div class="ui-spec">Heavy-duty, closed-toe, non-slip rubber leather kitchen clogs or safety boots.</div>
+          <div class="ui-critical">No mesh canvas shoes, sandals, or exposed ankles</div>
+        </div>
+        <div class="uniform-item">
+          <div class="ui-label">Grooming Checks</div>
+          <div class="ui-spec">Fingernails clipped flush with fingertips. Zero nail polish.</div>
+          <div class="ui-critical">Zero jewelry — no rings, watches, or bracelets. Strictly enforced.</div>
+        </div>
+      </div>
+
+      <div class="pro-tip" style="margin-top:18px;">
+        <div class="tip-label">Day-Before Uniform Check</div>
+        <ul>
+          <li>Wash and iron your jacket the night before — wrinkled uniforms signal carelessness</li>
+          <li>Pack a spare apron in case the first one gets stained during prep</li>
+          <li>Wear your hairnet at home once to confirm your entire hairline is covered</li>
+          <li>Trim nails the night before, not the morning of — jagged edges collect debris</li>
+          <li>Place your thermometer, knife roll, and towels in your bag the night before</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- PART 03: FOOD SAFETY -->
+  <section class="section-card" id="food-safety" data-search>
+    <div class="card-header"><span class="card-num">PART 03</span><h2>Food Safety, Sanitation & Temperature Controls</h2></div>
+    <div class="card-body">
+
+      <div class="subsection-title">Hazard Classification</div>
+      <div class="hazard-grid">
+        <div class="hazard-col physical">
+          <div class="haz-type">⬡ Physical</div>
+          <ul>
+            <li>Metal shards from worn can openers</li>
+            <li>Wood fragments from low-grade pallets</li>
+            <li>Stray hair, broken glass</li>
+            <li>Jewelry fragments — reason for zero-jewelry rule</li>
+          </ul>
+        </div>
+        <div class="hazard-col chemical">
+          <div class="haz-type">⬡ Chemical</div>
+          <ul>
+            <li>Industrial floor detergents near prep lines</li>
+            <li>Silver polishes</li>
+            <li>Unrinsed quaternary ammonium sanitizers</li>
+            <li>Pesticide residue on unwashed produce</li>
+          </ul>
+        </div>
+        <div class="hazard-col biological">
+          <div class="haz-type">⬡ Biological</div>
+          <ul>
+            <li><em>Salmonella</em> — raw poultry</li>
+            <li><em>E. coli</em> — ground beef, unwashed greens</li>
+            <li><em>Staphylococcus aureus</em> — skin / open wounds</li>
+            <li><em>Listeria</em> — deli meats, soft cheese</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="subsection-title">Temperature Danger Zone</div>
+      <div class="tdz-badge">
+        <strong>TDZ: 5°C – 60°C</strong>
+        <span>Pathogenic bacteria multiply exponentially here. Food must not remain in this zone for more than <strong style="color:var(--gold-primary)">2 cumulative hours</strong> throughout the entire processing cycle.</span>
+      </div>
+
+      <div class="subsection-title">Temperature Reference Matrix — Memorize These Exactly</div>
+      <table class="data-table">
+        <thead><tr><th>Parameter</th><th>Exact Target</th><th>Critical Context</th></tr></thead>
+        <tbody>
+          <tr><td>Freezer Storage</td><td class="metric">−18°C or lower</td><td class="context">Halts bacterial growth; does not kill existing microbes</td></tr>
+          <tr><td>Chiller / Refrigerator</td><td class="metric">1°C – 4°C</td><td class="context">Safe holding state for fresh proteins and perishable produce</td></tr>
+          <tr><td>Poultry Core Temp</td><td class="metric"><span class="pill pill-red">74°C / 15 sec</span></td><td class="context">Mandatory for chicken, duck, turkey. Assessor-verified with probe.</td></tr>
+          <tr><td>Ground Meats Core Temp</td><td class="metric">71°C / 15 sec</td><td class="context">Required for burgers/mince — surface contamination is blended in</td></tr>
+          <tr><td>Whole Beef / Pork</td><td class="metric">63°C / 15 sec</td><td class="context">Minimum internal for whole muscle steaks and roasts</td></tr>
+          <tr><td>Reheating Leftovers</td><td class="metric">74°C (rapid)</td><td class="context">Must reach within 2 hours from removal from storage</td></tr>
+          <tr><td>Sanitizing Rinse Water</td><td class="metric">77°C – 82°C</td><td class="context">Thermal sanitization minimum for mechanical warewashing</td></tr>
+          <tr><td>Hot Food Holding</td><td class="metric">Above 60°C</td><td class="context">Soups and hot dishes held for service must stay above TDZ</td></tr>
+          <tr><td>Cold Food Holding</td><td class="metric">Below 5°C</td><td class="context">Salads, dressings, cold proteins must stay below TDZ</td></tr>
+        </tbody>
+      </table>
+
+      <div class="subsection-title">Cleaning vs. Sanitizing — The Critical Distinction</div>
+      <div class="two-col">
+        <div class="info-box">
+          <strong>Cleaning</strong>
+          <p>Physically removes visible dirt, grease, and debris using detergents and mechanical scrubbing. Does <em>not</em> kill pathogens.</p>
+        </div>
+        <div class="info-box">
+          <strong>Sanitizing</strong>
+          <p>Applies high heat or chemical agents (chlorine, iodine, quaternary ammonium) to reduce pathogenic microorganism populations to safe public health levels. Must follow cleaning.</p>
+        </div>
+      </div>
+
+      <div class="subsection-title">The 4-Step Warewashing Sequence</div>
+      <ul class="styled-list">
+        <li><strong>Step 1 — Scrape:</strong> Remove all solid food debris into waste bins before washing</li>
+        <li><strong>Step 2 — Wash:</strong> Hot soapy water (minimum 43°C) with scrubbing brush or cloth</li>
+        <li><strong>Step 3 — Rinse:</strong> Clear hot water to remove all soap residue</li>
+        <li><strong>Step 4 — Sanitize:</strong> Chemical sanitizer solution or thermal rinse at 77°C–82°C; air dry — do not towel dry</li>
+      </ul>
+
+      <div class="pro-tip">
+        <div class="tip-label">During the Exam — Sanitation Habits That Score Points</div>
+        <ul>
+          <li>Keep a sanitizer-soaked side towel at your station at all times — wipe the board between every protein change</li>
+          <li>Never use the same tongs for raw and cooked protein without washing them first</li>
+          <li>Visually check your thermometer is calibrated before using it — boiling water reads 100°C, ice water reads 0°C</li>
+          <li>Wash hands after touching your face, hair, or any non-food surface — assessors watch this</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- PART 04: KNIFE SKILLS -->
+  <section class="section-card" id="knife-skills" data-search>
+    <div class="card-header"><span class="card-num">PART 04</span><h2>Knife Skills & Precision Cuts</h2></div>
+    <div class="card-body">
+
+      <div class="subsection-title">Anatomy of the Chef's Knife</div>
+      <div class="knife-grid">
+        <div class="knife-part"><div class="part-name">Point</div><div class="part-desc">Topmost tip — piercing thin skins, scoring, and delicate incisions</div></div>
+        <div class="knife-part"><div class="part-name">Tip</div><div class="part-desc">Front third of blade — fine dicing, mincing herbs, and detailed cuts</div></div>
+        <div class="knife-part"><div class="part-name">Spine</div><div class="part-desc">Thick unsharpened top edge — provides rigidity and structural ballast</div></div>
+        <div class="knife-part"><div class="part-name">Heel</div><div class="part-desc">Rear edge near handle — used for dense cuts requiring maximum downward force</div></div>
+        <div class="knife-part"><div class="part-name">Tang</div><div class="part-desc">Steel extension into the handle. Full-tang construction is mandatory for professional durability and balance.</div></div>
+        <div class="knife-part"><div class="part-name">Bolster</div><div class="part-desc">Thick band between blade and handle — protects fingers and adds weight balance to the knife</div></div>
+      </div>
+
+      <div class="subsection-title">Standardized Precision Cuts — Assessors Measure These</div>
+      <div class="cuts-grid">
+        <div class="cut-card">
+          <div class="cut-name">Batonnet</div>
+          <div class="cut-dim">6 mm × 6 mm × 50 mm</div>
+          <div class="cut-note">Root structural cut — foundation for medium dice and french fry shapes</div>
+          <div class="cut-tip">Start with a paysanne slab first, then strip down to batonnet widths</div>
+        </div>
+        <div class="cut-card">
+          <div class="cut-name">Julienne</div>
+          <div class="cut-dim">3 mm × 3 mm × 50 mm</div>
+          <div class="cut-note">Fine matchstick — garnishes, stir-frys, and salad filaments</div>
+          <div class="cut-tip">Square off your vegetable into planks first — irregular shapes make uniform julienne impossible</div>
+        </div>
+        <div class="cut-card">
+          <div class="cut-name">Medium Dice</div>
+          <div class="cut-dim">12 mm × 12 mm × 12 mm</div>
+          <div class="cut-note">Derived directly from Batonnet — rotate and cross-cut</div>
+          <div class="cut-tip">Line up 4–5 batonnets, then slice across at 12 mm intervals in one clean motion</div>
+        </div>
+        <div class="cut-card">
+          <div class="cut-name">Small Dice</div>
+          <div class="cut-dim">6 mm × 6 mm × 6 mm</div>
+          <div class="cut-note">Uniform small cubes for soups, stuffings, and garnishes</div>
+          <div class="cut-tip">Cross-cut your batonnet strips at the same 6 mm width as the strip itself</div>
+        </div>
+        <div class="cut-card">
+          <div class="cut-name">Brunoise</div>
+          <div class="cut-dim">3 mm × 3 mm × 3 mm</div>
+          <div class="cut-note">Extremely fine dice — derived from Julienne strips cross-cut into cubes</div>
+          <div class="cut-tip">Only attempt brunoise on a razor-sharp knife — dull blades crush rather than cut at this scale</div>
+        </div>
+        <div class="cut-card">
+          <div class="cut-name">Chiffonade</div>
+          <div class="cut-dim">&lt; 1 mm thin ribbons</div>
+          <div class="cut-note">Exclusively for leafy herbs and greens — basil, spinach, sorrel</div>
+          <div class="cut-tip">Stack leaves, roll them into a tight cylinder, and slice across the roll with a smooth pull cut — never push-cut or you'll bruise the leaves</div>
+        </div>
+      </div>
+
+      <div class="subsection-title">Correct Knife Grip & Posture</div>
+      <ul class="styled-list">
+        <li><strong>Pinch grip on the blade:</strong> Thumb and index finger pinch the base of the blade just above the bolster — never grip only the handle</li>
+        <li><strong>Curl grip on the guide hand:</strong> Fingertips curl under, knuckles guide the blade — fingertips never exposed to the edge</li>
+        <li><strong>Rocking motion for mincing:</strong> Tip of the knife stays on the board; heel rocks up and down while the knife fans across the herb pile</li>
+        <li><strong>Board stability:</strong> Place a damp towel under your cutting board at all times — a sliding board is a safety hazard and an assessor red flag</li>
+      </ul>
+
+      <div class="pro-tip">
+        <div class="tip-label">Knife Exam Pro Tips</div>
+        <ul>
+          <li>Check your knife's sharpness before the exam — a sharp knife requires less force and produces cleaner, more uniform cuts</li>
+          <li>Assessors look at the <em>cross-section</em> of your dice, not just the top face — all 3 dimensions must match</li>
+          <li>Cut a flat base on round vegetables (onions, potatoes) first so they don't roll — this shows professional habit</li>
+          <li>Keep your cuts grouped in clean piles — scattered vegetables on the board signal disorganization</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- PART 05: COOKERY -->
+  <section class="section-card" id="cookery" data-search>
+    <div class="card-header"><span class="card-num">PART 05</span><h2>Technical Cookery Specifications</h2></div>
+    <div class="card-body">
+
+      <div class="subsection-title">The Five Grand Mother Sauces</div>
+      <div class="sauce-list">
+        <div class="sauce-item">
+          <div class="sauce-num">1</div>
+          <div class="sauce-content">
+            <div class="sauce-name">Béchamel</div>
+            <div class="sauce-desc">White milk base thickened with a <strong style="color:var(--gold-primary)">White Roux</strong> — equal parts butter and flour by weight, cooked without browning until a paste forms.</div>
+            <div class="sauce-tip">Warm your milk before adding to the roux — cold milk added to a hot roux creates lumps. Season with nutmeg, salt, and white pepper.</div>
+          </div>
+        </div>
+        <div class="sauce-item">
+          <div class="sauce-num">2</div>
+          <div class="sauce-content">
+            <div class="sauce-name">Velouté</div>
+            <div class="sauce-desc">Clear white stock (veal, chicken, or fish) thickened with a <strong style="color:var(--gold-primary)">Blond Roux</strong> — cooked slightly longer until a pale straw hue develops.</div>
+            <div class="sauce-tip">The stock used determines the name: Chicken Velouté, Veal Velouté, Fish Velouté — each is a separate derivative sauce.</div>
+          </div>
+        </div>
+        <div class="sauce-item">
+          <div class="sauce-num">3</div>
+          <div class="sauce-content">
+            <div class="sauce-name">Espagnole</div>
+            <div class="sauce-desc">Rich brown roasted veal stock thickened with a <strong style="color:var(--gold-primary)">Brown Roux</strong>, enriched with roasted tomato purée and a mirepoix matrix.</div>
+            <div class="sauce-tip">Espagnole is the base for Demi-Glace — reduced 50% with equal parts stock, it becomes one of the most important building blocks in classical cuisine.</div>
+          </div>
+        </div>
+        <div class="sauce-item">
+          <div class="sauce-num">4</div>
+          <div class="sauce-content">
+            <div class="sauce-name">Tomato Sauce</div>
+            <div class="sauce-desc">Red tomato reduction enriched with aromatics — thickened via tomato paste reduction or a blond roux backup depending on recipe.</div>
+            <div class="sauce-tip">Always sweat mirepoix before adding tomatoes — raw aromatics produce a flat, acidic sauce.</div>
+          </div>
+        </div>
+        <div class="sauce-item">
+          <div class="sauce-num">5</div>
+          <div class="sauce-content">
+            <div class="sauce-name">Hollandaise</div>
+            <div class="sauce-desc">Warm emulsion — <strong style="color:var(--gold-primary)">clarified butter</strong> suspended in beaten egg yolks, stabilized with an acid reduction (lemon juice or white wine vinegar).</div>
+            <div class="sauce-tip">Never let the double boiler water boil — steam only. If the sauce breaks, whisk in a small amount of cold water immediately to re-emulsify.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="subsection-title">Preparation Standards by Category</div>
+      <table class="data-table">
+        <thead><tr><th>Category</th><th>Key Technique</th><th>Critical Rule</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Stocks</strong></td><td>Low simmer — never boil</td><td class="context">Boiling emulsifies fats and particulates, destroying clarity. Skim scum during the first 15 minutes.</td></tr>
+          <tr><td><strong>Hard-Boiled Eggs</strong></td><td>Simmer 9–11 minutes</td><td class="context">Shock in ice bath immediately to halt cooking and prevent green ferrous sulfide rings around the yolk</td></tr>
+          <tr><td><strong>Poached Eggs</strong></td><td>Water at 71°C–82°C + vinegar</td><td class="context">Vinegar tightens white proteins quickly; yolk must remain fluid. Slide egg from a ramekin — never drop from height</td></tr>
+          <tr><td><strong>Green Vegetables</strong></td><td>Blanch in rapidly boiling salted water</td><td class="context">Ice bath immediately after blanching locks chlorophyll and stops the cooking process</td></tr>
+          <tr><td><strong>Roux Production</strong></td><td>Equal parts fat and flour by weight</td><td class="context">Cook roux fully before adding liquid — raw flour makes a sauce taste pasty and starchy</td></tr>
+          <tr><td><strong>Emulsified Dressings</strong></td><td>Acid + emulsifier + oil in correct ratio</td><td class="context">Standard vinaigrette ratio is 3 parts oil to 1 part acid. Whisk continuously while streaming in oil.</td></tr>
+        </tbody>
+      </table>
+
+      <div class="subsection-title">Mise en Place — The Foundation Rule</div>
+      <div class="info-box">
+        <p><strong>"Mise en Place"</strong> — French for <em>"everything in its place."</em> All measuring, washing, peeling, cutting, and staging of food components and equipment must be completed <strong>before any active heat process begins.</strong></p>
+      </div>
+
+      <div class="subsection-title">Stocks — Key Rules</div>
+      <ul class="styled-list">
+        <li><strong>Never boil:</strong> A rolling boil emulsifies fat into the liquid, producing a cloudy, greasy stock</li>
+        <li><strong>Cold water start:</strong> Always begin with cold water — this draws albumin and impurities out gradually for a cleaner result</li>
+        <li><strong>Mirepoix ratio:</strong> 2 parts onion : 1 part carrot : 1 part celery by weight is the classical standard</li>
+        <li><strong>Bouquet garni:</strong> Thyme, bay leaf, parsley stems, and peppercorns tied in cheesecloth or leek leaf — added in the last hour of simmering</li>
+        <li><strong>Skim early:</strong> Remove grey foam (albumin coagulate) during the first 15 minutes to keep the stock clear</li>
+        <li><strong>Strain carefully:</strong> Pour through a fine-mesh chinois without pressing solids — pressing forces cloudy particles through</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- PART 06: PLATING -->
+  <section class="section-card" id="plating" data-search>
+    <div class="card-header"><span class="card-num">PART 06</span><h2>Plating Standards & Presentation</h2></div>
+    <div class="card-body">
+      <p style="color:var(--text-secondary);font-size:13.5px;margin-bottom:18px;">Presentation is the final impression. Even a technically correct dish can lose points for poor plating. Assessors evaluate visual appeal, cleanliness, and composition as part of product evaluation.</p>
+
+      <div class="subsection-title">Plating Principles</div>
+      <div class="plating-grid">
+        <div class="plating-card">
+          <div class="pl-title">Plate Borders</div>
+          <div class="pl-body">The rim of the plate must be completely clean before submission.</div>
+          <div class="pl-do">Wipe with a clean, damp cloth using a single direction sweep</div>
+          <div class="pl-dont">Never use your apron or a soiled cloth to wipe the plate</div>
+        </div>
+        <div class="plating-card">
+          <div class="pl-title">Soup Presentation</div>
+          <div class="pl-body">Cream soups should have a smooth, uniform surface with a centered garnish.</div>
+          <div class="pl-do">Add a swirl of cream or a herb garnish (fresh parsley, chive oil) in the center</div>
+          <div class="pl-dont">Do not overfill the bowl — leave 1–1.5 cm of rim exposed</div>
+        </div>
+        <div class="plating-card">
+          <div class="pl-title">Salad Plating</div>
+          <div class="pl-body">Salads must look fresh, vibrant, and lightly dressed — not soggy or wilted.</div>
+          <div class="pl-do">Dress and plate salad at the very last second before service</div>
+          <div class="pl-dont">Never pool excess dressing at the bottom of the plate</div>
+        </div>
+        <div class="plating-card">
+          <div class="pl-title">Sandwich Cuts</div>
+          <div class="pl-body">Club sandwiches must be cut cleanly at 45° through all layers.</div>
+          <div class="pl-do">Secure with skewers before cutting; use a serrated bread knife with a long draw cut</div>
+          <div class="pl-dont">Do not press down while cutting — this compresses layers and ruins height</div>
+        </div>
+        <div class="plating-card">
+          <div class="pl-title">Color & Contrast</div>
+          <div class="pl-body">A visually compelling plate has at least 3 distinct colors representing protein, starch, and vegetable.</div>
+          <div class="pl-do">Place your brightest element (green herb, red tomato) last as the visual anchor</div>
+          <div class="pl-dont">Avoid monochromatic plates — all-beige food looks unfinished regardless of taste</div>
+        </div>
+        <div class="plating-card">
+          <div class="pl-title">Temperature on the Plate</div>
+          <div class="pl-body">Hot food must be plated on a warm plate; cold food on a cold or room-temperature plate.</div>
+          <div class="pl-do">Warm your soup bowls in advance by filling them with hot water for 1–2 minutes</div>
+          <div class="pl-dont">Never plate hot soup in a cold bowl — it drops the serving temperature instantly</div>
+        </div>
+        <div class="plating-card">
+          <div class="pl-title">Portion Consistency</div>
+          <div class="pl-body">All portions submitted should be consistent in size and volume.</div>
+          <div class="pl-do">Use ladles and portion scoops to ensure uniform serving sizes</div>
+          <div class="pl-dont">Eyeballing portions produces inconsistent plates that assessors note</div>
+        </div>
+        <div class="plating-card">
+          <div class="pl-title">Garnish Rules</div>
+          <div class="pl-body">Garnishes must be edible and relevant to the dish — purely decorative inedible garnishes are frowned upon in classical assessment.</div>
+          <div class="pl-do">Use fresh herb sprigs, a lemon wedge, or a vegetable cut from the dish itself</div>
+          <div class="pl-dont">Do not use plastic garnishes or anything that was not part of your assigned recipe</div>
+        </div>
+      </div>
+
+      <div class="pro-tip">
+        <div class="tip-label">The 3-Second Plate Check</div>
+        <p>Before presenting to the assessor, hold the plate at arm's length and ask: <em>Is it clean? Is it centered? Is there something obviously wrong?</em> Three seconds of visual review catches 90% of plating errors — a wilted leaf, a smeared border, an off-center garnish.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- PART 07: DISH GUIDES -->
+  <section class="section-card" id="dish-guides" data-search>
+    <div class="card-header"><span class="card-num">PART 07</span><h2>Specific Dish Technical Guides</h2></div>
+    <div class="card-body">
+
+      <div class="subsection-title">Cream of Mushroom Soup — Step-by-Step</div>
+      <ul class="styled-list">
+        <li><strong>Mise en Place:</strong> Dice onion (small dice), slice mushrooms uniformly, measure stock and cream, prepare a white roux quantity</li>
+        <li><strong>Sweat aromatics:</strong> Butter over medium heat — cook onion until translucent (3–4 min), no browning</li>
+        <li><strong>Add mushrooms:</strong> Cook until moisture evaporates and they begin to deepen in color — this concentrates flavor</li>
+        <li><strong>Roux stage:</strong> Add flour directly to the mushroom-onion mixture, stir and cook for 2 minutes to eliminate raw flour taste</li>
+        <li><strong>Add warm stock gradually:</strong> Whisk continuously as you add stock to prevent lumps</li>
+        <li><strong>Simmer:</strong> Low simmer for 15–20 minutes, stirring occasionally</li>
+        <li><strong>Blend (if smooth style):</strong> Blend 80% of the soup — leave some mushroom pieces for texture</li>
+        <li><strong>Finish:</strong> Add cream, adjust seasoning with salt and white pepper, do not boil after adding cream</li>
+        <li><strong>Service temperature:</strong> Must be held and served above 60°C</li>
+      </ul>
+      <div class="pro-tip">
+        <div class="tip-label">Mushroom Soup Pro Tips</div>
+        <ul>
+          <li>Reserve a few sautéed mushroom slices to float on top as garnish — shows attention to detail</li>
+          <li>If the soup is too thick, thin with warm stock — never with cold water, which dulls flavor</li>
+          <li>A pinch of nutmeg at the end elevates the flavor profile of any cream-based soup</li>
+        </ul>
+      </div>
+
+      <div class="subsection-title">French Vinaigrette — Emulsification Science</div>
+      <ul class="styled-list">
+        <li><strong>Classic ratio:</strong> 3 parts oil : 1 part acid (vinegar or lemon juice) — this is the universal foundation</li>
+        <li><strong>Emulsifier:</strong> A small amount of Dijon mustard acts as the emulsifying agent that keeps oil and vinegar temporarily combined</li>
+        <li><strong>Method:</strong> Whisk acid and mustard first, then slowly stream in oil while whisking continuously — the gradual addition is what creates the emulsion</li>
+        <li><strong>Season:</strong> Salt dissolves in the acid phase first, then pepper is added. Season and taste before service</li>
+        <li><strong>Consistency:</strong> A properly emulsified vinaigrette coats the back of a spoon and does not immediately separate</li>
+        <li><strong>Storage:</strong> Vinaigrette breaks over time — keep refrigerated and re-whisk before dressing the salad</li>
+      </ul>
+      <div class="pro-tip">
+        <div class="tip-label">Vinaigrette Tips</div>
+        <ul>
+          <li>Always dress the salad in a bowl first — toss gently to coat every leaf, then transfer to the plate. Never pour dressing directly onto a plated salad.</li>
+          <li>Add dressing from the outer edge of the bowl toward the center — this prevents bruising the leaves</li>
+        </ul>
+      </div>
+
+      <div class="subsection-title">Classic Club Sandwich — Assembly Protocol</div>
+      <ul class="styled-list">
+        <li><strong>Bread:</strong> 3 slices of white sandwich bread, toasted to even golden brown on both sides</li>
+        <li><strong>Layer 1 (bottom to middle):</strong> Lettuce leaf → tomato slices → cooked bacon strips → mayonnaise on bread underside</li>
+        <li><strong>Layer 2 (middle to top):</strong> Lettuce leaf → sliced cooked chicken breast → cheese slice → mayonnaise on bread underside</li>
+        <li><strong>Compress gently:</strong> Press the top slice down firmly but without crushing — use your palm, not body weight</li>
+        <li><strong>Secure:</strong> Insert 4 cocktail skewers at the 4 quarter-points before cutting</li>
+        <li><strong>Cut:</strong> Diagonal cuts at 45° to produce 4 triangular quarter portions — use a serrated knife with a long drawing motion</li>
+        <li><strong>Plate:</strong> Stand triangles cut-face outward so the layers are visible — this is the visual sell</li>
+      </ul>
+      <div class="pro-tip">
+        <div class="tip-label">Club Sandwich Tips</div>
+        <ul>
+          <li>Season chicken breast while cooking — bland protein inside a well-presented sandwich still loses flavor points</li>
+          <li>Pat bacon dry with a paper towel before assembling — excess grease soaks through and collapses the bread structure</li>
+          <li>Tomatoes should be sliced at medium thickness — too thin and they tear, too thick and they slide out during cutting</li>
+        </ul>
+      </div>
+
+      <div class="subsection-title">Consommé — Clarity is Everything</div>
+      <ul class="styled-list">
+        <li><strong>What it is:</strong> A perfectly clarified, crystal-clear, intensely flavored stock — the technical pinnacle of classical soup cookery</li>
+        <li><strong>The Raft (Clearmeat):</strong> A mixture of lean ground meat, egg whites, mirepoix, and acid (tomato) that forms a protein raft on the surface</li>
+        <li><strong>Process:</strong> The raft coagulates as the stock heats, trapping all particles and fat — it must never be stirred once the raft forms</li>
+        <li><strong>Critical rule:</strong> Never boil a consommé — a simmer only. Boiling destroys the raft and clouds the stock irreparably</li>
+        <li><strong>Straining:</strong> Ladle carefully through a fine-mesh strainer lined with dampened cheesecloth — never pour, never press</li>
+        <li><strong>Standard:</strong> A perfectly made consommé should be amber-gold, completely clear, and you should be able to read text through it</li>
+      </ul>
+
+      <div class="subsection-title">Potato Salad — Key Considerations</div>
+      <ul class="styled-list">
+        <li><strong>Potato type:</strong> Waxy potatoes (like red-skinned or new potatoes) hold their shape after cooking — avoid floury varieties which crumble</li>
+        <li><strong>Cook in cold water:</strong> Start potatoes in cold salted water and bring to a boil — even cooking throughout</li>
+        <li><strong>Do not overcook:</strong> Potatoes should be just fork-tender, not falling apart — check at 15 minutes for medium dice</li>
+        <li><strong>Dress while warm:</strong> Toss in a small amount of vinegar or stock while still warm — warm potatoes absorb dressing better</li>
+        <li><strong>Mayo ratio:</strong> Enough mayonnaise to coat, not to drown — the potatoes should remain the visual and textural star</li>
+        <li><strong>Temperature:</strong> Potato salad with mayonnaise dressing is a cold dish — must be held and served below 5°C</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- PART 08: WORKSTATION -->
+  <section class="section-card" id="workstation" data-search>
+    <div class="card-header"><span class="card-num">PART 08</span><h2>Workstation Management & Kitchen Etiquette</h2></div>
+    <div class="card-body">
+
+      <div class="subsection-title">Workstation Setup — The Right Way</div>
+      <ul class="styled-list">
+        <li><strong>Sanitize first:</strong> Before placing any tool or ingredient on your station, wipe it down with a sanitizing solution and let it air dry</li>
+        <li><strong>Everything has a place:</strong> Knife roll on the right, cutting board center, mise en place bowls organized left to right in order of use</li>
+        <li><strong>Separate raw from ready-to-eat:</strong> Raw proteins always on the right side of the board; vegetables and cooked items on the left</li>
+        <li><strong>Color-coded boards (if provided):</strong> Red for raw meat, yellow for poultry, green for produce, white for dairy/bread — follow these strictly</li>
+        <li><strong>Side towels:</strong> Maintain at least two — one dry (for handling hot pans), one wet-sanitizer soaked (for wiping surfaces)</li>
+        <li><strong>Heat sources managed:</strong> Turn pot handles inward so they cannot be knocked — assessors check this</li>
+      </ul>
+
+      <div class="subsection-title">During Cooking — Continuous Habits</div>
+      <ul class="styled-list">
+        <li><strong>Clean as you go (CAYG):</strong> Wipe, rinse, and reset your board after each major task — never let debris accumulate</li>
+        <li><strong>Label and cover:</strong> Any prepped component going into the chiller must be labeled and covered</li>
+        <li><strong>Taste and adjust:</strong> Season at every stage — base, mid-cook, and final. Assessors look for food that is correctly seasoned</li>
+        <li><strong>Check temperatures:</strong> Use your probe thermometer on every protein before plating — non-negotiable</li>
+        <li><strong>Communicate:</strong> If you pass behind someone at the station, say <em>"Behind"</em> or <em>"Hot"</em> — this is professional kitchen protocol</li>
+      </ul>
+
+      <div class="subsection-title">After Service — Station Closeout</div>
+      <ul class="styled-list">
+        <li>Transfer all leftover food properly — covered, labeled, and stored at correct temperature</li>
+        <li>Dispose of waste properly — do not leave it on the station</li>
+        <li>Wash, rinse, and sanitize all tools, boards, and surfaces used</li>
+        <li>Return equipment to its original place — assessors note whether you leave the station in better or worse condition</li>
+      </ul>
+
+      <div class="pro-tip">
+        <div class="tip-label">Workstation Psychology</div>
+        <p>A tidy station is a visible signal of a tidy mind. Assessors cannot see your thinking — but they can see your workspace. A clean, organized station builds the assessor's confidence in you <em>before</em> they even taste the food. Treat your 1.5 square meters like a professional kitchen pass.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- PART 09: PRO TIPS -->
+  <section class="section-card" id="protips" data-search>
+    <div class="card-header"><span class="card-num">PART 09</span><h2>Pro Tips — Confidence & Competence Edge</h2></div>
+    <div class="card-body">
+      <p style="color:var(--text-secondary);font-size:13.5px;margin-bottom:20px;">These are the differences between candidates who pass and those who excel. Apply these during practice, and they become automatic on assessment day.</p>
+
+      <div class="protip-grid">
+        <div class="protip-card">
+          <div class="pt-icon">🔪</div>
+          <div class="pt-title">Always Square Off Your Vegetables</div>
+          <div class="pt-body">Before any precision cut, trim all four sides of your vegetable to create a flat rectangular block (tourné base). Uniform cuts are physically impossible from a rounded surface. This single habit separates trained cooks from self-taught ones.</div>
+        </div>
+        <div class="protip-card">
+          <div class="pt-icon">🌡️</div>
+          <div class="pt-title">Two-Point Thermometer Check</div>
+          <div class="pt-body">Test your thermometer before the exam using ice water (should read 0°C) and boiling water (should read 100°C). If either is off, recalibrate using the calibration nut. An unchecked thermometer is a professional liability.</div>
+        </div>
+        <div class="protip-card">
+          <div class="pt-icon">⏱️</div>
+          <div class="pt-title">The 15-15-60 Rule</div>
+          <div class="pt-body">Use the first 15 minutes to set up, the last 15 to plate and finish, and the middle 60 for all active cooking. If you're still cooking at minute 80, you've lost your buffer. Build your timeline backward from submission.</div>
+        </div>
+        <div class="protip-card">
+          <div class="pt-icon">🧂</div>
+          <div class="pt-title">Season in Layers, Not at the End</div>
+          <div class="pt-body">Salt your water when blanching, season your aromatics when sweating, taste your soup mid-cook, and adjust at the finish. Food seasoned only at the end tastes flat and one-dimensional compared to food built up in layers.</div>
+        </div>
+        <div class="protip-card">
+          <div class="pt-icon">🧊</div>
+          <div class="pt-title">Prepare Your Ice Bath in Advance</div>
+          <div class="pt-body">Have your ice bath ready <em>before</em> you blanch — not after. The point of shocking is speed. If you have to scramble for ice after pulling your vegetables, they will have overcoooked by the time they hit the water.</div>
+        </div>
+        <div class="protip-card">
+          <div class="pt-icon">🍳</div>
+          <div class="pt-title">Hot Pan, Then Add Fat</div>
+          <div class="pt-body">Always heat your pan first, then add oil or butter. This prevents sticking and ensures proper searing. A cold pan with cold fat means the protein steams rather than browns — and browning is where flavor develops.</div>
+        </div>
+        <div class="protip-card">
+          <div class="pt-icon">🧠</div>
+          <div class="pt-title">Talk Through Your Oral Q&A Out Loud</div>
+          <div class="pt-body">Don't just read the answers — practice saying them aloud. The oral exam is conversational. Assessors notice when answers sound recited vs. understood. If you can explain it naturally, you've internalized it.</div>
+        </div>
+        <div class="protip-card">
+          <div class="pt-icon">🍞</div>
+          <div class="pt-title">Toast Bread Right Before Assembly</div>
+          <div class="pt-body">Toast your bread during the final assembly phase, not mid-cook. Bread that sits toasted for 20 minutes becomes soft and loses its structural integrity. Warm toast also holds spreads better and gives better bite to the final sandwich.</div>
+        </div>
+        <div class="protip-card">
+          <div class="pt-icon">🥗</div>
+          <div class="pt-title">Cold Components Stay Cold Until Service</div>
+          <div class="pt-body">Salad greens, dressings, and cold proteins must remain in the chiller until the very last moment of plating. Warm lettuce wilts in minutes after dressing. This is food safety <em>and</em> presentation — both scored.</div>
+        </div>
+        <div class="protip-card">
+          <div class="pt-icon">🧹</div>
+          <div class="pt-title">Wipe Your Plate Right Before Handing In</div>
+          <div class="pt-body">No matter how clean the plate looks from above, grease transfers from your hands to the underside and rim during plating. Do a final rim wipe with a clean damp cloth immediately before presenting. Assessors handle the plate — they notice everything.</div>
+        </div>
+        <div class="protip-card">
+          <div class="pt-icon">📋</div>
+          <div class="pt-title">Mentally Rehearse the Sequence Nightly</div>
+          <div class="pt-body">Close your eyes and walk through the full 90 minutes in your head — every station move, every timing decision, every dish. Athletes call this visualization. Professional cooks call it prep. It trains your muscle memory before you ever pick up a knife.</div>
+        </div>
+        <div class="protip-card">
+          <div class="pt-icon">💬</div>
+          <div class="pt-title">Greet the Assessor Professionally</div>
+          <div class="pt-body">A confident, professional greeting when the assessor approaches sets a positive tone. Say your name, your position, and what you are preparing if asked. Assessors are human — a composed, articulate candidate builds goodwill that carries into product evaluation.</div>
+        </div>
+      </div>
+
+      <div class="subsection-title">Common Mistakes to Avoid</div>
+      <table class="data-table">
+        <thead><tr><th>Mistake</th><th>Why It Happens</th><th>How to Prevent It</th></tr></thead>
+        <tbody>
+          <tr><td>Forgetting to probe the chicken</td><td class="context">Time pressure causes candidates to skip verification</td><td class="context">Set a mental trigger: "No chicken leaves the pan without the thermometer"</td></tr>
+          <tr><td>Overseasoning at the end</td><td class="context">Under-seasoning during cooking leads to over-correcting at finish</td><td class="context">Season at every stage and taste throughout</td></tr>
+          <tr><td>Greasy or smeared plate borders</td><td class="context">Rushing during plating; handling hot plates with bare hands</td><td class="context">Always do a final border wipe with a clean damp cloth before submission</td></tr>
+          <tr><td>Wilted salad at service</td><td class="context">Dressing the salad too early in the timeline</td><td class="context">Keep greens chilled and dress maximum 2 minutes before plating</td></tr>
+          <tr><td>Lumpy soup or sauce</td><td class="context">Adding cold liquid to a hot roux too quickly</td><td class="context">Warm your liquid, add gradually, and whisk constantly</td></tr>
+          <tr><td>Cutting board sliding during knife work</td><td class="context">No damp towel placed under the board</td><td class="context">Always place a folded damp towel under the cutting board before beginning</td></tr>
+          <tr><td>Running out of time</td><td class="context">No mental timeline; starting cooking before Mise en Place is complete</td><td class="context">Follow the 15-15-60 rule; complete all prep before any cooking begins</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- PART 10: MINDSET -->
+  <section class="section-card" id="mindset" data-search>
+    <div class="card-header"><span class="card-num">PART 10</span><h2>Assessor Mindset & Exam Psychology</h2></div>
+    <div class="card-body">
+      <p style="color:var(--text-secondary);font-size:13.5px;margin-bottom:18px;">Understanding how assessors evaluate and how to manage exam pressure separates candidates who know the material from those who demonstrate it under pressure.</p>
+
+      <div class="mindset-grid">
+        <div class="mindset-card">
+          <div class="mc-title">Assessors Look for Habits, Not Perfection</div>
+          <div class="mc-body">TESDA NC II is a competency standard, not a competition. Assessors want to confirm you can safely and consistently perform the task. Correct habits — even if slow — score better than fast but unsafe execution.</div>
+        </div>
+        <div class="mindset-card">
+          <div class="mc-title">Mistakes Are Recoverable — Panicking Is Not</div>
+          <div class="mc-body">If something goes wrong — soup over-reduces, an egg breaks — stay calm, correct it, and continue. Assessors know accidents happen. What they evaluate is how you respond: professionally or with visible panic.</div>
+        </div>
+        <div class="mindset-card">
+          <div class="mc-title">Silence Is Confidence During the Oral Exam</div>
+          <div class="mc-body">If you don't immediately know the answer, pause, breathe, and think. A composed 3-second pause looks confident. Blurting out a wrong answer to fill silence looks anxious. Assessors respect candidates who think before speaking.</div>
+        </div>
+        <div class="mindset-card">
+          <div class="mc-title">Your Station Tells Your Story Before You Do</div>
+          <div class="mc-body">The first thing an assessor sees when they approach is your station. An organized, sanitized workspace with labeled components signals a professional. A cluttered, damp, disorganized station signals risk — before a single bite is taken.</div>
+        </div>
+        <div class="mindset-card">
+          <div class="mc-title">Speak in Complete Sentences During Oral Q&A</div>
+          <div class="mc-body">"74 degrees" is an answer. "Poultry must reach an internal temperature of 74°C and hold for a minimum of 15 seconds to ensure all pathogens are destroyed" is a competent answer. Full explanations demonstrate understanding, not just memorization.</div>
+        </div>
+        <div class="mindset-card">
+          <div class="mc-title">Physical Calm Produces Mental Calm</div>
+          <div class="mc-body">Breathe slowly, move deliberately, and keep your movements economical. Fast, jerky movement in the kitchen leads to errors and accidents. A candidate who moves calmly and purposefully looks trained. Match your physical pace to your mental plan.</div>
+        </div>
+      </div>
+
+      <div class="success-box" style="margin-top:20px;">
+        <div class="suc-label">Day-of Confidence Protocol</div>
+        <ul>
+          <li>Eat a proper meal at least 90 minutes before your assessment — cognitive function drops with low blood sugar</li>
+          <li>Arrive 20–30 minutes early to settle your nerves and review your timeline</li>
+          <li>Do one final mental walkthrough of the full 90 minutes while waiting</li>
+          <li>When you walk into the station, take one deliberate breath and begin with your sanitization routine — the familiar action grounds you</li>
+          <li>Trust your preparation. You've practiced this. Execute what you know.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- PART 11: ORAL Q&A -->
+  <section class="section-card" id="oral-bank" data-search>
+    <div class="card-header"><span class="card-num">PART 11</span><h2>Oral Examination Question Bank</h2></div>
+    <div class="card-body">
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:20px;">Tap any card to reveal the model answer. Practice saying them out loud — not just reading them silently.</p>
+
+      <div class="flashcard-grid">
+
+        <div class="flashcard" onclick="toggleCard(this)">
+          <div class="fc-q">What is the primary operational difference between cleaning and sanitizing?</div>
+          <div class="fc-hint">Tap to reveal answer</div>
+          <div class="fc-a">Cleaning physically removes visible dirt, grease, and debris using detergents and scrubbing. <strong>Sanitizing</strong> applies high heat or chemical agents (chlorine, iodine, quaternary ammonium) to reduce pathogenic microorganism populations to safe public health levels. Cleaning must occur before sanitizing can be effective.</div>
+        </div>
+
+        <div class="flashcard" onclick="toggleCard(this)">
+          <div class="fc-q">Explain the concept and operational rule of "Mise en Place."</div>
+          <div class="fc-hint">Tap to reveal answer</div>
+          <div class="fc-a"><strong>Mise en Place</strong> means "everything in its place." It is the discipline of measuring, washing, peeling, cutting, and staging all food components, equipment, and serving plates before any active heat or cooking process begins. It is the foundation of efficient, safe, and organized cooking.</div>
+        </div>
+
+        <div class="flashcard" onclick="toggleCard(this)">
+          <div class="fc-q">What are the three approved methods for defrosting frozen proteins safely?</div>
+          <div class="fc-hint">Tap to reveal answer</div>
+          <div class="fc-a"><strong>1. Refrigerator thawing</strong> — at 1°C–4°C (preferred method). <strong>2. Cold running water</strong> — fully submerged under continuous cold potable water at or below 21°C. <strong>3. Direct cooking</strong> — as a direct, uninterrupted part of the active cooking process. Room-temperature thawing is never acceptable.</div>
+        </div>
+
+        <div class="flashcard" onclick="toggleCard(this)">
+          <div class="fc-q">What action must be taken immediately if a cross-contamination event occurs at your workstation?</div>
+          <div class="fc-hint">Tap to reveal answer</div>
+          <div class="fc-a"><strong>Stop all cooking operations immediately.</strong> Discard all contaminated food items. Remove tainted boards, knives, and prep towels to the dishwashing station. <strong>Wash, rinse, and chemically sanitize</strong> the prep table surface before retrieving clean equipment and restarting the task.</div>
+        </div>
+
+        <div class="flashcard" onclick="toggleCard(this)">
+          <div class="fc-q">Why can an un-calibrated thermometer not be used during the testing stage?</div>
+          <div class="fc-hint">Tap to reveal answer</div>
+          <div class="fc-a">An inaccurate thermometer may display a false-safe reading on undercooked poultry, resulting in the delivery of dangerous foodborne pathogens — specifically <strong>Salmonella</strong> — to the grading table. This constitutes both an automatic failure and a food safety violation under TESDA standards.</div>
+        </div>
+
+        <div class="flashcard" onclick="toggleCard(this)">
+          <div class="fc-q">What is the Temperature Danger Zone and what is the 2-hour rule?</div>
+          <div class="fc-hint">Tap to reveal answer</div>
+          <div class="fc-a">The <strong>Temperature Danger Zone (TDZ) is 5°C to 60°C</strong>. Pathogenic bacteria multiply exponentially within this range. Food must not remain in the danger zone for a cumulative total exceeding <strong>2 hours</strong> throughout the entire handling and processing cycle.</div>
+        </div>
+
+        <div class="flashcard" onclick="toggleCard(this)">
+          <div class="fc-q">What is the required internal temperature for cooked poultry and why?</div>
+          <div class="fc-hint">Tap to reveal answer</div>
+          <div class="fc-a">Poultry must reach an internal core temperature of <strong>74°C maintained for a minimum of 15 seconds</strong>. This applies to all chicken, duck, and turkey. This temperature is the verified thermal destruction point for Salmonella and other poultry-associated pathogens. It is confirmed by assessors using a calibrated digital probe thermometer.</div>
+        </div>
+
+        <div class="flashcard" onclick="toggleCard(this)">
+          <div class="fc-q">Name the Five Grand Mother Sauces and their base thickening agents.</div>
+          <div class="fc-hint">Tap to reveal answer</div>
+          <div class="fc-a"><strong>1. Béchamel</strong> — milk + white roux. <strong>2. Velouté</strong> — white stock + blond roux. <strong>3. Espagnole</strong> — brown veal stock + brown roux + tomato. <strong>4. Tomato Sauce</strong> — tomato reduction + aromatics. <strong>5. Hollandaise</strong> — clarified butter emulsified in egg yolks with acid reduction.</div>
+        </div>
+
+        <div class="flashcard" onclick="toggleCard(this)">
+          <div class="fc-q">What are the exact dimensions of a Brunoise cut and which cut is it derived from?</div>
+          <div class="fc-hint">Tap to reveal answer</div>
+          <div class="fc-a">Brunoise measures <strong>3 mm × 3 mm × 3 mm</strong>. It is derived directly from the <strong>Julienne</strong> cut (3 mm × 3 mm × 50 mm matchstick strips) by cross-cutting the strips at the same 3 mm interval to produce uniformly tiny cubes.</div>
+        </div>
+
+        <div class="flashcard" onclick="toggleCard(this)">
+          <div class="fc-q">Why must green vegetables be blanched and immediately shocked in ice water?</div>
+          <div class="fc-hint">Tap to reveal answer</div>
+          <div class="fc-a">Blanching in rapidly boiling salted water, followed immediately by an ice water bath, <strong>locks in the chlorophyll pigment</strong> that produces the bright green color. Without the ice bath, residual heat continues to break down chlorophyll through enzymatic activity, resulting in a dull, olive-colored vegetable.</div>
+        </div>
+
+        <div class="flashcard" onclick="toggleCard(this)">
+          <div class="fc-q">What is the correct temperature range for sanitizing rinse water in mechanical warewashing?</div>
+          <div class="fc-hint">Tap to reveal answer</div>
+          <div class="fc-a">Sanitizing rinse water for chemical-free thermal sanitization must be maintained at <strong>77°C to 82°C</strong>. This temperature range achieves pathogen reduction in mechanical warewashing without requiring additional chemical sanitizers.</div>
+        </div>
+
+        <div class="flashcard" onclick="toggleCard(this)">
+          <div class="fc-q">What biological hazard is associated with Staphylococcus aureus and how is it transmitted in a kitchen?</div>
+          <div class="fc-hint">Tap to reveal answer</div>
+          <div class="fc-a"><em>Staphylococcus aureus</em> is found on <strong>human skin, in the nose, and in open wounds</strong>. It is transmitted by handling food with unwashed hands, uncovered cuts, or by sneezing/coughing over food. This is why mandatory hand washing, wound coverage with bright-colored bandages, and the zero-jewelry rule are critical controls.</div>
+        </div>
+
+        <div class="flashcard" onclick="toggleCard(this)">
+          <div class="fc-q">What is the correct standard ratio for a French vinaigrette and what acts as the emulsifier?</div>
+          <div class="fc-hint">Tap to reveal answer</div>
+          <div class="fc-a">The standard French vinaigrette ratio is <strong>3 parts oil to 1 part acid</strong> (vinegar or lemon juice). <strong>Dijon mustard</strong> acts as the emulsifying agent — it contains lecithin-like compounds that temporarily bind the oil and acid into a unified suspension when whisked together.</div>
+        </div>
+
+        <div class="flashcard" onclick="toggleCard(this)">
+          <div class="fc-q">What makes a consommé different from a regular stock, and what is the raft?</div>
+          <div class="fc-hint">Tap to reveal answer</div>
+          <div class="fc-a">A consommé is a <strong>clarified stock</strong> — perfectly clear, deeply flavored, and impurity-free. The <strong>raft (clearmeat)</strong> is a mixture of lean ground meat, egg whites, mirepoix, and acid that forms a protein coagulate on the surface as the stock heats, trapping all particles and fat. The raft must never be stirred once formed.</div>
+        </div>
+
+        <div class="flashcard" onclick="toggleCard(this)">
+          <div class="fc-q">What is the 4-step warewashing sequence in order?</div>
+          <div class="fc-hint">Tap to reveal answer</div>
+          <div class="fc-a"><strong>1. Scrape</strong> — remove solid food debris into waste bins. <strong>2. Wash</strong> — hot soapy water with mechanical scrubbing. <strong>3. Rinse</strong> — clear hot water to remove all soap residue. <strong>4. Sanitize</strong> — chemical sanitizer solution or thermal rinse at 77°C–82°C. Air dry — never towel dry, as this re-contaminates surfaces.</div>
+        </div>
+
+        <div class="flashcard" onclick="toggleCard(this)">
+          <div class="fc-q">Why should stocks never be boiled, and what should they be instead?</div>
+          <div class="fc-hint">Tap to reveal answer</div>
+          <div class="fc-a">Boiling a stock <strong>emulsifies fats and particulates</strong> into the liquid, producing a cloudy, greasy result that cannot be clarified afterward. Stocks must be held at a <strong>low simmer</strong> — small bubbles breaking the surface gently — to keep the fat and protein particles separate so they can be skimmed off.</div>
+        </div>
+
+        <div class="flashcard" onclick="toggleCard(this)">
+          <div class="fc-q">What is the mirepoix ratio used in classical stock and soup preparation?</div>
+          <div class="fc-hint">Tap to reveal answer</div>
+          <div class="fc-a">The classical mirepoix ratio is <strong>2 parts onion : 1 part carrot : 1 part celery by weight</strong>. This aromatic vegetable base forms the flavor foundation of most stocks, soups, and braises in classical Western cookery.</div>
+        </div>
+
+        <div class="flashcard" onclick="toggleCard(this)">
+          <div class="fc-q">What are the physical, chemical, and biological hazard categories in food safety?</div>
+          <div class="fc-hint">Tap to reveal answer</div>
+          <div class="fc-a"><strong>Physical:</strong> Foreign objects — metal shards, glass, hair, jewelry. <strong>Chemical:</strong> Cleaning agents, sanitizers, pesticide residues that contaminate food. <strong>Biological:</strong> Pathogenic microorganisms including Salmonella (poultry), E. coli (ground beef/produce), and Staphylococcus aureus (skin/wounds). All three categories are controlled through proper handling, sanitation, and cooking procedures.</div>
+        </div>
+
+        <div class="flashcard" onclick="toggleCard(this)">
+          <div class="fc-q">How do you correctly hold a chef's knife — describe the pinch grip?</div>
+          <div class="fc-hint">Tap to reveal answer</div>
+          <div class="fc-a">In the <strong>pinch grip</strong>, the thumb and index finger pinch the base of the blade itself — just above and in front of the bolster — while the remaining three fingers wrap around the handle. This grip provides maximum control, precision, and safety compared to gripping only the handle, which reduces blade control.</div>
+        </div>
+
+        <div class="flashcard" onclick="toggleCard(this)">
+          <div class="fc-q">What does FIFO mean and how is it applied in a professional kitchen?</div>
+          <div class="fc-hint">Tap to reveal answer</div>
+          <div class="fc-a"><strong>FIFO stands for First In, First Out.</strong> It means the oldest stock (first received or produced) is used before newer stock. In practice: when restocking a chiller or shelf, move older items to the front and place newer items behind. This prevents food waste and reduces the risk of spoiled product being used in service.</div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- PART 12: MOCK SCENARIO -->
+  <section class="section-card" id="mock-scenario" data-search>
+    <div class="card-header"><span class="card-num">PART 12</span><h2>Mock Assessment Scenario: 90-Minute Window</h2></div>
+    <div class="card-body">
+      <div class="info-box" style="margin-bottom:20px;">
+        <strong>Assigned Deliverables (Set Alpha):</strong>
+        <ul>
+          <li>Cream of Mushroom Soup</li>
+          <li>Garden Salad with French Vinaigrette</li>
+          <li>Classic Club Sandwich</li>
+        </ul>
+      </div>
+
+      <div class="timeline">
+        <div class="tl-item">
+          <div class="tl-spine"><div class="tl-dot"></div><div class="tl-line"></div></div>
+          <div class="tl-content">
+            <div class="tl-time">00:00 – 00:15</div>
+            <div class="tl-label">Station Sanitization & Deep Mise en Place</div>
+            <div class="tl-detail">Sanitize all surfaces. Gather all components. Wash all vegetables. Place a damp towel under your cutting board. Dice onion and celery (small dice) for both soup and salad base simultaneously. Slice mushrooms uniformly. Measure and organize stock, cream, flour, and butter. Set up your ice bath now — before you need it.</div>
+            <div class="tl-tip">Do not start the stove until every component is prepped and in its bowl. Use this phase for zero cooking — only organize.</div>
+          </div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-spine"><div class="tl-dot"></div><div class="tl-line"></div></div>
+          <div class="tl-content">
+            <div class="tl-time">00:15 – 00:45</div>
+            <div class="tl-label">Hot Soup Production</div>
+            <div class="tl-detail">Sweat onion in butter over medium heat until translucent — 3 minutes. Add mushrooms and cook until liquid evaporates. Add flour, stir and cook for 2 minutes. Add warm stock gradually, whisking continuously. Bring to a low simmer and cook 15–20 minutes. Blend 80%, return to heat, add cream, season. Keep above 60°C.</div>
+            <div class="tl-tip">Never boil after adding cream — it will break and curdle. Hold at a gentle simmer until service.</div>
+          </div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-spine"><div class="tl-dot"></div><div class="tl-line"></div></div>
+          <div class="tl-content">
+            <div class="tl-time">00:45 – 01:00</div>
+            <div class="tl-label">Protein Preparation</div>
+            <div class="tl-detail">Cook chicken breast over medium-high heat in a hot, oiled pan. Probe with thermometer — must reach 74°C. Set aside and rest. Cook bacon until crispy, drain on paper towel. Keep proteins warm but not overcooking — cover loosely with foil.</div>
+            <div class="tl-tip">Season chicken on both sides before cooking. Bland protein is a flavor score deduction even if everything else is correct.</div>
+          </div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-spine"><div class="tl-dot"></div><div class="tl-line"></div></div>
+          <div class="tl-content">
+            <div class="tl-time">01:00 – 01:15</div>
+            <div class="tl-label">Vinaigrette &amp; Salad Prep</div>
+            <div class="tl-detail">Whisk Dijon mustard and vinegar together. Slowly stream in oil while whisking to form an emulsion. Season with salt and pepper — taste. Wash and dry salad greens — use a clean towel or spinner. Keep in the chiller. Slice tomatoes, prep any additional garnishes. Keep everything cold.</div>
+            <div class="tl-tip">Do not dress the salad yet. Dressed greens deteriorate within 2 minutes. Hold until final assembly.</div>
+          </div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-spine"><div class="tl-dot"></div><div class="tl-line"></div></div>
+          <div class="tl-content">
+            <div class="tl-time">01:15 – 01:30</div>
+            <div class="tl-label">Assembly, Plating &amp; Presentation</div>
+            <div class="tl-detail">Toast 3 slices of bread. Assemble club sandwich in layers, secure with 4 skewers, cut diagonally at 45°, plate cut-face out. Toss salad with vinaigrette at the last moment, plate immediately. Ladle soup into a warmed bowl, garnish with a mushroom slice and cream swirl. Final border wipe on all plates. Present to assessor on time.</div>
+            <div class="tl-tip">Do the 3-second plate check before handing each dish over: clean border, centered garnish, correct portion. Don't rush the last step — presentation is scored.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="subsection-title">Pre-Submission Checklist</div>
+      <ul class="styled-list">
+        <li><strong>Chicken verified at 74°C</strong> — probe thermometer used and confirmed before assembly</li>
+        <li><strong>Soup held above 60°C</strong> — check temperature just before ladling</li>
+        <li><strong>Salad dressed last moment</strong> — greens are bright, crisp, lightly coated</li>
+        <li><strong>Sandwich skewered and cut at 45°</strong> — layers visible in cross-section</li>
+        <li><strong>All plate borders wiped clean</strong> — use a fresh damp cloth, not an apron</li>
+        <li><strong>Workstation sanitized</strong> — surfaces wiped, boards clean, tools organized</li>
+        <li><strong>All waste disposed</strong> — no food debris visible on station</li>
+        <li><strong>Submitted within time</strong> — minimum 5 minutes buffer before limit</li>
+      </ul>
+
+      <div class="success-box" style="margin-top:20px;">
+        <div class="suc-label">Final Reminder — You Are Ready</div>
+        <p>Every temperature in this reviewer, every cut dimension, every technique — you have reviewed it all. On assessment day, trust what you have practiced. Move with purpose, cook with care, and present with confidence. The assessor is not there to fail you — they are there to confirm what you already know.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="no-results" id="noResults">
+    <div class="nr-icon">◎</div>
+    <p>No sections match your search. Try a broader term.</p>
+  </div>
+
+  <div class="page-bottom"></div>
+</div>
+
+<script>
+  function toggleCard(el) {
+    el.classList.toggle('revealed');
+    const hint = el.querySelector('.fc-hint');
+    hint.textContent = el.classList.contains('revealed') ? 'Tap to hide' : 'Tap to reveal answer';
+  }
+
+  function filterSections() {
+    const query = document.getElementById('searchInput').value.trim().toLowerCase();
+    const sections = document.querySelectorAll('.section-card[data-search]');
+    const hero = document.querySelector('.hero-banner');
+    let anyVisible = false;
+    sections.forEach(sec => {
+      const match = !query || sec.innerText.toLowerCase().includes(query);
+      sec.classList.toggle('hidden', !match);
+      if (match) anyVisible = true;
+    });
+    hero.style.display = query ? 'none' : '';
+    document.getElementById('noResults').style.display = (!anyVisible && query) ? 'block' : 'none';
+  }
+</script>
+</body>
+</html>
+</script>
+
+<script>
+// Pull the reviewer HTML from the data script tag and store it
+// It will be injected into the DOM only after successful login
+const _rd = document.getElementById('reviewerData');
+const REVIEWER_CONTENT = _rd ? _rd.textContent : '';
+</script>
+
+</body>
+</html>
