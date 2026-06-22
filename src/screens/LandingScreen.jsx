@@ -280,10 +280,10 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
             {[
               { code:'LET',          full:'Licensure Examination for Teachers',    live:true,  price:249, regular:399, stats:['14 topics covered','1,554+ questions','23 structured lessons','Full mock board exam'] },
               { code:'TESDA',        full:'NC Qualifications Bundle',              live:true,  price:99,  regular:199, stats:['10+ NC II qualifications','Full HTML reviewers','Video + infographics','Lifetime access to all NCs'] },
-              { code:'NLE',          full:'Nursing Licensure Examination',         live:false, price:249, regular:399, stats:['9 subject areas','Content in preparation'] },
-              { code:'NAPOLCOM',     full:'NAPOLCOM Examination',                  live:false, price:249, regular:399, stats:['Police Officer I & Promotion','Content in preparation'] },
-              { code:'Civil Service',full:'Civil Service Examination',             live:false, price:249, regular:399, stats:['Professional & Sub-professional','Content in preparation'] },
-              { code:'Criminology',  full:'Criminologist Licensure Examination',   live:false, price:249, regular:399, stats:['Content in preparation'] },
+              { code:'NLE',          full:'Nursing Licensure Examination',         live:false, stats:['9 subject areas','Content in preparation'] },
+              { code:'NAPOLCOM',     full:'NAPOLCOM Examination',                  live:false, stats:['Police Officer I & Promotion','Content in preparation'] },
+              { code:'Civil Service',full:'Civil Service Examination',             live:false, stats:['Professional & Sub-professional','Content in preparation'] },
+              { code:'Criminology',  full:'Criminologist Licensure Examination',   live:false, stats:['Content in preparation'] },
             ].map(c => {
               const isSelected = selectedCourse === c.code
               return (
@@ -332,57 +332,81 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
         <div style={{ ...s.container, textAlign:'center' }}>
           <div style={s.sectionEyebrow}>Pricing</div>
           <h2 style={s.sectionTitle}>One course. One price. Yours forever.</h2>
-          {(() => {
-            const COURSE_PRICES = {
-              LET          : { price: 249, regular: 399 },
-              TESDA        : { price: 99,  regular: 199 },
-              NLE          : { price: 249, regular: 399 },
-              NAPOLCOM     : { price: 249, regular: 399 },
-              'Civil Service': { price: 249, regular: 399 },
-              Criminology  : { price: 249, regular: 399 },
-            }
-            const COURSE_FEATURES = {
-              TESDA: [
-                'Full HTML reviewers for all NC II qualifications',
-                'Video lessons per core competency',
-                'Infographics and visual guides',
-                '10+ qualifications: Cookery, Caregiving, Housekeeping, Domestic Work + more',
-                'Lifetime access — all future qualifications included',
-                'Works on any device, anytime',
-              ],
-              default: [
-                `Full access to ${selectedCourse} reviewer (1,554+ questions)`,
-                'Structured lessons with memory hooks',
-                'Readiness Score updated daily',
-                'Spaced repetition scheduling',
-                'Coach Insights and daily recommendations',
-                'Mock board exam simulation',
-                'NLE, NAPOLCOM, Civil Service + more when available',
-              ],
-            }
-            const cp       = COURSE_PRICES[selectedCourse] || COURSE_PRICES.LET
-            const features = COURSE_FEATURES[selectedCourse] || COURSE_FEATURES.default
-            return (
-              <div style={s.pricingCard}>
-                <div style={s.priceEyebrow}>{selectedCourse} — Introductory Price</div>
-                <div style={s.priceAmount}><span style={s.priceSup}>₱</span>{cp.price}</div>
-                <div style={s.priceOld}>Regular price: ₱{cp.regular}</div>
-                <div style={s.priceNote}>One-time payment · Lifetime access to {selectedCourse} · Add more courses anytime</div>
-                <div style={s.priceDivider}/>
-                <div style={s.priceFeatures}>
-                  {features.map(f => (
-                    <div key={f} style={s.priceFeature}>
-                      <span style={{ color:'var(--accent)', fontWeight:700 }}>✓</span> {f}
-                    </div>
-                  ))}
-                </div>
-                <button style={s.priceCta} onClick={() => onGetAccess(selectedCourse)}>
-                  Get Access to {selectedCourse} · ₱{cp.price}
-                </button>
-                <div style={s.priceSub}>Secure payment via GCash · Maya · Card · PayMongo</div>
+          <p style={{ fontSize:14, color:'var(--text-secondary)', marginBottom:8, lineHeight:1.6 }}>
+            All prices below are <strong style={{ color:'var(--accent)' }}>introductory prices</strong> — locked in for life when you purchase today.
+            Regular prices will increase as more content is added.
+          </p>
+
+          {/* Live course cards */}
+          <div style={{ display:'flex', gap:16, justifyContent:'center', flexWrap:'wrap', marginBottom:24 }}>
+
+            {/* LET */}
+            <div style={{ ...s.pricingCard, flex:'1 1 280px', maxWidth:340, textAlign:'left' }}>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4 }}>
+                <div style={{ fontSize:11, fontWeight:700, color:'var(--accent)', textTransform:'uppercase', letterSpacing:'.08em' }}>LET — Introductory Price</div>
+                <span style={{ fontSize:10, padding:'2px 8px', background:'rgba(201,168,76,0.12)', color:'var(--accent)', borderRadius:20, fontWeight:600, border:'1px solid rgba(201,168,76,0.25)' }}>Live Now</span>
               </div>
-            )
-          })()}
+              <div style={s.priceAmount}><span style={s.priceSup}>₱</span>249</div>
+              <div style={s.priceOld}>Regular price: ₱399</div>
+              <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:16 }}>One-time · Lifetime access</div>
+              <div style={s.priceDivider}/>
+              <div style={s.priceFeatures}>
+                {[
+                  '1,554+ board exam questions',
+                  '14 topics · 23 structured lessons',
+                  'Readiness Score updated daily',
+                  'Spaced repetition engine',
+                  'Mock board exam simulation',
+                  'Coach Insights and daily recommendations',
+                ].map(f => (
+                  <div key={f} style={s.priceFeature}><span style={{ color:'var(--accent)', fontWeight:700 }}>✓</span> {f}</div>
+                ))}
+              </div>
+              <button style={s.priceCta} onClick={() => onGetAccess('LET')}>Get Access to LET · ₱249</button>
+              <div style={s.priceSub}>GCash · Maya · Card · PayMongo</div>
+            </div>
+
+            {/* TESDA */}
+            <div style={{ ...s.pricingCard, flex:'1 1 280px', maxWidth:340, textAlign:'left', borderColor:'rgba(59,130,246,0.35)' }}>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4 }}>
+                <div style={{ fontSize:11, fontWeight:700, color:'#3b82f6', textTransform:'uppercase', letterSpacing:'.08em' }}>TESDA — Introductory Price</div>
+                <span style={{ fontSize:10, padding:'2px 8px', background:'rgba(59,130,246,0.12)', color:'#3b82f6', borderRadius:20, fontWeight:600, border:'1px solid rgba(59,130,246,0.25)' }}>Live Now</span>
+              </div>
+              <div style={{ ...s.priceAmount, color:'#3b82f6' }}><span style={{ ...s.priceSup, color:'#3b82f6' }}>₱</span>99</div>
+              <div style={s.priceOld}>Regular price: ₱199</div>
+              <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:16 }}>One-time · All NC qualifications included</div>
+              <div style={s.priceDivider}/>
+              <div style={s.priceFeatures}>
+                {[
+                  '10+ NC II qualifications in one bundle',
+                  'Full HTML reviewer per core competency',
+                  '🇵🇭 Filipino & English versions',
+                  'Video lessons + infographics',
+                  'Cookery, Caregiving, Housekeeping + more',
+                  'All future qualifications included',
+                ].map(f => (
+                  <div key={f} style={s.priceFeature}><span style={{ color:'#3b82f6', fontWeight:700 }}>✓</span> {f}</div>
+                ))}
+              </div>
+              <button style={{ ...s.priceCta, background:'#3b82f6' }} onClick={() => onGetAccess('TESDA')}>Get Access to TESDA · ₱99</button>
+              <div style={s.priceSub}>GCash · Maya · Card · PayMongo</div>
+            </div>
+
+          </div>
+
+          {/* Coming soon courses mini row */}
+          <div style={{ fontSize:12, color:'var(--text-muted)', marginBottom:20 }}>
+            Coming soon:
+            {['NLE','NAPOLCOM','Civil Service','Criminology'].map(c => (
+              <span key={c} style={{ marginLeft:10, padding:'2px 10px', background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:20, color:'var(--text-muted)', fontSize:11 }}>{c}</span>
+            ))}
+          </div>
+
+          {/* Intro price notice */}
+          <div style={{ background:'rgba(201,168,76,0.06)', border:'1px solid rgba(201,168,76,0.15)', borderRadius:12, padding:'14px 20px', fontSize:13, color:'var(--text-secondary)', lineHeight:1.7, marginBottom:24, maxWidth:560, margin:'0 auto 24px' }}>
+            ⚡ <strong style={{ color:'var(--accent)' }}>Introductory pricing ends</strong> when we hit our first 100 students.
+            Everyone who buys now keeps their price forever — even after we raise it.
+          </div>
 
           {/* Trial banner */}
           <div style={s.trialBanner}>
