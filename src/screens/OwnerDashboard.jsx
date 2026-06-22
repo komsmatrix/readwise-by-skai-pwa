@@ -2089,13 +2089,13 @@ function TesdaTab() {
       <div style={s.section}>
         <button style={s.backBtn} onClick={() => setEditing(null)}>← Back to {activeQual?.name}</button>
         <div style={s.sectionLabel}>
-          {editing.id ? `Editing: ${editing.name}` : `New Core Competency in ${activeQual?.name}`}
+          {editing.id ? `Editing: ${editing.name}` : `New Topic in ${activeQual?.name}`}
         </div>
 
         <div style={s.field}>
           <label style={s.label}>Competency Name</label>
           <input style={s.input} value={editing.name || ''}
-            placeholder="e.g. Core Competency 1: Prepare Food for the Household"
+            placeholder="e.g. e.g. Topic 1: Kitchen Safety and Sanitation"
             onChange={e => setEditing(p => ({ ...p, name: e.target.value }))} />
         </div>
 
@@ -2211,8 +2211,19 @@ function TesdaTab() {
         </div>
 
         <button style={{ ...s.saveBtn, opacity: saving ? 0.6 : 1 }} onClick={saveSubtopic} disabled={saving}>
-          {saving ? 'Saving…' : editing.id ? 'Save Changes' : 'Add Core Competency'}
+          {saving ? 'Saving…' : editing.id ? 'Save Changes' : 'Add Topic'}
         </button>
+
+        {/* Supplementary Resources — only shown when editing an existing topic */}
+        {editing.id && (
+          <div style={{ marginTop:24, borderTop:'1px solid var(--border)', paddingTop:20 }}>
+            <div style={{ fontSize:13, fontWeight:700, color:'var(--text-primary)', marginBottom:4 }}>📎 Supplementary Resources</div>
+            <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:14, lineHeight:1.6 }}>
+              Optional extra HTML files under this topic — bonus lectures, advanced content, or additional exercises. Each is a self-contained HTML file shown below the main reviewer.
+            </div>
+            <SupplementaryManager topicId={editing.id} topicName={editing.name} />
+          </div>
+        )}
       </div>
     )
   }
@@ -2222,12 +2233,12 @@ function TesdaTab() {
     return (
       <div style={s.section}>
         <button style={s.backBtn} onClick={() => { setActiveQual(null); setSubtopics([]) }}>← All Qualifications</button>
-        <div style={s.sectionLabel}>{activeQual.name} — Core Competencies</div>
+        <div style={s.sectionLabel}>{activeQual.name} — Topics</div>
         <button style={s.newBtn} onClick={() => setEditing({ sort_order: subtopics.length + 1 })}>
-          + Add Core Competency
+          + Add Topic
         </button>
         {subtopics.length === 0 && (
-          <div style={{ fontSize:13, color:'var(--text-muted)', padding:'20px 0' }}>No core competencies yet. Add the first one.</div>
+          <div style={{ fontSize:13, color:'var(--text-muted)', padding:'20px 0' }}>No topics yet. Add the first one.</div>
         )}
         {subtopics.map((st, i) => (
           <div key={st.id} style={{ background:'var(--bg-surface)', border:'1px solid var(--border)', borderRadius:12, padding:'14px', marginBottom:8 }}>
@@ -2279,7 +2290,7 @@ function TesdaTab() {
     <div style={s.section}>
       <div style={s.sectionLabel}>TESDA NC Qualifications</div>
       <div style={{ fontSize:12, color:'var(--text-muted)', marginBottom:16, lineHeight:1.6 }}>
-        Select a qualification to manage its core competencies and upload HTML reviewers.
+        Select a qualification to manage its topics and upload HTML reviewers.
       </div>
       {loading ? (
         <div style={{ fontSize:13, color:'var(--text-muted)' }}>Loading…</div>
@@ -2291,13 +2302,141 @@ function TesdaTab() {
             <div>
               <div style={{ fontSize:14, fontWeight:700, color:'var(--text-primary)' }}>{q.name}</div>
               <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:2 }}>
-                {q.subtopic_count || 0} core competencies
+                {q.subtopic_count || 0} topics
               </div>
             </div>
           </div>
           <span style={{ fontSize:18, color:'var(--text-muted)' }}>›</span>
         </div>
       ))}
+    </div>
+  )
+}
+
+// ── Supplementary Resource Manager ───────────────────────────────────────────
+function SupplementaryManager({ topicId, topicName }) {
+  const [resources, setResources] = useState([])
+  const [adding,    setAdding]    = useState(false)
+  const [newName,   setNewName]   = useState('')
+  const [newHtml,   setNewHtml]   = useState('')
+  const [newHtmlFil,setNewHtmlFil]= useState('')
+  const [fileName,  setFileName]  = useState('')
+  const [filNameFil,setFilNameFil]= useState('')
+  const [saving,    setSaving]    = useState(false)
+  const [loading,   setLoading]   = useState(true)
+
+  useEffect(() => { loadResources() }, [topicId])
+
+  async function loadResources() {
+    setLoading(true)
+    const { data } = await supabase
+      .from('tesda_supplementary')
+      .select('*')
+      .eq('subtopic_id', topicId)
+      .order('sort_order')
+    setResources(data || [])
+    setLoading(false)
+  }
+
+  function readHtmlFile(file, setter, nameSetter) {
+    if (!file || !file.name.endsWith('.html')) { alert('Please upload an .html file'); return }
+    const reader = new FileReader()
+    reader.onload = (ev) => { setter(ev.target.result); nameSetter(file.name) }
+    reader.readAsText(file)
+  }
+
+  async function saveResource() {
+    if (!newName.trim() || !newHtml) { alert('Name and English HTML are required'); return }
+    setSaving(true)
+    await supabase.from('tesda_supplementary').insert([{
+      subtopic_id     : topicId,
+      name            : newName.trim(),
+      html_content    : newHtml,
+      html_content_fil: newHtmlFil || null,
+      sort_order      : resources.length + 1,
+    }])
+    setSaving(false)
+    setAdding(false)
+    setNewName('')
+    setNewHtml('')
+    setNewHtmlFil('')
+    setFileName('')
+    setFilNameFil('')
+    await loadResources()
+  }
+
+  async function deleteResource(id, name) {
+    if (!window.confirm(`Delete "${name}"?`)) return
+    await supabase.from('tesda_supplementary').delete().eq('id', id)
+    setResources(prev => prev.filter(r => r.id !== id))
+  }
+
+  if (loading) return <div style={{ fontSize:12, color:'var(--text-muted)' }}>Loading…</div>
+
+  return (
+    <div>
+      {resources.length === 0 && !adding && (
+        <div style={{ fontSize:12, color:'var(--text-muted)', marginBottom:10 }}>No supplementary resources yet.</div>
+      )}
+
+      {resources.map((r, i) => (
+        <div key={r.id} style={{ background:'var(--bg-surface)', border:'1px solid var(--border)', borderRadius:10, padding:'10px 14px', marginBottom:8, display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
+          <div style={{ flex:1 }}>
+            <div style={{ fontSize:12, fontWeight:700, color:'var(--text-primary)' }}>#{i+1} {r.name}</div>
+            <div style={{ display:'flex', gap:6, marginTop:4 }}>
+              {r.html_content     && <span style={{ fontSize:10, padding:'2px 7px', background:'rgba(16,185,129,0.1)', color:'#10B981', borderRadius:20, border:'1px solid rgba(16,185,129,0.2)' }}>🇺🇸 EN</span>}
+              {r.html_content_fil && <span style={{ fontSize:10, padding:'2px 7px', background:'rgba(59,130,246,0.1)', color:'#3b82f6', borderRadius:20, border:'1px solid rgba(59,130,246,0.2)' }}>🇵🇭 FIL</span>}
+            </div>
+          </div>
+          <button onClick={() => deleteResource(r.id, r.name)}
+            style={{ background:'rgba(239,68,68,0.1)', color:'#ef4444', border:'1px solid rgba(239,68,68,0.3)', borderRadius:6, padding:'4px 10px', fontSize:11, cursor:'pointer', fontFamily:'inherit' }}>
+            Remove
+          </button>
+        </div>
+      ))}
+
+      {adding ? (
+        <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:10, padding:14, marginBottom:8 }}>
+          <div style={{ fontSize:12, fontWeight:700, color:'var(--text-primary)', marginBottom:10 }}>New Supplementary Resource</div>
+
+          <input style={{ width:'100%', padding:'8px 12px', background:'var(--bg-base)', border:'1px solid var(--border)', borderRadius:7, color:'var(--text-primary)', fontSize:12, fontFamily:'inherit', outline:'none', marginBottom:10, boxSizing:'border-box' }}
+            placeholder="Resource name (e.g. Advanced Knife Skills)" value={newName} onChange={e => setNewName(e.target.value)} />
+
+          {/* EN HTML */}
+          <div style={{ marginBottom:8 }}>
+            <label style={{ display:'flex', alignItems:'center', gap:8, background:'var(--accent-dim)', border:'1px solid var(--accent)', borderRadius:7, padding:'7px 12px', cursor:'pointer', fontSize:11, color:'var(--accent)', fontWeight:600, width:'fit-content', marginBottom:4 }}>
+              📄 Upload English HTML
+              <input type="file" accept=".html" style={{ display:'none' }} onChange={e => readHtmlFile(e.target.files?.[0], setNewHtml, setFileName)} />
+            </label>
+            {fileName && <div style={{ fontSize:11, color:'#10B981' }}>✅ {fileName}</div>}
+          </div>
+
+          {/* FIL HTML */}
+          <div style={{ marginBottom:12 }}>
+            <label style={{ display:'flex', alignItems:'center', gap:8, background:'rgba(59,130,246,0.1)', border:'1px solid rgba(59,130,246,0.3)', borderRadius:7, padding:'7px 12px', cursor:'pointer', fontSize:11, color:'#3b82f6', fontWeight:600, width:'fit-content', marginBottom:4 }}>
+              📄 Upload Filipino HTML (optional)
+              <input type="file" accept=".html" style={{ display:'none' }} onChange={e => readHtmlFile(e.target.files?.[0], setNewHtmlFil, setFilNameFil)} />
+            </label>
+            {filNameFil && <div style={{ fontSize:11, color:'#3b82f6' }}>✅ {filNameFil}</div>}
+          </div>
+
+          <div style={{ display:'flex', gap:8 }}>
+            <button onClick={saveResource} disabled={saving}
+              style={{ background:'var(--accent)', color:'#0d0d0d', border:'none', borderRadius:7, padding:'8px 16px', fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:'inherit', opacity: saving ? 0.6 : 1 }}>
+              {saving ? 'Saving…' : 'Save Resource'}
+            </button>
+            <button onClick={() => { setAdding(false); setNewName(''); setNewHtml(''); setNewHtmlFil(''); setFileName(''); setFilNameFil('') }}
+              style={{ background:'var(--bg-elevated)', color:'var(--text-muted)', border:'1px solid var(--border)', borderRadius:7, padding:'8px 16px', fontSize:12, cursor:'pointer', fontFamily:'inherit' }}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button onClick={() => setAdding(true)}
+          style={{ background:'var(--bg-elevated)', border:'1px dashed var(--border)', borderRadius:8, padding:'8px 16px', fontSize:12, color:'var(--text-muted)', cursor:'pointer', fontFamily:'inherit', width:'100%' }}>
+          + Add Supplementary Resource
+        </button>
+      )}
     </div>
   )
 }
