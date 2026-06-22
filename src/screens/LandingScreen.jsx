@@ -140,7 +140,7 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
           <a href="#pricing" style={s.navLink}>Pricing</a>
           <a href="#updates" style={s.navLink}>Updates</a>
           <button style={s.navSignIn} onClick={onSignIn}>Sign In</button>
-          <button style={s.navCta} onClick={() => onGetAccess(selectedCourse)}>Get Access · ₱249</button>
+          <button style={s.navCta} onClick={() => onGetAccess(selectedCourse)}>Get Access · ₱{selectedCourse === 'TESDA' ? 99 : 249}</button>
         </div>
         {/* Mobile nav — hamburger + actions */}
         <div style={{ ...s.navMobile, display: isMobile ? 'flex' : 'none' }}>
@@ -161,7 +161,7 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
           ))}
           <div style={{ height:1, background:'var(--border)', margin:'8px 0' }}/>
           <button style={s.mobileMenuSignIn} onClick={() => { setNavOpen(false); onSignIn(); }}>Sign In</button>
-          <button style={s.mobileMenuCta} onClick={() => { setNavOpen(false); onGetAccess(selectedCourse); }}>Get Access · ₱249</button>
+          <button style={s.mobileMenuCta} onClick={() => { setNavOpen(false); onGetAccess(selectedCourse); }}>Get Access · ₱{selectedCourse === 'TESDA' ? 99 : 249}</button>
         </div>
       )}
 
@@ -180,7 +180,7 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
           Readwise remembers what you forget, finds the gaps you can't see yourself, and tells you exactly what to do — every day until exam day.
         </p>
         <div style={s.heroActions}>
-          <button style={s.btnPrimary} onClick={() => onGetAccess(selectedCourse)}>Get Access · ₱249</button>
+          <button style={s.btnPrimary} onClick={() => onGetAccess(selectedCourse)}>Get Access · ₱{selectedCourse === 'TESDA' ? 99 : 249}</button>
           <button style={s.btnGhost}   onClick={() => onTryFree(selectedCourse)}>Try Free for 1 Hour →</button>
         </div>
         <div style={s.examBadges}>
@@ -274,15 +274,16 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
       <section id="courses" style={{ ...s.section, background:'#141414' }}>
         <div style={s.container}>
           <div style={s.sectionEyebrow}>Courses</div>
-          <h2 style={s.sectionTitle}>Built for Philippine licensure exams</h2>
-          <p style={s.sectionSub}>Starting with LET — expanding to all major board exams.</p>
+          <h2 style={s.sectionTitle}>Built for Philippine National Examinations</h2>
+          <p style={s.sectionSub}>Board exams, licensure exams, and TESDA qualifications — all in one platform.</p>
           <div style={s.coursesGrid}>
             {[
-              { code:'LET',  full:'Licensure Examination for Teachers', live:true,  stats:['12 topics covered','1,200+ questions','12 structured lessons','150 questions · 3 hours'] },
-              { code:'NLE',       full:'Nursing Licensure Examination',     live:false, stats:['500 questions · 5 sub-exams','Content in preparation'] },
-              { code:'NAPOLCOM',  full:'NAPOLCOM Examination',            live:false, stats:['Police Officer I & Promotion','Content in preparation'] },
-              { code:'Civil Service', full:'Civil Service Examination',   live:false, stats:['Professional & Sub-professional','Content in preparation'] },
-              { code:'Criminology', full:'Criminology Licensure Exam',    live:false, stats:['Content in preparation'] },
+              { code:'LET',          full:'Licensure Examination for Teachers',    live:true,  price:249, regular:399, stats:['14 topics covered','1,554+ questions','23 structured lessons','Full mock board exam'] },
+              { code:'TESDA',        full:'NC Qualifications Bundle',              live:true,  price:99,  regular:199, stats:['10+ NC II qualifications','Full HTML reviewers','Video + infographics','Lifetime access to all NCs'] },
+              { code:'NLE',          full:'Nursing Licensure Examination',         live:false, price:249, regular:399, stats:['9 subject areas','Content in preparation'] },
+              { code:'NAPOLCOM',     full:'NAPOLCOM Examination',                  live:false, price:249, regular:399, stats:['Police Officer I & Promotion','Content in preparation'] },
+              { code:'Civil Service',full:'Civil Service Examination',             live:false, price:249, regular:399, stats:['Professional & Sub-professional','Content in preparation'] },
+              { code:'Criminology',  full:'Criminologist Licensure Examination',   live:false, price:249, regular:399, stats:['Content in preparation'] },
             ].map(c => {
               const isSelected = selectedCourse === c.code
               return (
@@ -302,6 +303,11 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
                     </span>
                   </div>
                   <div style={s.courseFull}>{c.full}</div>
+                  {c.live && (
+                    <div style={{ fontSize:14, fontWeight:700, color:'var(--accent)', margin:'6px 0 8px' }}>
+                      ₱{c.price} <span style={{ fontSize:11, color:'var(--text-muted)', textDecoration:'line-through', fontWeight:400 }}>₱{c.regular}</span>
+                    </div>
+                  )}
                   <div style={s.courseStats}>
                     {c.stats.map(st => <div key={st} style={s.courseStat}>{st}</div>)}
                   </div>
@@ -326,30 +332,57 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
         <div style={{ ...s.container, textAlign:'center' }}>
           <div style={s.sectionEyebrow}>Pricing</div>
           <h2 style={s.sectionTitle}>One course. One price. Yours forever.</h2>
-          <div style={s.pricingCard}>
-            <div style={s.priceEyebrow}>{selectedCourse} — Introductory Price</div>
-            <div style={s.priceAmount}><span style={s.priceSup}>₱</span>249</div>
-            <div style={s.priceOld}>Regular price: ₱399</div>
-            <div style={s.priceNote}>One-time payment · Lifetime access to {selectedCourse} · Add more courses anytime</div>
-            <div style={s.priceDivider}/>
-            <div style={s.priceFeatures}>
-              {[
-                'Full access to LET reviewer (1,200+ questions)',
+          {(() => {
+            const COURSE_PRICES = {
+              LET          : { price: 249, regular: 399 },
+              TESDA        : { price: 99,  regular: 199 },
+              NLE          : { price: 249, regular: 399 },
+              NAPOLCOM     : { price: 249, regular: 399 },
+              'Civil Service': { price: 249, regular: 399 },
+              Criminology  : { price: 249, regular: 399 },
+            }
+            const COURSE_FEATURES = {
+              TESDA: [
+                'Full HTML reviewers for all NC II qualifications',
+                'Video lessons per core competency',
+                'Infographics and visual guides',
+                '10+ qualifications: Cookery, Caregiving, Housekeeping, Domestic Work + more',
+                'Lifetime access — all future qualifications included',
+                'Works on any device, anytime',
+              ],
+              default: [
+                `Full access to ${selectedCourse} reviewer (1,554+ questions)`,
                 'Structured lessons with memory hooks',
                 'Readiness Score updated daily',
                 'Spaced repetition scheduling',
                 'Coach Insights and daily recommendations',
                 'Mock board exam simulation',
                 'NLE, NAPOLCOM, Civil Service + more when available',
-              ].map(f => (
-                <div key={f} style={s.priceFeature}>
-                  <span style={{ color:'var(--accent)', fontWeight:700 }}>✓</span> {f}
+              ],
+            }
+            const cp       = COURSE_PRICES[selectedCourse] || COURSE_PRICES.LET
+            const features = COURSE_FEATURES[selectedCourse] || COURSE_FEATURES.default
+            return (
+              <div style={s.pricingCard}>
+                <div style={s.priceEyebrow}>{selectedCourse} — Introductory Price</div>
+                <div style={s.priceAmount}><span style={s.priceSup}>₱</span>{cp.price}</div>
+                <div style={s.priceOld}>Regular price: ₱{cp.regular}</div>
+                <div style={s.priceNote}>One-time payment · Lifetime access to {selectedCourse} · Add more courses anytime</div>
+                <div style={s.priceDivider}/>
+                <div style={s.priceFeatures}>
+                  {features.map(f => (
+                    <div key={f} style={s.priceFeature}>
+                      <span style={{ color:'var(--accent)', fontWeight:700 }}>✓</span> {f}
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-            <button style={s.priceCta} onClick={() => onGetAccess(selectedCourse)}>Get Access to {selectedCourse} · ₱249</button>
-            <div style={s.priceSub}>Secure payment via GCash · Maya · Card · PayMongo</div>
-          </div>
+                <button style={s.priceCta} onClick={() => onGetAccess(selectedCourse)}>
+                  Get Access to {selectedCourse} · ₱{cp.price}
+                </button>
+                <div style={s.priceSub}>Secure payment via GCash · Maya · Card · PayMongo</div>
+              </div>
+            )
+          })()}
 
           {/* Trial banner */}
           <div style={s.trialBanner}>
@@ -403,7 +436,7 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
             Join students who are studying smarter — not longer — with a system that actually knows what they need.
           </p>
           <div style={{ display:'flex', gap:12, justifyContent:'center', flexWrap:'wrap' }}>
-            <button style={s.btnPrimary} onClick={() => onGetAccess(selectedCourse)}>Get Access · ₱249</button>
+            <button style={s.btnPrimary} onClick={() => onGetAccess(selectedCourse)}>Get Access · ₱{selectedCourse === 'TESDA' ? 99 : 249}</button>
             <button style={s.btnGhost}   onClick={() => onTryFree(selectedCourse)}>Try Free First →</button>
           </div>
         </div>
@@ -412,7 +445,7 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
       {/* FOOTER */}
       <footer style={s.footer}>
         <div style={s.footerBrand}>Readwise by Skai</div>
-        <div style={s.footerSub}>Board Exam Operating System · Philippines</div>
+        <div style={s.footerSub}>Board Exam & National Examination Operating System · Philippines</div>
         <div style={s.footerLinks}>
           {['How it works','Courses','Pricing','Updates'].map(l => (
             <a key={l} href={l === 'How it works' ? '#how' : l === 'Updates' ? '#updates' : `#${l.toLowerCase()}`} style={s.footerLink}>{l}</a>
