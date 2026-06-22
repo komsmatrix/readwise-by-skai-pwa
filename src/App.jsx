@@ -187,7 +187,7 @@ export default function App() {
 
   // Trial signup screen
   if (screen === 'trial') {
-    return <TrialScreen onTrialStart={handleTrialStart} />
+    return <TrialScreen onTrialStart={handleTrialStart} onBack={() => setScreen('activation')} />
   }
 
   // Landing / activation

@@ -6,13 +6,16 @@ const supabase = createClient(
   import.meta.env.VITE_SUPABASE_ANON_KEY
 );
 
-export default function TrialScreen({ onTrialStart }) {
+export default function TrialScreen({ onTrialStart, onBack }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [course, setCourse] = useState("LET");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [errorType, setErrorType] = useState(""); // "paid" | "trial" | ""
+
+  const COURSE_PRICE = { LET: 249, TESDA: 99 }
+  const activePrice = COURSE_PRICE[course] || 249
 
   const handleStart = async () => {
     if (!name.trim() || !email.trim()) {
@@ -113,7 +116,7 @@ export default function TrialScreen({ onTrialStart }) {
 
   return (
     <div className="trial-screen">
-      <button onClick={() => window.history.back()} style={{ position:'absolute', top:20, left:20, display:'flex', alignItems:'center', gap:6, background:'none', border:'none', color:'var(--accent)', fontSize:13, fontWeight:600, cursor:'pointer', padding:8, fontFamily:'inherit' }}>
+      <button onClick={() => onBack ? onBack() : window.history.back()} style={{ position:'absolute', top:20, left:20, display:'flex', alignItems:'center', gap:6, background:'none', border:'none', color:'var(--accent)', fontSize:13, fontWeight:600, cursor:'pointer', padding:8, fontFamily:'inherit' }}>
         ← Back
       </button>
       <div className="trial-card">
@@ -163,9 +166,10 @@ export default function TrialScreen({ onTrialStart }) {
             <label className="trial-label">Exam</label>
             <div className="trial-course-grid">
               {[
-                { id: "LET", label: "LET", sub: "Licensure Exam for Teachers" },
-                { id: "NLE", label: "NLE", sub: "Coming soon", disabled: true },
-                { id: "NAPOLCOM", label: "NAPOLCOM", sub: "Coming soon", disabled: true },
+                { id: "LET",      label: "LET",      sub: "Licensure Exam for Teachers",  disabled: false },
+                { id: "TESDA",    label: "TESDA",     sub: "NC Qualifications Bundle",     disabled: false },
+                { id: "NLE",      label: "NLE",       sub: "Coming soon",                  disabled: true  },
+                { id: "NAPOLCOM", label: "NAPOLCOM",  sub: "Coming soon",                  disabled: true  },
               ].map((c) => (
                 <button
                   key={c.id}
@@ -189,8 +193,8 @@ export default function TrialScreen({ onTrialStart }) {
                 </a>
               )}
               {errorType === "trial" && (
-                <a href="/buy" className="trial-action-link">
-                  Get full access · ₱249 →
+                <a href={`/buy?course=${course}`} className="trial-action-link">
+                  Get full access · ₱{activePrice} →
                 </a>
               )}
             </div>
@@ -205,7 +209,7 @@ export default function TrialScreen({ onTrialStart }) {
           </button>
 
           <p className="trial-fine-print">
-            1 hour access · No card required · ₱249 to unlock full access
+            1 hour access · No card required · ₱{activePrice} to unlock full access
           </p>
         </div>
       </div>
@@ -292,7 +296,7 @@ export default function TrialScreen({ onTrialStart }) {
         }
         .trial-course-grid {
           display: grid;
-          grid-template-columns: repeat(3, 1fr);
+          grid-template-columns: repeat(2, 1fr);
           gap: 8px;
         }
         .trial-course-btn {
