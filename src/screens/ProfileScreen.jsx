@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { updateStudyMode } from '../lib/supabase.js'
+import { updateStudyMode, resetAllProgress } from '../lib/supabase.js'
 import { createClient } from '@supabase/supabase-js'
 
 const supabase = createClient(
@@ -38,9 +38,9 @@ export default function ProfileScreen({ customer, studentExam, onSignOut, onExam
         { data: mocks },
       ] = await Promise.all([
         supabase.from('study_sessions').select('*', { count:'exact', head:true }).eq('customer_id', customer.id),
-        supabase.from('card_reviews').select('*', { count:'exact', head:true }).eq('student_id', customer.id),
+        supabase.from('card_reviews').select('*', { count:'exact', head:true }).eq('customer_id', customer.id),
         supabase.from('study_sessions').select('started_at').eq('customer_id', customer.id).order('started_at', { ascending:false }).limit(60),
-        supabase.from('mock_results').select('id').eq('student_id', customer.id).limit(1),
+        supabase.from('mock_results').select('id').eq('customer_id', customer.id).limit(1),
       ])
       const days = [...new Set((sessions||[]).map(s => s.started_at?.split('T')[0]))].sort((a,b) => b.localeCompare(a))
       let streak = 0
@@ -66,9 +66,29 @@ export default function ProfileScreen({ customer, studentExam, onSignOut, onExam
   const [feedback,       setFeedback]       = useState('')
   const [feedbackType,   setFeedbackType]   = useState('feedback')
   const [feedbackStatus, setFeedbackStatus] = useState('idle')
-  const [mode,       setMode]       = useState(studentExam?.study_mode || 'Standard')
-  const [saving,     setSaving]     = useState(false)
-  const [showSignOut,setShowSignOut]= useState(false)
+  const [mode,           setMode]           = useState(studentExam?.study_mode || 'Standard')
+  const [saving,         setSaving]         = useState(false)
+  const [showSignOut,    setShowSignOut]     = useState(false)
+  const [showReset,      setShowReset]       = useState(false)
+  const [resetConfirm,   setResetConfirm]   = useState('')
+  const [resetting,      setResetting]      = useState(false)
+
+  async function handleResetProgress() {
+    if (resetConfirm.trim().toLowerCase() !== 'reset') return
+    setResetting(true)
+    try {
+      const ok = await resetAllProgress(customer.id)
+      if (ok) {
+        setShowReset(false)
+        setResetConfirm('')
+        // Reload page so all data refreshes
+        window.location.reload()
+      }
+    } catch (e) {
+      console.error(e)
+    }
+    setResetting(false)
+  }
 
   function applyTheme(t) {
     setTheme(t)
@@ -260,6 +280,37 @@ export default function ProfileScreen({ customer, studentExam, onSignOut, onExam
             </div>
           )}
         </div>
+
+        {/* Reset Progress */}
+        {!showReset ? (
+          <button style={{ ...s.signOutBtn, color: '#e05c5c', borderColor: 'rgba(224,92,92,0.3)', marginBottom: 0 }}
+            onClick={() => setShowReset(true)}>
+            ⚠️ Reset All Progress
+          </button>
+        ) : (
+          <div style={{ ...s.signOutConfirm, borderColor: 'rgba(224,92,92,0.4)', background: 'rgba(224,92,92,0.05)' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#e05c5c', marginBottom: 6 }}>⚠️ Reset All Progress</div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 12 }}>
+              This will permanently delete all your card reviews, topic health, and study sessions. Your account and access key will remain. This cannot be undone.
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>Type <strong style={{ color: 'var(--text-primary)' }}>reset</strong> to confirm:</div>
+            <input
+              value={resetConfirm}
+              onChange={e => setResetConfirm(e.target.value)}
+              placeholder="type reset here"
+              style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', color: 'var(--text-primary)', fontSize: 13, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', marginBottom: 10 }}
+            />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                style={{ ...s.confirmYes, opacity: resetConfirm.trim().toLowerCase() === 'reset' ? 1 : 0.4, cursor: resetConfirm.trim().toLowerCase() === 'reset' ? 'pointer' : 'not-allowed' }}
+                onClick={handleResetProgress}
+                disabled={resetting || resetConfirm.trim().toLowerCase() !== 'reset'}>
+                {resetting ? 'Resetting…' : 'Reset Everything'}
+              </button>
+              <button style={s.confirmNo} onClick={() => { setShowReset(false); setResetConfirm('') }}>Cancel</button>
+            </div>
+          </div>
+        )}
 
         {/* Sign out */}
         {!showSignOut ? (

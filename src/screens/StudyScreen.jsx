@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import {
-  getCardsForExam, getDueCards, saveCardReview,
+  getCardsForExam, getCardReviews, getDueCards, saveCardReview,
   startSession, endSession, upsertTopicHealth,
   computeHealthState, getTopicHealth,
 } from '../lib/supabase.js'
@@ -135,62 +135,85 @@ export default function StudyScreen({ customer, studentExam, onDone }) {
   async function buildQueue() {
     setPhase('loading')
     try {
-      // Get health snapshot before session
       const healthMap = await getTopicHealth(customer.id)
       setHealthBefore(healthMap)
 
-      // Get all available cards for this exam
       const allCards = await getCardsForExam(examId)
-      if (!allCards.length) {
-        setCards([])
-        setPhase('no-cards')
-        return
+      if (!allCards.length) { setCards([]); setPhase('no-cards'); return }
+
+      // Get all review records for this student
+      const allReviews = await getCardReviews(customer.id)
+      const reviewMap  = {}
+      for (const r of allReviews) reviewMap[r.card_id] = r
+
+      const today = new Date().toISOString().split('T')[0]
+
+      // Categorize cards into 3 buckets:
+      // 1. Due (next_review_at <= today) — highest priority, needs review
+      // 2. Unseen (never reviewed) — medium priority
+      // 3. Not due (next_review_at > today) — skip unless queue is short
+      const dueCards    = []
+      const unseenCards = []
+      const notDueCards = []
+
+      for (const card of allCards) {
+        const review = reviewMap[card.id]
+        if (!review) {
+          unseenCards.push(card)
+        } else if (review.next_review_at <= today) {
+          dueCards.push(card)
+        } else {
+          notDueCards.push(card)
+        }
       }
 
-      // Get due cards and already-seen card IDs
-      const due = await getDueCards(customer.id)
-      const dueCardIds = new Set(due.map(d => d.card_id))
+      // Shuffle each pool
+      const shuffle = arr => [...arr].sort(() => Math.random() - 0.5)
+      const shuffledDue    = shuffle(dueCards)
+      const shuffledUnseen = shuffle(unseenCards)
+      const shuffledNotDue = shuffle(notDueCards)
 
-      const dueCards    = allCards.filter(c => dueCardIds.has(c.id))
-      const unseenCards = allCards.filter(c => !dueCardIds.has(c.id))
-
-      // Shuffle both pools independently
-      const shuffledDue    = dueCards.sort(() => Math.random() - 0.5)
-      const shuffledUnseen = unseenCards.sort(() => Math.random() - 0.5)
-
-      // Distribute unseen cards across topics round-robin
-      // so every session covers multiple topics instead of one topic dominating
-      const topicBuckets = {}
-      for (const card of shuffledUnseen) {
-        const tid = card.topic_id || 'unknown'
-        if (!topicBuckets[tid]) topicBuckets[tid] = []
-        topicBuckets[tid].push(card)
-      }
-      const buckets = Object.values(topicBuckets)
-      const spreadUnseen = []
-      let bi = 0
-      while (spreadUnseen.length < shuffledUnseen.length) {
-        const bucket = buckets[bi % buckets.length]
-        if (bucket && bucket.length > 0) spreadUnseen.push(bucket.shift())
-        bi++
-        if (buckets.every(b => b.length === 0)) break
+      // Round-robin across topics for unseen cards
+      function spreadAcrossTopics(cards) {
+        const buckets = {}
+        for (const c of cards) {
+          const tid = c.topic_id || 'x'
+          if (!buckets[tid]) buckets[tid] = []
+          buckets[tid].push(c)
+        }
+        const lists = Object.values(buckets)
+        const result = []
+        let i = 0
+        while (result.length < cards.length) {
+          const b = lists[i % lists.length]
+          if (b && b.length > 0) result.push(b.shift())
+          i++
+          if (lists.every(l => l.length === 0)) break
+        }
+        return result
       }
 
-      // Due cards get up to 30% of slots, rest from spread unseen
-      const dueSlots    = Math.min(shuffledDue.length, Math.floor(target * 0.3))
-      const unseenSlots = target - dueSlots
+      const spreadUnseen = spreadAcrossTopics(shuffledUnseen)
+      const spreadNotDue = spreadAcrossTopics(shuffledNotDue)
+
+      // Fill queue: due first (max 40%), then unseen (spread), then not-due as fallback
+      const dueSlots    = Math.min(shuffledDue.length,  Math.floor(target * 0.4))
+      const unseenSlots = Math.min(spreadUnseen.length, target - dueSlots)
+      const fallback    = target - dueSlots - unseenSlots
+
       let queue = [
         ...shuffledDue.slice(0, dueSlots),
         ...spreadUnseen.slice(0, unseenSlots),
+        ...spreadNotDue.slice(0, fallback),
       ]
 
-      // Final shuffle so due cards don't cluster at the top
-      queue = queue.sort(() => Math.random() - 0.5)
+      // Final shuffle so due cards don't cluster
+      queue = shuffle(queue)
 
-      // Start session in DB
+      if (!queue.length) { setCards([]); setPhase('no-cards'); return }
+
       const sess = await startSession(customer.id, examId, 'Foundation')
       setSessionId(sess?.id)
-
       setCards(queue)
       setIdx(0)
       setResults([])

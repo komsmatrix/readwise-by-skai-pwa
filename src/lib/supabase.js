@@ -115,6 +115,16 @@ export async function getCardReviews(customerId) {
   return Array.isArray(data) ? data : []
 }
 
+// Reset all study progress for a student (used in Settings with confirmation)
+export async function resetAllProgress(customerId) {
+  const [r1, r2, r3] = await Promise.all([
+    sb(`/rest/v1/card_reviews?customer_id=eq.${customerId}`,   { method: 'DELETE' }),
+    sb(`/rest/v1/topic_health?customer_id=eq.${customerId}`,   { method: 'DELETE' }),
+    sb(`/rest/v1/study_sessions?customer_id=eq.${customerId}`, { method: 'DELETE' }),
+  ])
+  return r1.ok && r2.ok && r3.ok
+}
+
 export async function getDueCards(customerId) {
   const today = new Date().toISOString().split('T')[0]
   const res   = await sb(
@@ -125,7 +135,9 @@ export async function getDueCards(customerId) {
 }
 
 export async function saveCardReview(customerId, cardId, correct, confidence) {
-  // SM-2 simplified interval calculation
+  // SM-2 simplified spaced repetition
+  // Always upsert on (customer_id, card_id) so each card has exactly one row
+  // that gets updated with an advancing next_review_at date
   const existing = await getLastReview(customerId, cardId)
   let interval = 1
   let attempts = 1
@@ -133,20 +145,25 @@ export async function saveCardReview(customerId, cardId, correct, confidence) {
   if (existing) {
     attempts = (existing.attempt_number || 1) + 1
     if (correct) {
-      const multiplier = confidence === 'Sure' ? 2.5 : confidence === 'Guessed' ? 1.2 : 1.0
+      const multiplier = confidence === 'Sure' ? 2.5 : confidence === 'Guessed' ? 1.3 : 1.0
       interval = Math.round((existing.interval_days || 1) * multiplier)
-      interval = Math.max(1, Math.min(interval, 60))
+      interval = Math.max(1, Math.min(interval, 90))
     } else {
+      // Wrong answer — reset to 1 day but don't go below 1
       interval = 1
     }
+  } else {
+    // First time seeing card — if correct schedule for 2 days, else 1
+    interval = correct ? 2 : 1
   }
 
   const nextReview = new Date()
   nextReview.setDate(nextReview.getDate() + interval)
 
-  const res = await sb('/rest/v1/card_reviews', {
+  // Upsert on (customer_id, card_id) — requires unique constraint in Supabase
+  const res = await sb('/rest/v1/card_reviews?on_conflict=customer_id,card_id', {
     method : 'POST',
-    headers: { 'Prefer': 'return=representation' },
+    headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
     body   : JSON.stringify({
       customer_id   : customerId,
       card_id       : cardId,
