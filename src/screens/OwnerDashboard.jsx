@@ -1479,8 +1479,11 @@ function AgentsTab() {
     const path = `payouts/${Date.now()}.${ext}`
     const { error } = await supabase.storage.from('payout-screenshots').upload(path, file)
     if (error) return null
-    const { data } = supabase.storage.from('payout-screenshots').getPublicUrl(path)
-    return data.publicUrl
+    // Try public URL first; fall back to signed URL (valid 7 days) if bucket is private
+    const { data: pubData } = supabase.storage.from('payout-screenshots').getPublicUrl(path)
+    if (pubData?.publicUrl && !pubData.publicUrl.includes('undefined')) return pubData.publicUrl
+    const { data: signedData } = await supabase.storage.from('payout-screenshots').createSignedUrl(path, 60 * 60 * 24 * 7)
+    return signedData?.signedUrl || null
   }
 
   async function markPaid(agent) {
@@ -1493,7 +1496,7 @@ function AgentsTab() {
       screenshotUrl = await uploadScreenshot(screenshotRef.current.files[0]) || ''
     }
 
-    const referralCount = agent.total_referrals || 0
+    const referralCount = agent._unpaidReferrals ?? (agent.total_referrals || 0)
     const amount = referralCount * 50
 
     // Insert payout record
@@ -1618,7 +1621,7 @@ function AgentsTab() {
             </div>
 
             {owedAmount > 0 && (
-              <button style={ag.payBtn} onClick={() => setPayoutModal(agent)}>
+              <button style={ag.payBtn} onClick={() => setPayoutModal({ ...agent, _unpaidReferrals: unpaidReferrals })}>
                 💸 Mark Paid — ₱{owedAmount}
               </button>
             )}
