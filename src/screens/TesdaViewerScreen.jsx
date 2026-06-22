@@ -52,11 +52,43 @@ function YouTubeCard({ url, label }) {
   )
 }
 
-function injectBase(html) {
+// Inject a script that fixes external links to open in new tab
+// while leaving internal anchor links (#section) working normally
+function injectLinkFixer(html) {
   if (!html) return html
-  if (/<base\s/i.test(html)) return html
-  // Force all links to open in new tab, preventing parent app navigation
-  return html.replace(/<head([^>]*)>/i, '<head$1><base target="_blank">')
+  const script = `
+<script>
+(function() {
+  function fixLinks() {
+    var links = document.querySelectorAll('a[href]');
+    for (var i = 0; i < links.length; i++) {
+      var href = links[i].getAttribute('href');
+      // Internal anchor links (#section) — leave alone
+      if (!href || href.startsWith('#')) continue;
+      // External links — force open in new tab
+      links[i].setAttribute('target', '_blank');
+      links[i].setAttribute('rel', 'noopener noreferrer');
+    }
+  }
+  // Run on load and after any DOM changes
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', fixLinks);
+  } else {
+    fixLinks();
+  }
+  // Also watch for dynamically added links
+  var obs = new MutationObserver(fixLinks);
+  obs.observe(document.body || document.documentElement, { childList: true, subtree: true });
+})();
+<\/script>`
+  // Inject before </head> or before </body> or at the end
+  if (/<\/head>/i.test(html)) {
+    return html.replace(/<\/head>/i, script + '</head>')
+  }
+  if (/<\/body>/i.test(html)) {
+    return html.replace(/<\/body>/i, script + '</body>')
+  }
+  return html + script
 }
 
 export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
@@ -94,7 +126,7 @@ export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
     ? (detail?.html_content_fil || detail?.html_content)
     : detail?.html_content
 
-  const activeHtmlContent = injectBase(rawHtmlContent)
+  const activeHtmlContent = injectLinkFixer(rawHtmlContent)
 
   const activeHtmlUrl = activeLang === 'fil'
     ? (detail?.html_url_fil || detail?.html_url)
@@ -188,7 +220,7 @@ export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
                 srcDoc={activeHtmlContent}
                 style={s.iframe}
                 title={title}
-                sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals allow-popups-to-escape-sandbox allow-top-level-navigation-by-user-activation"
+                sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals allow-popups-to-escape-sandbox"
               />
             ) : activeHtmlUrl ? (
               <iframe
@@ -196,7 +228,7 @@ export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
                 src={activeHtmlUrl}
                 style={s.iframe}
                 title={title}
-                sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals allow-popups-to-escape-sandbox allow-top-level-navigation-by-user-activation"
+                sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals allow-popups-to-escape-sandbox"
               />
             ) : (
               <div style={s.center}>
