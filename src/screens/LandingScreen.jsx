@@ -140,7 +140,7 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
           <a href="#pricing" style={s.navLink}>Pricing</a>
           <a href="#updates" style={s.navLink}>Updates</a>
           <button style={s.navSignIn} onClick={onSignIn}>Sign In</button>
-          <button style={s.navCta} onClick={() => onGetAccess(selectedCourse)}>Get Access · ₱{selectedCourse === 'TESDA' ? 99 : 249}</button>
+          <button style={s.navCta} onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior:'smooth' })}>See Pricing →</button>
         </div>
         {/* Mobile nav — hamburger + actions */}
         <div style={{ ...s.navMobile, display: isMobile ? 'flex' : 'none' }}>
@@ -161,7 +161,7 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
           ))}
           <div style={{ height:1, background:'var(--border)', margin:'8px 0' }}/>
           <button style={s.mobileMenuSignIn} onClick={() => { setNavOpen(false); onSignIn(); }}>Sign In</button>
-          <button style={s.mobileMenuCta} onClick={() => { setNavOpen(false); onGetAccess(selectedCourse); }}>Get Access · ₱{selectedCourse === 'TESDA' ? 99 : 249}</button>
+          <button style={s.mobileMenuCta} onClick={() => { setNavOpen(false); document.getElementById('pricing')?.scrollIntoView({ behavior:'smooth' }) }}>See Pricing →</button>
         </div>
       )}
 
@@ -180,13 +180,22 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
           Readwise remembers what you forget, finds the gaps you can't see yourself, and tells you exactly what to do — every day until exam day.
         </p>
         <div style={s.heroActions}>
-          <button style={s.btnPrimary} onClick={() => onGetAccess(selectedCourse)}>Get Access · ₱{selectedCourse === 'TESDA' ? 99 : 249}</button>
-          <button style={s.btnGhost}   onClick={() => onTryFree(selectedCourse)}>Try Free for 1 Hour →</button>
+          <button style={s.btnPrimary} onClick={() => {
+            document.getElementById('pricing')?.scrollIntoView({ behavior:'smooth' })
+          }}>See Pricing →</button>
+          <button style={s.btnGhost} onClick={() => onTryFree(selectedCourse)}>Try Free for 1 Hour →</button>
         </div>
         <div style={s.examBadges}>
-          {['LET','TESDA','NLE','NAPOLCOM','Civil Service','Criminology'].map((e,i) => (
+          {/* Board exams */}
+          {['LET','NLE','NAPOLCOM','Civil Service','Criminology'].map((e,i) => (
             <span key={e} style={{ ...s.examBadge, ...(i===0 ? s.examBadgeActive : {}) }}>{e}</span>
           ))}
+          {/* Separator */}
+          <span style={{ fontSize:11, color:'var(--text-muted)', padding:'0 2px', alignSelf:'center' }}>·</span>
+          {/* TESDA — different color */}
+          <span style={{ ...s.examBadge, background:'rgba(59,130,246,0.12)', color:'#3b82f6', border:'1px solid rgba(59,130,246,0.3)', fontWeight:600 }}>
+            TESDA NC
+          </span>
         </div>
 
         {/* Gauge demo */}
@@ -460,7 +469,7 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
             Join students who are studying smarter — not longer — with a system that actually knows what they need.
           </p>
           <div style={{ display:'flex', gap:12, justifyContent:'center', flexWrap:'wrap' }}>
-            <button style={s.btnPrimary} onClick={() => onGetAccess(selectedCourse)}>Get Access · ₱{selectedCourse === 'TESDA' ? 99 : 249}</button>
+            <button style={s.btnPrimary} onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior:'smooth' })}>See Pricing →</button>
             <button style={s.btnGhost}   onClick={() => onTryFree(selectedCourse)}>Try Free First →</button>
           </div>
         </div>
