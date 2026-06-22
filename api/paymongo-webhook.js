@@ -22,6 +22,51 @@ function addDays(days) {
   return d.toISOString()
 }
 
+function tesdaWelcomeEmail({ firstName, email, key, appUrl }) {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#0d0d0d;font-family:'Helvetica Neue',Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#0d0d0d;padding:40px 20px;">
+  <tr><td align="center">
+  <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;">
+    <tr><td style="padding:0 0 24px 0;">
+      <span style="font-size:22px;font-weight:700;color:#f0ede8;">Readwise <span style="color:#3b82f6;">by Skai</span></span>
+      <div style="font-size:11px;color:#3b82f6;letter-spacing:0.08em;text-transform:uppercase;margin-top:4px;">TESDA NC Qualifications</div>
+    </td></tr>
+    <tr><td style="background:#161616;border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:40px;">
+      <p style="margin:0 0 6px;font-size:24px;font-weight:700;color:#f0ede8;">You're in, ${firstName}. 🏅</p>
+      <p style="margin:0 0 28px;font-size:15px;color:#9a9690;line-height:1.7;">Your TESDA NC reviewer bundle is ready. All qualifications, full access — for life.</p>
+      <div style="height:1px;background:rgba(255,255,255,0.07);margin:0 0 28px;"></div>
+      <div style="background:#0d0d0d;border:1px solid rgba(59,130,246,0.25);border-radius:12px;padding:20px 24px;margin-bottom:24px;">
+        <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#3b82f6;text-transform:uppercase;letter-spacing:0.08em;">Access your reviewers</p>
+        <p style="margin:0 0 16px;font-size:14px;color:#9a9690;line-height:1.6;">Sign in with <strong style="color:#f0ede8;">${email}</strong> and select TESDA from your course hub.</p>
+        <a href="${appUrl}" style="display:inline-block;background:#3b82f6;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-size:14px;font-weight:700;">Open Readwise by Skai →</a>
+      </div>
+      <p style="margin:0 0 12px;font-size:11px;font-weight:700;color:#3b82f6;text-transform:uppercase;letter-spacing:0.08em;">What's included in your bundle</p>
+      <table cellpadding="0" cellspacing="0" style="width:100%;margin-bottom:24px;">
+        ${['Cookery NC II','Caregiving NC II','Housekeeping NC II','Domestic Work NC II','Beauty Care NC II','Electrical Installation NC II','Bread & Pastry Production NC II','Driving NC II'].map(q =>
+          `<tr><td style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:13px;color:#9a9690;">✓ <strong style="color:#f0ede8;">${q}</strong></td></tr>`
+        ).join('')}
+      </table>
+      <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#3b82f6;text-transform:uppercase;letter-spacing:0.08em;">Each qualification includes</p>
+      <div style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:16px 20px;margin-bottom:24px;">
+        <p style="margin:0;font-size:13px;color:#9a9690;line-height:1.8;">📖 Full HTML reviewer per core competency<br>🇵🇭 Filipino &amp; English versions<br>📹 Video lessons<br>🖼 Infographics and visual guides</p>
+      </div>
+      <div style="background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);border-radius:10px;padding:16px 20px;">
+        <p style="margin:0;font-size:13px;color:#9a9690;line-height:1.7;">You joined at the <strong style="color:#3b82f6;">introductory price of ₱99</strong> — lifetime access, all future qualifications included. Congratulations on investing in your TESDA journey. 💪</p>
+      </div>
+    </td></tr>
+    <tr><td style="padding:24px 0 0;text-align:center;">
+      <p style="margin:0;font-size:12px;color:#5a5753;">Questions? Reply to this email — we read every one.</p>
+    </td></tr>
+  </table>
+  </td></tr>
+</table>
+</body>
+</html>`
+}
+
 function welcomeEmail({ firstName, name, email, key, appUrl, course }) {
   const isTesda = course === 'TESDA'
   const heroLine = isTesda
@@ -237,16 +282,11 @@ export default async function handler(req, res) {
         from   : 'Readwise by Skai <hello@readwisebyskai.com>',
         to     : [email.toLowerCase().trim()],
         subject: isTesda
-          ? "You're in — your TESDA NC Reviewers are ready"
+          ? "You're in — your TESDA NC Reviewers are ready 🏅"
           : "You're in — your Readwise by Skai access is ready",
-        html   : welcomeEmail({
-          firstName,
-          name   : name.trim(),
-          email  : email.toLowerCase().trim(),
-          key,
-          appUrl : APP_URL,
-          course,
-        }),
+        html   : isTesda
+          ? tesdaWelcomeEmail({ firstName, email: email.toLowerCase().trim(), key, appUrl: APP_URL })
+          : welcomeEmail({ firstName, name: name.trim(), email: email.toLowerCase().trim(), key, appUrl: APP_URL, course }),
       }),
     })
 

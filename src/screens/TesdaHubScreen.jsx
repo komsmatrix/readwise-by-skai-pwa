@@ -49,14 +49,40 @@ export default function TesdaHubScreen({ customer, onOpenViewer }) {
     setSubLoading(false)
   }
 
+  function getLastOpened(id) {
+    try {
+      const data = JSON.parse(localStorage.getItem('tesda_last_opened') || '{}')
+      return data[id] || null
+    } catch { return null }
+  }
+
+  function markOpened(id) {
+    try {
+      const data = JSON.parse(localStorage.getItem('tesda_last_opened') || '{}')
+      data[id] = new Date().toISOString()
+      localStorage.setItem('tesda_last_opened', JSON.stringify(data))
+    } catch {}
+  }
+
+  function formatLastOpened(iso) {
+    if (!iso) return null
+    const diff = Date.now() - new Date(iso).getTime()
+    const mins = Math.floor(diff / 60000)
+    const hrs  = Math.floor(diff / 3600000)
+    const days = Math.floor(diff / 86400000)
+    if (mins < 1)   return 'Just now'
+    if (mins < 60)  return `${mins}m ago`
+    if (hrs  < 24)  return `${hrs}h ago`
+    if (days < 7)   return `${days}d ago`
+    return new Date(iso).toLocaleDateString('en-PH', { month:'short', day:'numeric' })
+  }
+
   function backToHub() {
     setView('hub')
     setActiveQual(null)
     setSubtopics([])
     setSearch('')
   }
-
-  // ── Hub view ──────────────────────────────────────────────────────────────
   if (view === 'hub') {
     const filtered = qualifications.filter(q =>
       q.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -166,6 +192,32 @@ export default function TesdaHubScreen({ customer, onOpenViewer }) {
             )}
           </div>
 
+          {/* Recently opened — show if any subtopic was opened before */}
+          {(() => {
+            const recent = subtopics
+              .filter(st => getLastOpened(st.id))
+              .sort((a, b) => new Date(getLastOpened(b.id)) - new Date(getLastOpened(a.id)))
+              .slice(0, 2)
+            if (!recent.length) return null
+            return (
+              <div style={{ padding:'0 20px 12px' }}>
+                <div style={{ fontSize:10, fontWeight:600, color:'var(--accent)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:6 }}>🕐 Recently Opened</div>
+                <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                  {recent.map(st => (
+                    <button key={st.id} style={{ ...s.stCard, padding:'10px 14px' }}
+                      onClick={() => { markOpened(st.id); onOpenViewer(st, activeQual) }}>
+                      <div style={{ flex:1, textAlign:'left' }}>
+                        <div style={{ fontSize:12, fontWeight:600, color:'var(--text-primary)' }}>{st.name}</div>
+                        <div style={{ fontSize:10, color:'var(--text-muted)', marginTop:2 }}>Last opened {formatLastOpened(getLastOpened(st.id))}</div>
+                      </div>
+                      <div style={s.arrow}>›</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )
+          })()}
+
           {subLoading ? (
             <div style={s.center}><div style={s.muted}>Loading competencies…</div></div>
           ) : filtered.length === 0 ? (
@@ -178,19 +230,28 @@ export default function TesdaHubScreen({ customer, onOpenViewer }) {
             <div style={s.listWrap}>
               {filtered.map((st, i) => (
                 <button key={st.id} style={s.stCard}
-                  onClick={() => onOpenViewer(st, activeQual)}>
+                  onClick={() => {
+                    markOpened(st.id)
+                    onOpenViewer(st, activeQual)
+                  }}>
                   <div style={s.stNum}>{i + 1}</div>
                   <div style={s.stBody}>
                     <div style={s.stName}>{st.name}</div>
                     {st.description && <div style={s.stDesc}>{st.description}</div>}
                     <div style={s.stMeta}>
                       {(st.html_url || st.html_content)
-                        ? <span style={s.hasBadge}>📖 Reviewer</span>
+                        ? <span style={s.hasBadge}>📖 EN Reviewer</span>
                         : <span style={s.soonBadge}>📖 Coming Soon</span>}
+                      {(st.html_url_fil || st.html_content_fil) && <span style={s.hasBadge}>🇵🇭 FIL Reviewer</span>}
                       {st.video_url_1     && <span style={s.hasBadge}>📹 Video 1</span>}
                       {st.video_url_2     && <span style={s.hasBadge}>📹 Video 2</span>}
                       {st.infographic_url && <span style={s.hasBadge}>🖼 Infographic</span>}
                     </div>
+                    {getLastOpened(st.id) && (
+                      <div style={{ fontSize:10, color:'var(--text-muted)', marginTop:5 }}>
+                        🕐 Last opened {formatLastOpened(getLastOpened(st.id))}
+                      </div>
+                    )}
                   </div>
                   <div style={s.arrow}>›</div>
                 </button>
