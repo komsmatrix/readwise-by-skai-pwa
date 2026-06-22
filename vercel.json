@@ -9,7 +9,11 @@
       "destination": "/index.html"
     },
     {
-      "source": "/((?!api/|privacy|terms|sitemap).*)",
+      "source": "/privacy",
+      "destination": "/privacy.html"
+    },
+    {
+      "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
   ],
