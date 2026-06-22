@@ -52,10 +52,16 @@ function YouTubeCard({ url, label }) {
   )
 }
 
+function injectBase(html) {
+  if (!html) return html
+  if (/<base\s/i.test(html)) return html
+  return html.replace(/<head([^>]*)>/i, '<head$1><base target="_self">')
+}
+
 export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
   const [detail,   setDetail]   = useState(subtopic || qualification)
   const [tab,      setTab]      = useState('reviewer')
-  const [lang,     setLang]     = useState('en')   // 'en' | 'fil'
+  const [lang,     setLang]     = useState('en')
   const [loading,  setLoading]  = useState(true)
   const iframeRef = useRef(null)
 
@@ -75,19 +81,19 @@ export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
     setLoading(false)
   }
 
-  // Determine which HTML to show based on language toggle
   const hasEn  = detail?.html_content || detail?.html_url
   const hasFil = detail?.html_content_fil || detail?.html_url_fil
   const hasAnyReviewer = hasEn || hasFil
 
-  // Auto-switch lang if only one is available
   const activeLang = (lang === 'fil' && !hasFil) ? 'en'
                    : (lang === 'en'  && !hasEn)  ? 'fil'
                    : lang
 
-  const activeHtmlContent = activeLang === 'fil'
+  const rawHtmlContent = activeLang === 'fil'
     ? (detail?.html_content_fil || detail?.html_content)
     : detail?.html_content
+
+  const activeHtmlContent = injectBase(rawHtmlContent)
 
   const activeHtmlUrl = activeLang === 'fil'
     ? (detail?.html_url_fil || detail?.html_url)
@@ -126,7 +132,6 @@ export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
             <div style={s.headerName}>{title}</div>
             <div style={s.headerNc}>{nc} · TESDA</div>
           </div>
-          {/* Print button */}
           {tab === 'reviewer' && hasAnyReviewer && (
             <button onClick={handlePrint} style={s.printBtn} title="Print / Save as PDF">
               🖨️
@@ -147,7 +152,6 @@ export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
           ))}
         </div>
 
-        {/* Language toggle — only shown on reviewer tab and when both langs exist */}
         {tab === 'reviewer' && (hasEn || hasFil) && (
           <div style={s.langToggle}>
             <button
@@ -183,7 +187,7 @@ export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
                 srcDoc={activeHtmlContent}
                 style={s.iframe}
                 title={title}
-                sandbox="allow-scripts allow-same-origin allow-popups"
+                sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals"
               />
             ) : activeHtmlUrl ? (
               <iframe
@@ -191,7 +195,7 @@ export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
                 src={activeHtmlUrl}
                 style={s.iframe}
                 title={title}
-                sandbox="allow-scripts allow-same-origin allow-popups"
+                sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals"
               />
             ) : (
               <div style={s.center}>
@@ -258,17 +262,14 @@ const s = {
   headerName    : { fontSize:13, fontWeight:700, color:'var(--text-primary)', lineHeight:1.3 },
   headerNc      : { fontSize:11, color:'var(--accent)', marginTop:1 },
   printBtn      : { background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:8, padding:'6px 10px', fontSize:14, cursor:'pointer', flexShrink:0 },
-  // Tabs
   tabBar        : { display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 12px', borderBottom:'1px solid var(--border)', background:'var(--bg-base)', flexShrink:0, gap:8, flexWrap:'wrap' },
   tabRow        : { display:'flex', gap:4, overflowX:'auto' },
   tab           : { padding:'6px 12px', borderRadius:20, fontSize:11, fontWeight:500, cursor:'pointer', background:'none', border:'1px solid var(--border)', color:'var(--text-muted)', fontFamily:'inherit', whiteSpace:'nowrap' },
   tabActive     : { background:'var(--accent-dim)', borderColor:'var(--accent)', color:'var(--accent)', fontWeight:700 },
-  // Language toggle
   langToggle    : { display:'flex', gap:4, flexShrink:0 },
   langBtn       : { padding:'5px 10px', borderRadius:20, fontSize:11, fontWeight:500, cursor:'pointer', background:'none', border:'1px solid var(--border)', color:'var(--text-muted)', fontFamily:'inherit' },
   langBtnActive : { background:'var(--bg-elevated)', borderColor:'var(--accent)', color:'var(--text-primary)', fontWeight:700 },
   langBtnDisabled: { opacity:0.4, cursor:'not-allowed' },
-  // Content
   content       : { flex:1, display:'flex', flexDirection:'column', overflow:'hidden' },
   center        : { flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:32, gap:8 },
   muted         : { fontSize:13, color:'var(--text-muted)', textAlign:'center', lineHeight:1.6 },
