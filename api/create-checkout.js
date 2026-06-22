@@ -30,7 +30,8 @@ export default async function handler(req, res) {
     let finalPrice  = BASE_PRICE
     let discountAmt = 0
 
-    if (referralCode) {
+    // Referral codes only apply to board exam courses, not TESDA
+    if (referralCode && !isTesda) {
       const code       = referralCode.trim().toUpperCase()
       const emailClean = email.toLowerCase().trim()
 

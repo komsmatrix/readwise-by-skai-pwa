@@ -208,6 +208,7 @@ export default function BuyScreen() {
               value={email} onChange={e => setEmail(e.target.value)}
               autoComplete="email" />
           </div>
+          {selectedCourse !== 'TESDA' && (
           <div style={s.field}>
             <label style={s.label}>
               Referral code <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional · saves ₱{REFERRAL_DISC})</span>
@@ -222,6 +223,7 @@ export default function BuyScreen() {
               <div style={s.codeInvalid}>Invalid code</div>
             )}
           </div>
+          )}
 
           {errorMsg && <div style={s.error}>{errorMsg}</div>}
 
