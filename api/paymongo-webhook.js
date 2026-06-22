@@ -237,27 +237,54 @@ export default async function handler(req, res) {
       created_at: new Date().toISOString(),
     })
 
-    // Upsert customer — preserve existing data, add course access
-    const { data: existingCustomer } = await supabase
-      .from('customers')
-      .select('*')
-      .eq('email', email.toLowerCase().trim())
-      .single()
+    // Build courses array — accumulate, never overwrite
+    const existingCourses = existingCustomer?.courses || []
+    const courses = [...new Set([...existingCourses, course])]
 
-    const courses = existingCustomer?.courses
-      ? [...new Set([...existingCustomer.courses, course])]
-      : [course]
+    // Check if customer already paid for this exact course
+    const alreadyHasCourse = existingCourses.includes(course)
+    if (alreadyHasCourse) {
+      console.log(`Customer ${email} already has ${course} — skipping duplicate purchase processing`)
+      // Still send a "you already have access" email but don't create duplicate key
+      await fetch('https://api.resend.com/emails', {
+        method : 'POST',
+        headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+        body   : JSON.stringify({
+          from   : 'Readwise by Skai <hello@readwisebyskai.com>',
+          to     : [email.toLowerCase().trim()],
+          subject: `You already have access to ${course}`,
+          html   : `<div style="font-family:sans-serif;background:#0d0d0d;color:#f0ede8;padding:40px;border-radius:12px;max-width:560px;margin:0 auto;">
+            <h2>Hi ${name.trim().split(' ')[0]},</h2>
+            <p>It looks like you already have access to <strong>${course}</strong> on Readwise by Skai.</p>
+            <p>No duplicate charge was processed. If you believe this is an error, please reply to this email and we'll sort it out right away.</p>
+            <a href="${APP_URL}" style="display:inline-block;background:#c9a96e;color:#0d0d0d;padding:12px 24px;border-radius:8px;font-weight:700;text-decoration:none;margin-top:16px;">Open Readwise →</a>
+          </div>`,
+        }),
+      })
+      return res.status(200).json({ success: true, note: 'already_has_course' })
+    }
 
-    await supabase.from('customers').upsert({
-      name         : name.trim(),
-      email        : email.toLowerCase().trim(),
-      key_used     : key,
-      is_active    : true,
-      activated_at : new Date().toISOString(),
-      amount_paid  : Math.round(amountPaid / 100),
-      referral_code: referralCode || existingCustomer?.referral_code || null,
-      courses      : courses,
-    }, { onConflict: 'email' })
+    if (existingCustomer) {
+      // Existing customer — only add the new course, preserve everything else
+      await supabase.from('customers').update({
+        courses   : courses,
+        is_active : true,
+        // Add to total amount paid — don't overwrite it
+        amount_paid: (existingCustomer.amount_paid || 0) + Math.round(amountPaid / 100),
+      }).eq('email', email.toLowerCase().trim())
+    } else {
+      // New customer — insert fresh record
+      await supabase.from('customers').insert({
+        name         : name.trim(),
+        email        : email.toLowerCase().trim(),
+        key_used     : key,
+        is_active    : true,
+        activated_at : new Date().toISOString(),
+        amount_paid  : Math.round(amountPaid / 100),
+        referral_code: referralCode || null,
+        courses      : courses,
+      })
+    }
 
     if (agentId) {
       const { data: agent } = await supabase
