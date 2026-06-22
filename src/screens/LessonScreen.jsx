@@ -215,8 +215,8 @@ function LessonContent({ text, contentRef }) {
   const hasMore = display.length < text.length
   return (
     <>
-      <div ref={contentRef} className="lesson-reader-content lesson-reader-body" style={{ fontSize }}
-        style={{ fontSize:15, lineHeight:1.9, color:'var(--text-secondary)', fontFamily:'var(--font-reader)' }}
+      <div ref={contentRef} className="lesson-reader-content lesson-reader-body"
+        style={{ fontSize, lineHeight:1.9, color:'var(--text-secondary)', fontFamily:'var(--font-reader)' }}
         dangerouslySetInnerHTML={{ __html: renderMarkdown(display) }} />
       {hasMore && (
         <button onClick={() => setChunks(c => c + 1)}
