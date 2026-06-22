@@ -17,13 +17,17 @@ const AGENT_COMMISSION    = 5000   // ₱50 in centavos
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
-  const { name, email, referralCode } = req.body
+  const { name, email, referralCode, course } = req.body
   if (!name || !email) return res.status(400).json({ error: 'Name and email required' })
+
+  // Set base price based on course
+  const isTesda    = course === 'TESDA'
+  const BASE_PRICE = isTesda ? 9900 : INTRO_PRICE  // ₱99 for TESDA, ₱249 for board exams
 
   try {
     // Validate referral code if provided
     let agentId     = null
-    let finalPrice  = INTRO_PRICE
+    let finalPrice  = BASE_PRICE
     let discountAmt = 0
 
     if (referralCode) {
@@ -92,8 +96,10 @@ export default async function handler(req, res) {
             line_items: [{
               currency   : 'PHP',
               amount     : finalPrice,
-              name       : 'Readwise by Skai — Lifetime Access',
-              description: 'Board Exam Operating System. Spaced repetition, Readiness Score, Daily Coaching. LET exam — lifetime access.',
+              name       : isTesda ? 'Readwise by Skai — TESDA NC Bundle' : 'Readwise by Skai — Lifetime Access',
+              description: isTesda
+                ? 'Full HTML reviewers for all TESDA NC II qualifications. Lifetime access.'
+                : `Board Exam Operating System — ${course || 'LET'} exam. Spaced repetition, Readiness Score, Daily Coaching. Lifetime access.`,
               quantity   : 1,
             }],
             payment_method_types: ['qrph', 'card', 'gcash', 'paymaya'],
@@ -103,6 +109,7 @@ export default async function handler(req, res) {
               agent_id      : agentId || '',
               referral_code : referralCode ? referralCode.toUpperCase() : '',
               final_price   : finalPrice,
+              course        : course || 'LET',
             },
           },
         },

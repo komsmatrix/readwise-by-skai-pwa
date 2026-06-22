@@ -9,6 +9,7 @@ const TABS = [
   { id: 'overview',      label: '📊 Overview'      },
   { id: 'questions',     label: '❓ Questions'      },
   { id: 'lessons',       label: '📚 Lessons'        },
+  { id: 'tesda',         label: '🏅 TESDA'          },
   { id: 'announcements', label: '📢 Announcements'  },
   { id: 'agents',        label: '🤝 Agents'         },
   { id: 'sales',         label: '💰 Sales'          },
@@ -87,6 +88,7 @@ export default function OwnerDashboard({ isLoggedIn, onLogin }) {
         {tab === 'overview'      && <OverviewTab />}
         {tab === 'questions'     && <QuestionsTab />}
         {tab === 'lessons'       && <LessonsTab />}
+        {tab === 'tesda'         && <TesdaTab />}
         {tab === 'announcements' && <AnnouncementsTab />}
         {tab === 'agents'        && <AgentsTab />}
         {tab === 'sales'         && <SalesTab />}
@@ -1967,3 +1969,278 @@ const ag = {
 
 
 
+
+// ── TESDA Tab ─────────────────────────────────────────────────────────────────
+function TesdaTab() {
+  const [quals,      setQuals]      = useState([])
+  const [subtopics,  setSubtopics]  = useState([])
+  const [activeQual, setActiveQual] = useState(null)
+  const [editing,    setEditing]    = useState(null) // subtopic being edited
+  const [saving,     setSaving]     = useState(false)
+  const [loading,    setLoading]    = useState(true)
+  const [uploading,  setUploading]  = useState(false)
+
+  useEffect(() => { loadQuals() }, [])
+
+  async function loadQuals() {
+    setLoading(true)
+    const { data } = await supabase.from('tesda_qualifications').select('*').order('sort_order')
+    setQuals(data || [])
+    setLoading(false)
+  }
+
+  async function loadSubtopics(qualId) {
+    const { data } = await supabase
+      .from('tesda_subtopics')
+      .select('*')
+      .eq('qualification_id', qualId)
+      .order('sort_order')
+    setSubtopics(data || [])
+  }
+
+  async function selectQual(q) {
+    setActiveQual(q)
+    setEditing(null)
+    await loadSubtopics(q.id)
+  }
+
+  async function saveSubtopic() {
+    if (!editing) return
+    setSaving(true)
+    const payload = {
+      qualification_id: activeQual.id,
+      name            : editing.name,
+      description     : editing.description || null,
+      html_url        : editing.html_url    || null,
+      video_url_1     : editing.video_url_1 || null,
+      video_url_2     : editing.video_url_2 || null,
+      infographic_url : editing.infographic_url || null,
+      is_active       : true,
+      sort_order      : editing.sort_order || subtopics.length + 1,
+    }
+    if (editing.id) {
+      await supabase.from('tesda_subtopics').update(payload).eq('id', editing.id)
+    } else {
+      await supabase.from('tesda_subtopics').insert([payload])
+    }
+    // Update subtopic_count on qualification
+    const newCount = editing.id ? subtopics.length : subtopics.length + 1
+    await supabase.from('tesda_qualifications').update({ subtopic_count: newCount }).eq('id', activeQual.id)
+    setSaving(false)
+    setEditing(null)
+    await loadSubtopics(activeQual.id)
+  }
+
+  async function deleteSubtopic(id, name) {
+    if (!window.confirm(`Delete "${name}"? This cannot be undone.`)) return
+    await supabase.from('tesda_subtopics').delete().eq('id', id)
+    setSubtopics(prev => prev.filter(s => s.id !== id))
+  }
+
+  // Upload HTML file to public/tesda/ — since we can't write to the repo from here,
+  // we store the path in the DB and the user uploads the file manually to public/tesda/
+  // OR we store inline HTML in html_content column
+  async function handleHtmlUpload(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.name.endsWith('.html')) { alert('Please upload an .html file'); return }
+    setUploading(true)
+    try {
+      // Read HTML content and store inline in DB
+      const reader = new FileReader()
+      reader.onload = async (ev) => {
+        const htmlContent = ev.target.result
+        // Store both inline content and suggested path
+        const suggestedPath = `/tesda/${file.name}`
+        setEditing(p => ({
+          ...p,
+          html_content   : htmlContent,
+          html_url       : suggestedPath,
+          _htmlFileName  : file.name,
+          _htmlSize      : (htmlContent.length / 1024).toFixed(1) + ' KB',
+        }))
+        setUploading(false)
+      }
+      reader.readAsText(file)
+    } catch (err) {
+      alert('Upload failed: ' + err.message)
+      setUploading(false)
+    }
+    e.target.value = ''
+  }
+
+  async function saveHtmlToDB() {
+    if (!editing?.html_content) return
+    setSaving(true)
+    await supabase.from('tesda_subtopics').update({
+      html_content: editing.html_content,
+      html_url    : editing.html_url,
+    }).eq('id', editing.id)
+    setSaving(false)
+    alert('HTML saved to database ✅')
+  }
+
+  // Edit form
+  if (editing) {
+    return (
+      <div style={s.section}>
+        <button style={s.backBtn} onClick={() => setEditing(null)}>← Back to {activeQual?.name}</button>
+        <div style={s.sectionLabel}>
+          {editing.id ? `Editing: ${editing.name}` : `New Core Competency in ${activeQual?.name}`}
+        </div>
+
+        <div style={s.field}>
+          <label style={s.label}>Competency Name</label>
+          <input style={s.input} value={editing.name || ''}
+            placeholder="e.g. Core Competency 1: Prepare Food for the Household"
+            onChange={e => setEditing(p => ({ ...p, name: e.target.value }))} />
+        </div>
+
+        <div style={s.field}>
+          <label style={s.label}>Description</label>
+          <input style={s.input} value={editing.description || ''}
+            placeholder="Brief description of this competency"
+            onChange={e => setEditing(p => ({ ...p, description: e.target.value }))} />
+        </div>
+
+        <div style={s.field}>
+          <label style={s.label}>Sort Order</label>
+          <input style={{ ...s.input, width: 80 }} type="number" value={editing.sort_order || ''}
+            onChange={e => setEditing(p => ({ ...p, sort_order: parseInt(e.target.value) || 1 }))} />
+        </div>
+
+        {/* HTML Reviewer Upload */}
+        <div style={s.field}>
+          <label style={s.label}>HTML Reviewer</label>
+          <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:10, padding:'14px 16px' }}>
+            {/* Option 1: Upload HTML file */}
+            <div style={{ fontSize:11, color:'var(--accent)', fontWeight:600, marginBottom:8, textTransform:'uppercase', letterSpacing:'.06em' }}>
+              Option 1 — Upload HTML File (stores content in DB)
+            </div>
+            <label style={{ display:'flex', alignItems:'center', gap:8, background:'var(--accent-dim)', border:'1px solid var(--accent)', borderRadius:7, padding:'8px 14px', cursor:'pointer', fontSize:12, color:'var(--accent)', fontWeight:600, width:'fit-content', marginBottom:8 }}>
+              {uploading ? '⏳ Reading file…' : '📄 Upload .html file'}
+              <input type="file" accept=".html" style={{ display:'none' }} onChange={handleHtmlUpload} disabled={uploading} />
+            </label>
+            {editing._htmlFileName && (
+              <div style={{ fontSize:12, color:'#10B981', marginBottom:8 }}>
+                ✅ {editing._htmlFileName} ({editing._htmlSize}) loaded
+                {editing.id && (
+                  <button onClick={saveHtmlToDB} style={{ marginLeft:10, background:'#10B981', border:'none', borderRadius:6, color:'#0d0d0d', fontSize:11, fontWeight:700, padding:'3px 10px', cursor:'pointer' }}>
+                    {saving ? 'Saving…' : 'Save HTML to DB'}
+                  </button>
+                )}
+              </div>
+            )}
+            {editing.html_content && !editing._htmlFileName && (
+              <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:8 }}>✅ HTML content already stored in DB</div>
+            )}
+
+            {/* Option 2: Manual URL path */}
+            <div style={{ fontSize:11, color:'var(--text-muted)', fontWeight:600, margin:'10px 0 6px', textTransform:'uppercase', letterSpacing:'.06em' }}>
+              Option 2 — Manual file path (file must be in public/tesda/)
+            </div>
+            <input style={s.input} value={editing.html_url || ''}
+              placeholder="/tesda/domestic-nc2-cc1.html"
+              onChange={e => setEditing(p => ({ ...p, html_url: e.target.value }))} />
+          </div>
+        </div>
+
+        <div style={s.field}>
+          <label style={s.label}>YouTube Video Reviewer 1</label>
+          <input style={s.input} value={editing.video_url_1 || ''}
+            placeholder="https://youtu.be/..."
+            onChange={e => setEditing(p => ({ ...p, video_url_1: e.target.value }))} />
+        </div>
+
+        <div style={s.field}>
+          <label style={s.label}>YouTube Video Reviewer 2</label>
+          <input style={s.input} value={editing.video_url_2 || ''}
+            placeholder="https://youtu.be/..."
+            onChange={e => setEditing(p => ({ ...p, video_url_2: e.target.value }))} />
+        </div>
+
+        <div style={s.field}>
+          <label style={s.label}>Infographic URL</label>
+          <input style={s.input} value={editing.infographic_url || ''}
+            placeholder="https://..."
+            onChange={e => setEditing(p => ({ ...p, infographic_url: e.target.value }))} />
+          {editing.infographic_url && (
+            <img src={editing.infographic_url} alt="infographic preview"
+              style={{ marginTop:8, width:'100%', borderRadius:8, border:'1px solid var(--border)' }}
+              onError={e => e.target.style.display='none'} />
+          )}
+        </div>
+
+        <button style={{ ...s.saveBtn, opacity: saving ? 0.6 : 1 }} onClick={saveSubtopic} disabled={saving}>
+          {saving ? 'Saving…' : editing.id ? 'Save Changes' : 'Add Core Competency'}
+        </button>
+      </div>
+    )
+  }
+
+  // Subtopics list view
+  if (activeQual) {
+    return (
+      <div style={s.section}>
+        <button style={s.backBtn} onClick={() => { setActiveQual(null); setSubtopics([]) }}>← All Qualifications</button>
+        <div style={s.sectionLabel}>{activeQual.name} — Core Competencies</div>
+        <button style={s.newBtn} onClick={() => setEditing({ sort_order: subtopics.length + 1 })}>
+          + Add Core Competency
+        </button>
+        {subtopics.length === 0 && (
+          <div style={{ fontSize:13, color:'var(--text-muted)', padding:'20px 0' }}>No core competencies yet. Add the first one.</div>
+        )}
+        {subtopics.map((st, i) => (
+          <div key={st.id} style={{ background:'var(--bg-surface)', border:'1px solid var(--border)', borderRadius:12, padding:'14px', marginBottom:8 }}>
+            <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:8 }}>
+              <div style={{ flex:1 }}>
+                <div style={{ fontSize:13, fontWeight:700, color:'var(--text-primary)', marginBottom:4 }}>
+                  <span style={{ fontSize:11, color:'var(--accent)', fontWeight:700, marginRight:8 }}>#{i+1}</span>
+                  {st.name}
+                </div>
+                {st.description && <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:6 }}>{st.description}</div>}
+                <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+                  {(st.html_url || st.html_content) && <span style={{ fontSize:10, padding:'2px 7px', background:'rgba(16,185,129,0.1)', color:'#10B981', borderRadius:20, border:'1px solid rgba(16,185,129,0.2)' }}>📖 Reviewer</span>}
+                  {st.video_url_1     && <span style={{ fontSize:10, padding:'2px 7px', background:'var(--bg-elevated)', color:'var(--text-muted)', borderRadius:20, border:'1px solid var(--border)' }}>📹 Video 1</span>}
+                  {st.video_url_2     && <span style={{ fontSize:10, padding:'2px 7px', background:'var(--bg-elevated)', color:'var(--text-muted)', borderRadius:20, border:'1px solid var(--border)' }}>📹 Video 2</span>}
+                  {st.infographic_url && <span style={{ fontSize:10, padding:'2px 7px', background:'var(--bg-elevated)', color:'var(--text-muted)', borderRadius:20, border:'1px solid var(--border)' }}>🖼 Infographic</span>}
+                </div>
+              </div>
+              <div style={{ display:'flex', gap:6, flexShrink:0 }}>
+                <button style={s.editBtn} onClick={() => setEditing(st)}>Edit</button>
+                <button style={s.delBtn} onClick={() => deleteSubtopic(st.id, st.name)}>✕</button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  // Qualifications list
+  return (
+    <div style={s.section}>
+      <div style={s.sectionLabel}>TESDA NC Qualifications</div>
+      <div style={{ fontSize:12, color:'var(--text-muted)', marginBottom:16, lineHeight:1.6 }}>
+        Select a qualification to manage its core competencies and upload HTML reviewers.
+      </div>
+      {loading ? (
+        <div style={{ fontSize:13, color:'var(--text-muted)' }}>Loading…</div>
+      ) : quals.map(q => (
+        <div key={q.id} style={{ background:'var(--bg-surface)', border:'1px solid var(--border)', borderRadius:12, padding:'14px 16px', marginBottom:8, display:'flex', alignItems:'center', justifyContent:'space-between', cursor:'pointer' }}
+          onClick={() => selectQual(q)}>
+          <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+            <span style={{ fontSize:24 }}>{q.emoji || '📋'}</span>
+            <div>
+              <div style={{ fontSize:14, fontWeight:700, color:'var(--text-primary)' }}>{q.name}</div>
+              <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:2 }}>
+                {q.subtopic_count || 0} core competencies
+              </div>
+            </div>
+          </div>
+          <span style={{ fontSize:18, color:'var(--text-muted)' }}>›</span>
+        </div>
+      ))}
+    </div>
+  )
+}
