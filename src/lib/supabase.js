@@ -100,7 +100,7 @@ export async function getCardsForExam(examId) {
   const topics = await getTopicsForExam(examId)
   if (!topics.length) return []
   const topicIds = topics.map(t => t.id).join(',')
-  const res  = await sb(`/rest/v1/cards?topic_id=in.(${topicIds})&is_active=eq.true`)
+  const res  = await sb(`/rest/v1/cards?topic_id=in.(${topicIds})&is_active=eq.true&limit=5000`)
   const data = await res.json()
   return Array.isArray(data) ? data.map(c => ({
     ...c,
@@ -110,9 +110,17 @@ export async function getCardsForExam(examId) {
 
 // ── Card Reviews (Spaced Repetition) ─────────────────────────────────────────
 export async function getCardReviews(customerId) {
-  const res  = await sb(`/rest/v1/card_reviews?customer_id=eq.${customerId}&order=reviewed_at.desc`)
+  // Fetch all reviews, then keep only the most recent per card
+  // (handles case where unique constraint is missing and duplicates exist)
+  const res  = await sb(`/rest/v1/card_reviews?customer_id=eq.${customerId}&order=reviewed_at.desc&limit=10000`)
   const data = await res.json()
-  return Array.isArray(data) ? data : []
+  if (!Array.isArray(data)) return []
+  // Deduplicate — keep only latest review per card_id
+  const seen = {}
+  for (const r of data) {
+    if (!seen[r.card_id]) seen[r.card_id] = r
+  }
+  return Object.values(seen)
 }
 
 // Reset all study progress for a student (used in Settings with confirmation)
