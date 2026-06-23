@@ -3,8 +3,8 @@ import { useState, useEffect, useRef } from 'react'
 const supabaseUrl  = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnon = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-const BANNER_URL = 'https://www.readwisebyskai.com/assets/banner_courses.png'
-const OUTRO_URL  = 'https://www.readwisebyskai.com/assets/outro_for_the_tesda_lecture.png'
+const BANNER_URL = 'https://tizegwvlksgqtvlkiwvb.supabase.co/storage/v1/object/public/lesson-images/banner_courses.png'
+const OUTRO_URL  = 'https://tizegwvlksgqtvlkiwvb.supabase.co/storage/v1/object/public/lesson-images/outro_for_the_tesda_lecture.png'
 const YT_CHANNEL = 'https://www.youtube.com/@readwisebyskai'
 
 function getYouTubeVideoId(url) {
