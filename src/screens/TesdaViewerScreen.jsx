@@ -52,42 +52,56 @@ function YouTubeCard({ url, label }) {
   )
 }
 
-// Inject a script that fixes external links to open in new tab
-// while leaving internal anchor links (#section) working normally
 function injectLinkFixer(html) {
   if (!html) return html
   const script = `
 <script>
 (function() {
+  function isExternal(href) {
+    if (!href) return false;
+    if (href.startsWith('#')) return false;
+    if (href.startsWith('javascript')) return false;
+    if (href.startsWith('mailto')) return true;
+    if (href.startsWith('http')) return true;
+    return false;
+  }
+
   function fixLinks() {
     var links = document.querySelectorAll('a[href]');
     for (var i = 0; i < links.length; i++) {
-      var href = links[i].getAttribute('href');
-      // Internal anchor links (#section) — leave alone
-      if (!href || href.startsWith('#')) continue;
-      // External links — force open in new tab
-      links[i].setAttribute('target', '_blank');
-      links[i].setAttribute('rel', 'noopener noreferrer');
+      var href = links[i].getAttribute('href') || '';
+      if (isExternal(href)) {
+        links[i].setAttribute('target', '_blank');
+        links[i].setAttribute('rel', 'noopener noreferrer');
+      }
     }
   }
-  // Run on load and after any DOM changes
+
+  // Intercept ALL clicks — catch nav buttons, onclick handlers, etc.
+  document.addEventListener('click', function(e) {
+    var el = e.target;
+    // Walk up the DOM to find the nearest anchor
+    while (el && el.tagName !== 'A') el = el.parentElement;
+    if (!el) return;
+    var href = el.getAttribute('href') || '';
+    if (isExternal(href)) {
+      e.preventDefault();
+      window.open(href, '_blank', 'noopener,noreferrer');
+    }
+  }, true);
+
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', fixLinks);
   } else {
     fixLinks();
   }
-  // Also watch for dynamically added links
   var obs = new MutationObserver(fixLinks);
-  obs.observe(document.body || document.documentElement, { childList: true, subtree: true });
+  obs.observe(document.documentElement, { childList: true, subtree: true });
 })();
 <\/script>`
-  // Inject before </head> or before </body> or at the end
-  if (/<\/head>/i.test(html)) {
-    return html.replace(/<\/head>/i, script + '</head>')
-  }
-  if (/<\/body>/i.test(html)) {
-    return html.replace(/<\/body>/i, script + '</body>')
-  }
+
+  if (/<\/head>/i.test(html)) return html.replace(/<\/head>/i, script + '</head>')
+  if (/<\/body>/i.test(html)) return html.replace(/<\/body>/i, script + '</body>')
   return html + script
 }
 
@@ -143,11 +157,8 @@ export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
 
   function handlePrint() {
     if (!iframeRef.current) return
-    try {
-      iframeRef.current.contentWindow.print()
-    } catch {
-      window.print()
-    }
+    try { iframeRef.current.contentWindow.print() }
+    catch { window.print() }
   }
 
   const title = subtopic?.name || qualification?.name || 'Reviewer'
@@ -155,8 +166,6 @@ export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
 
   return (
     <div style={s.root}>
-
-      {/* Header */}
       <div style={s.header}>
         <button onClick={onBack} style={s.backBtn}>← Back</button>
         <div style={s.headerCenter}>
@@ -166,54 +175,36 @@ export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
             <div style={s.headerNc}>{nc} · TESDA</div>
           </div>
           {tab === 'reviewer' && hasAnyReviewer && (
-            <button onClick={handlePrint} style={s.printBtn} title="Print / Save as PDF">
-              🖨️
-            </button>
+            <button onClick={handlePrint} style={s.printBtn} title="Print / Save as PDF">🖨️</button>
           )}
         </div>
       </div>
 
-      {/* Tabs + Language toggle */}
       <div style={s.tabBar}>
         <div style={s.tabRow}>
           {tabs.map(t => (
             <button key={t.id} onClick={() => setTab(t.id)} style={{
               ...s.tab, ...(tab === t.id ? s.tabActive : {})
-            }}>
-              {t.label}
-            </button>
+            }}>{t.label}</button>
           ))}
         </div>
-
         {tab === 'reviewer' && (hasEn || hasFil) && (
           <div style={s.langToggle}>
-            <button
-              onClick={() => setLang('en')}
+            <button onClick={() => setLang('en')}
               style={{ ...s.langBtn, ...(activeLang === 'en' ? s.langBtnActive : {}) }}
-              disabled={!hasEn}>
-              🇺🇸 EN
-            </button>
-            <button
-              onClick={() => setLang('fil')}
+              disabled={!hasEn}>🇺🇸 EN</button>
+            <button onClick={() => setLang('fil')}
               style={{ ...s.langBtn, ...(activeLang === 'fil' ? s.langBtnActive : {}), ...(hasFil ? {} : s.langBtnDisabled) }}
-              disabled={!hasFil}
-              title={!hasFil ? 'Filipino version coming soon' : ''}>
-              🇵🇭 FIL
-            </button>
+              disabled={!hasFil} title={!hasFil ? 'Filipino version coming soon' : ''}>🇵🇭 FIL</button>
           </div>
         )}
       </div>
 
-      {/* Content */}
       <div style={s.content}>
-
-        {/* Reviewer tab */}
         {tab === 'reviewer' && (
           <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
             {loading ? (
-              <div style={s.center}>
-                <div style={s.muted}>Loading reviewer…</div>
-              </div>
+              <div style={s.center}><div style={s.muted}>Loading reviewer…</div></div>
             ) : activeHtmlContent ? (
               <iframe
                 ref={iframeRef}
@@ -251,7 +242,6 @@ export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
           </div>
         )}
 
-        {/* Videos tab */}
         {tab === 'videos' && (
           <div style={s.scrollPad}>
             {detail?.video_url_1 && <YouTubeCard url={detail.video_url_1} label="📹 Video Reviewer 1" />}
@@ -263,7 +253,6 @@ export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
           </div>
         )}
 
-        {/* Infographic tab */}
         {tab === 'infographic' && (
           <div style={s.scrollPad}>
             {detail?.infographic_url ? (
@@ -280,7 +269,6 @@ export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
             <div style={{ height:24 }} />
           </div>
         )}
-
       </div>
     </div>
   )
