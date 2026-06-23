@@ -208,7 +208,7 @@ export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
 
         {/* Reviewer tab */}
         {tab === 'reviewer' && (
-          <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+          <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'auto' }}>
             {loading ? (
               <div style={s.center}><div style={s.muted}>Loading reviewer…</div></div>
             ) : iframeSrc ? (
@@ -217,14 +217,13 @@ export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
                 <a href="#resources-tab" onClick={e => { e.preventDefault(); setTab('resources') }}
                   style={{ display:'block', flexShrink:0 }}>
                   <img src={BANNER_URL} alt="All resources in one place"
-                    style={{ width:'100%', display:'block', cursor:'pointer' }}
-                    onError={e => e.target.style.display='none'} />
+                    style={{ width:'100%', display:'block', cursor:'pointer' }} />
                 </a>
                 {/* Reviewer iframe */}
                 <iframe
                   ref={iframeRef}
                   src={iframeSrc}
-                  style={{ ...s.iframe, flex:1 }}
+                  style={{ width:'100%', height:'100vh', border:'none', display:'block', flexShrink:0 }}
                   title={title}
                   sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals allow-popups-to-escape-sandbox allow-top-level-navigation-by-user-activation"
                 />
@@ -232,8 +231,7 @@ export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
                 <a href={YT_CHANNEL} target="_blank" rel="noopener noreferrer"
                   style={{ display:'block', flexShrink:0 }}>
                   <img src={OUTRO_URL} alt="Like, Subscribe and Turn on the Bell"
-                    style={{ width:'100%', display:'block', cursor:'pointer' }}
-                    onError={e => e.target.style.display='none'} />
+                    style={{ width:'100%', display:'block', cursor:'pointer' }} />
                 </a>
               </>
             ) : (
