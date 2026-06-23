@@ -52,57 +52,17 @@ function YouTubeCard({ url, label }) {
   )
 }
 
-function injectLinkFixer(html) {
-  if (!html) return html
-  const script = `
-<script>
-(function() {
-  function isExternal(href) {
-    if (!href) return false;
-    if (href.startsWith('#')) return false;
-    if (href.startsWith('javascript')) return false;
-    if (href.startsWith('mailto')) return true;
-    if (href.startsWith('http')) return true;
-    return false;
-  }
-
-  function fixLinks() {
-    var links = document.querySelectorAll('a[href]');
-    for (var i = 0; i < links.length; i++) {
-      var href = links[i].getAttribute('href') || '';
-      if (isExternal(href)) {
-        links[i].setAttribute('target', '_blank');
-        links[i].setAttribute('rel', 'noopener noreferrer');
-      }
-    }
-  }
-
-  // Intercept ALL clicks — catch nav buttons, onclick handlers, etc.
-  document.addEventListener('click', function(e) {
-    var el = e.target;
-    // Walk up the DOM to find the nearest anchor
-    while (el && el.tagName !== 'A') el = el.parentElement;
-    if (!el) return;
-    var href = el.getAttribute('href') || '';
-    if (isExternal(href)) {
-      e.preventDefault();
-      window.open(href, '_blank', 'noopener,noreferrer');
-    }
-  }, true);
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', fixLinks);
-  } else {
-    fixLinks();
-  }
-  var obs = new MutationObserver(fixLinks);
-  obs.observe(document.documentElement, { childList: true, subtree: true });
-})();
-<\/script>`
-
-  if (/<\/head>/i.test(html)) return html.replace(/<\/head>/i, script + '</head>')
-  if (/<\/body>/i.test(html)) return html.replace(/<\/body>/i, script + '</body>')
-  return html + script
+// Post a Blob URL so the iframe has a real origin, fixing popup/link issues
+function useHtmlBlobUrl(html) {
+  const [blobUrl, setBlobUrl] = useState(null)
+  useEffect(() => {
+    if (!html) { setBlobUrl(null); return }
+    const blob = new Blob([html], { type: 'text/html' })
+    const url  = URL.createObjectURL(blob)
+    setBlobUrl(url)
+    return () => URL.revokeObjectURL(url)
+  }, [html])
+  return blobUrl
 }
 
 export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
@@ -140,7 +100,8 @@ export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
     ? (detail?.html_content_fil || detail?.html_content)
     : detail?.html_content
 
-  const activeHtmlContent = injectLinkFixer(rawHtmlContent)
+  // Use blob URL instead of srcDoc — gives iframe a real origin so links work
+  const blobUrl = useHtmlBlobUrl(rawHtmlContent)
 
   const activeHtmlUrl = activeLang === 'fil'
     ? (detail?.html_url_fil || detail?.html_url)
@@ -163,6 +124,10 @@ export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
 
   const title = subtopic?.name || qualification?.name || 'Reviewer'
   const nc    = qualification?.nc || subtopic?.nc || 'NC II'
+
+  // Use blob URL (for stored html_content) or direct URL (for html_url)
+  const iframeSrc  = blobUrl || activeHtmlUrl
+  const useSrcDoc  = false // always use src= with blob or direct URL
 
   return (
     <div style={s.root}>
@@ -205,21 +170,13 @@ export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
           <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
             {loading ? (
               <div style={s.center}><div style={s.muted}>Loading reviewer…</div></div>
-            ) : activeHtmlContent ? (
+            ) : iframeSrc ? (
               <iframe
                 ref={iframeRef}
-                srcDoc={activeHtmlContent}
+                src={iframeSrc}
                 style={s.iframe}
                 title={title}
-                sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals allow-popups-to-escape-sandbox"
-              />
-            ) : activeHtmlUrl ? (
-              <iframe
-                ref={iframeRef}
-                src={activeHtmlUrl}
-                style={s.iframe}
-                title={title}
-                sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals allow-popups-to-escape-sandbox"
+                sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals allow-popups-to-escape-sandbox allow-top-level-navigation-by-user-activation"
               />
             ) : (
               <div style={s.center}>
