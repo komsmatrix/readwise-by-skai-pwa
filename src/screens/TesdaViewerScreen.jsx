@@ -225,7 +225,7 @@ export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
                   src={iframeSrc}
                   style={{ width:'100%', height:'100vh', border:'none', display:'block', flexShrink:0 }}
                   title={title}
-                  sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals allow-popups-to-escape-sandbox allow-top-level-navigation-by-user-activation"
+                  sandbox="allow-scripts allow-popups allow-forms allow-modals allow-popups-to-escape-sandbox"
                 />
                 {/* Outro */}
                 <a href={YT_CHANNEL} target="_blank" rel="noopener noreferrer"
