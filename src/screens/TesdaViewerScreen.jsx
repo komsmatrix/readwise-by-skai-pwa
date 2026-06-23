@@ -227,11 +227,11 @@ export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
                   title={title}
                   sandbox="allow-scripts allow-popups allow-forms allow-modals allow-popups-to-escape-sandbox"
                 />
-                {/* Outro — fixed at bottom of scroll, natural size */}
+                {/* Outro — autofits screen */}
                 <a href={YT_CHANNEL} target="_blank" rel="noopener noreferrer"
                   style={{ display:'block', flexShrink:0 }}>
                   <img src={OUTRO_URL} alt="Like, Subscribe and Turn on the Bell"
-                    style={{ width:'100%', height:'auto', maxHeight:120, objectFit:'cover', objectPosition:'center', display:'block', cursor:'pointer' }} />
+                    style={{ width:'100%', height:'auto', display:'block', cursor:'pointer' }} />
                 </a>
               </>
             ) : (
