@@ -213,25 +213,25 @@ export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
               <div style={s.center}><div style={s.muted}>Loading reviewer…</div></div>
             ) : iframeSrc ? (
               <>
-                {/* Banner — compact professional strip */}
+                {/* Banner — full image scaled down */}
                 <a href="#resources-tab" onClick={e => { e.preventDefault(); setTab('resources') }}
-                  style={{ display:'block', flexShrink:0 }}>
+                  style={{ display:'block', flexShrink:0, background:'#0a0f2e' }}>
                   <img src={BANNER_URL} alt="All resources in one place"
-                    style={{ width:'100%', maxHeight:60, objectFit:'cover', objectPosition:'center', display:'block', cursor:'pointer' }} />
+                    style={{ width:'100%', maxHeight:90, objectFit:'contain', display:'block', cursor:'pointer' }} />
                 </a>
                 {/* Reviewer iframe */}
                 <iframe
                   ref={iframeRef}
                   src={iframeSrc}
-                  style={{ width:'100%', height:'calc(100vh - 60px)', minHeight:600, border:'none', display:'block', flexShrink:0 }}
+                  style={{ width:'100%', height:'calc(100vh - 90px)', minHeight:600, border:'none', display:'block', flexShrink:0 }}
                   title={title}
                   sandbox="allow-scripts allow-popups allow-forms allow-modals allow-popups-to-escape-sandbox"
                 />
-                {/* Outro — compact strip at bottom */}
+                {/* Outro — full image scaled down */}
                 <a href={YT_CHANNEL} target="_blank" rel="noopener noreferrer"
-                  style={{ display:'block', flexShrink:0 }}>
+                  style={{ display:'block', flexShrink:0, background:'#0a0f2e' }}>
                   <img src={OUTRO_URL} alt="Like, Subscribe and Turn on the Bell"
-                    style={{ width:'100%', maxHeight:60, objectFit:'cover', objectPosition:'center', display:'block', cursor:'pointer' }} />
+                    style={{ width:'100%', maxHeight:90, objectFit:'contain', display:'block', cursor:'pointer' }} />
                 </a>
               </>
             ) : (
