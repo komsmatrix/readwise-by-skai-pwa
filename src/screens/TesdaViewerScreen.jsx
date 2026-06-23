@@ -213,21 +213,21 @@ export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
               <div style={s.center}><div style={s.muted}>Loading reviewer…</div></div>
             ) : iframeSrc ? (
               <>
-                {/* Banner */}
+                {/* Banner — smaller fixed height */}
                 <a href="#resources-tab" onClick={e => { e.preventDefault(); setTab('resources') }}
                   style={{ display:'block', flexShrink:0 }}>
                   <img src={BANNER_URL} alt="All resources in one place"
-                    style={{ width:'100%', display:'block', cursor:'pointer' }} />
+                    style={{ width:'100%', maxHeight:120, objectFit:'cover', display:'block', cursor:'pointer' }} />
                 </a>
-                {/* Reviewer iframe */}
+                {/* Reviewer iframe — tall enough to fill screen so outro is below fold */}
                 <iframe
                   ref={iframeRef}
                   src={iframeSrc}
-                  style={{ width:'100%', height:'100vh', border:'none', display:'block', flexShrink:0 }}
+                  style={{ width:'100%', height:'calc(100vh - 120px)', minHeight:600, border:'none', display:'block', flexShrink:0 }}
                   title={title}
                   sandbox="allow-scripts allow-popups allow-forms allow-modals allow-popups-to-escape-sandbox"
                 />
-                {/* Outro */}
+                {/* Outro — stays at bottom, only visible when scrolled down */}
                 <a href={YT_CHANNEL} target="_blank" rel="noopener noreferrer"
                   style={{ display:'block', flexShrink:0 }}>
                   <img src={OUTRO_URL} alt="Like, Subscribe and Turn on the Bell"
