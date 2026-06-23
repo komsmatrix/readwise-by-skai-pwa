@@ -3,6 +3,10 @@ import { useState, useEffect, useRef } from 'react'
 const supabaseUrl  = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnon = import.meta.env.VITE_SUPABASE_ANON_KEY
 
+const BANNER_URL = 'https://readwisebyskai.com/assets/banner_courses.png'
+const OUTRO_URL  = 'https://readwisebyskai.com/assets/outro_for_the_tesda_lecture.png'
+const YT_CHANNEL = 'https://www.youtube.com/@readwisebyskai'
+
 function getYouTubeVideoId(url) {
   if (!url) return null
   const short = url.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/)
@@ -17,42 +21,71 @@ function toYouTubeEmbed(url) {
   return id ? `https://www.youtube.com/embed/${id}` : url
 }
 
-function YouTubeCard({ url, label }) {
+function isYouTubeUrl(url) {
+  return url && (url.includes('youtube.com') || url.includes('youtu.be'))
+}
+
+function isAudioUrl(url) {
+  if (!url) return false
+  return url.match(/\.(mp3|m4a|ogg|wav|aac|flac)(\?|$)/i) !== null
+}
+
+function MediaCard({ url, label, index }) {
   if (!url) return null
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
   const videoId  = getYouTubeVideoId(url)
-  const likeUrl  = videoId ? `https://www.youtube.com/watch?v=${videoId}` : url
-  const subUrl   = 'https://www.youtube.com/@readwisebyskai?sub_confirmation=1'
+  const ytUrl    = videoId ? `https://www.youtube.com/watch?v=${videoId}` : url
+  const subUrl   = `${YT_CHANNEL}?sub_confirmation=1`
 
-  return (
-    <div style={s.videoWrap}>
-      <div style={s.videoLabel}>{label}</div>
-      {isMobile ? (
-        <a href={url} target="_blank" rel="noopener noreferrer" style={s.mobileVideoBtn}>
-          <span style={{ fontSize:20 }}>🎬</span>
-          <div>
-            <div style={{ fontSize:13, fontWeight:700, color:'var(--text-primary)' }}>Watch on YouTube</div>
-            <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:2 }}>Opens in YouTube app</div>
-          </div>
-          <span style={{ fontSize:11, color:'var(--text-muted)', marginLeft:'auto' }}>↗</span>
-        </a>
-      ) : (
-        <iframe
-          src={toYouTubeEmbed(url)}
-          style={{ width:'100%', aspectRatio:'16/9', borderRadius:10, border:'none', display:'block' }}
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-        />
-      )}
-      <div style={s.ytBtnRow}>
-        <a href={likeUrl} target="_blank" rel="noopener noreferrer" style={s.likeBtn}>👍 Like on YouTube</a>
-        <a href={subUrl}  target="_blank" rel="noopener noreferrer" style={s.subBtn}>🔔 Subscribe</a>
+  if (isAudioUrl(url)) {
+    return (
+      <div style={r.mediaCard}>
+        <div style={r.mediaLabel}>🎧 {label}</div>
+        <audio controls style={{ width:'100%', borderRadius:8, marginTop:6 }} src={url}>
+          Your browser does not support audio.
+        </audio>
       </div>
+    )
+  }
+
+  if (isYouTubeUrl(url)) {
+    return (
+      <div style={r.mediaCard}>
+        <div style={r.mediaLabel}>📹 {label}</div>
+        {isMobile ? (
+          <a href={ytUrl} target="_blank" rel="noopener noreferrer" style={r.mobileBtn}>
+            <span style={{ fontSize:20 }}>🎬</span>
+            <div>
+              <div style={{ fontSize:13, fontWeight:700, color:'var(--text-primary)' }}>Watch on YouTube</div>
+              <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:2 }}>Opens in YouTube app</div>
+            </div>
+            <span style={{ fontSize:11, color:'var(--text-muted)', marginLeft:'auto' }}>↗</span>
+          </a>
+        ) : (
+          <iframe
+            src={toYouTubeEmbed(url)}
+            style={{ width:'100%', aspectRatio:'16/9', borderRadius:10, border:'none', display:'block', marginTop:6 }}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+        )}
+        <div style={r.ytBtnRow}>
+          <a href={ytUrl} target="_blank" rel="noopener noreferrer" style={r.likeBtn}>👍 Like on YouTube</a>
+          <a href={subUrl} target="_blank" rel="noopener noreferrer" style={r.subBtn}>🔔 Subscribe</a>
+        </div>
+      </div>
+    )
+  }
+
+  // Generic link
+  return (
+    <div style={r.mediaCard}>
+      <div style={r.mediaLabel}>🔗 {label}</div>
+      <a href={url} target="_blank" rel="noopener noreferrer" style={r.linkBtn}>Open Resource ↗</a>
     </div>
   )
 }
 
-// Post a Blob URL so the iframe has a real origin, fixing popup/link issues
 function useHtmlBlobUrl(html) {
   const [blobUrl, setBlobUrl] = useState(null)
   useEffect(() => {
@@ -66,10 +99,10 @@ function useHtmlBlobUrl(html) {
 }
 
 export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
-  const [detail,   setDetail]   = useState(subtopic || qualification)
-  const [tab,      setTab]      = useState('reviewer')
-  const [lang,     setLang]     = useState('en')
-  const [loading,  setLoading]  = useState(true)
+  const [detail,  setDetail]  = useState(subtopic || qualification)
+  const [tab,     setTab]     = useState('reviewer')
+  const [lang,    setLang]    = useState('en')
+  const [loading, setLoading] = useState(true)
   const iframeRef = useRef(null)
 
   useEffect(() => { loadDetail() }, [subtopic?.id, qualification?.id])
@@ -100,19 +133,26 @@ export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
     ? (detail?.html_content_fil || detail?.html_content)
     : detail?.html_content
 
-  // Use blob URL instead of srcDoc — gives iframe a real origin so links work
   const blobUrl = useHtmlBlobUrl(rawHtmlContent)
 
   const activeHtmlUrl = activeLang === 'fil'
     ? (detail?.html_url_fil || detail?.html_url)
     : detail?.html_url
 
+  const iframeSrc = blobUrl || activeHtmlUrl
+
+  const mediaUrls = [1,2,3,4,5]
+    .map(n => detail?.[`media_url_${n}`])
+    .filter(Boolean)
+
   const hasVideos      = detail?.video_url_1 || detail?.video_url_2
   const hasInfographic = detail?.infographic_url
+  const hasResources   = mediaUrls.length > 0
 
   const tabs = [
     { id:'reviewer',    label:'📖 Reviewer',   show: true },
     { id:'videos',      label:'📹 Videos',     show: !!hasVideos },
+    { id:'resources',   label:'📦 Resources',  show: hasResources },
     { id:'infographic', label:'🖼 Infographic', show: !!hasInfographic },
   ].filter(t => t.show)
 
@@ -125,12 +165,9 @@ export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
   const title = subtopic?.name || qualification?.name || 'Reviewer'
   const nc    = qualification?.nc || subtopic?.nc || 'NC II'
 
-  // Use blob URL (for stored html_content) or direct URL (for html_url)
-  const iframeSrc  = blobUrl || activeHtmlUrl
-  const useSrcDoc  = false // always use src= with blob or direct URL
-
   return (
     <div style={s.root}>
+      {/* Header */}
       <div style={s.header}>
         <button onClick={onBack} style={s.backBtn}>← Back</button>
         <div style={s.headerCenter}>
@@ -145,6 +182,7 @@ export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
         </div>
       </div>
 
+      {/* Tabs + Language toggle */}
       <div style={s.tabBar}>
         <div style={s.tabRow}>
           {tabs.map(t => (
@@ -165,19 +203,39 @@ export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
         )}
       </div>
 
+      {/* Content */}
       <div style={s.content}>
+
+        {/* Reviewer tab */}
         {tab === 'reviewer' && (
-          <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
+          <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
             {loading ? (
               <div style={s.center}><div style={s.muted}>Loading reviewer…</div></div>
             ) : iframeSrc ? (
-              <iframe
-                ref={iframeRef}
-                src={iframeSrc}
-                style={s.iframe}
-                title={title}
-                sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals allow-popups-to-escape-sandbox allow-top-level-navigation-by-user-activation"
-              />
+              <>
+                {/* Banner */}
+                <a href="#resources-tab" onClick={e => { e.preventDefault(); setTab('resources') }}
+                  style={{ display:'block', flexShrink:0 }}>
+                  <img src={BANNER_URL} alt="All resources in one place"
+                    style={{ width:'100%', display:'block', cursor:'pointer' }}
+                    onError={e => e.target.style.display='none'} />
+                </a>
+                {/* Reviewer iframe */}
+                <iframe
+                  ref={iframeRef}
+                  src={iframeSrc}
+                  style={{ ...s.iframe, flex:1 }}
+                  title={title}
+                  sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals allow-popups-to-escape-sandbox allow-top-level-navigation-by-user-activation"
+                />
+                {/* Outro */}
+                <a href={YT_CHANNEL} target="_blank" rel="noopener noreferrer"
+                  style={{ display:'block', flexShrink:0 }}>
+                  <img src={OUTRO_URL} alt="Like, Subscribe and Turn on the Bell"
+                    style={{ width:'100%', display:'block', cursor:'pointer' }}
+                    onError={e => e.target.style.display='none'} />
+                </a>
+              </>
             ) : (
               <div style={s.center}>
                 <div style={{ fontSize:32, marginBottom:12 }}>📋</div>
@@ -199,10 +257,33 @@ export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
           </div>
         )}
 
+        {/* Videos tab */}
         {tab === 'videos' && (
           <div style={s.scrollPad}>
-            {detail?.video_url_1 && <YouTubeCard url={detail.video_url_1} label="📹 Video Reviewer 1" />}
-            {detail?.video_url_2 && <YouTubeCard url={detail.video_url_2} label="📹 Video Reviewer 2" />}
+            {detail?.video_url_1 && (
+              <div style={r.mediaCard}>
+                <div style={r.mediaLabel}>📹 Video Reviewer 1</div>
+                <iframe src={toYouTubeEmbed(detail.video_url_1)}
+                  style={{ width:'100%', aspectRatio:'16/9', borderRadius:10, border:'none', display:'block', marginTop:6 }}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
+                <div style={r.ytBtnRow}>
+                  <a href={`https://www.youtube.com/watch?v=${getYouTubeVideoId(detail.video_url_1)}`} target="_blank" rel="noopener noreferrer" style={r.likeBtn}>👍 Like</a>
+                  <a href={`${YT_CHANNEL}?sub_confirmation=1`} target="_blank" rel="noopener noreferrer" style={r.subBtn}>🔔 Subscribe</a>
+                </div>
+              </div>
+            )}
+            {detail?.video_url_2 && (
+              <div style={r.mediaCard}>
+                <div style={r.mediaLabel}>📹 Video Reviewer 2</div>
+                <iframe src={toYouTubeEmbed(detail.video_url_2)}
+                  style={{ width:'100%', aspectRatio:'16/9', borderRadius:10, border:'none', display:'block', marginTop:6 }}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
+                <div style={r.ytBtnRow}>
+                  <a href={`https://www.youtube.com/watch?v=${getYouTubeVideoId(detail.video_url_2)}`} target="_blank" rel="noopener noreferrer" style={r.likeBtn}>👍 Like</a>
+                  <a href={`${YT_CHANNEL}?sub_confirmation=1`} target="_blank" rel="noopener noreferrer" style={r.subBtn}>🔔 Subscribe</a>
+                </div>
+              </div>
+            )}
             {!detail?.video_url_1 && !detail?.video_url_2 && (
               <div style={s.center}><div style={s.muted}>No videos added yet.</div></div>
             )}
@@ -210,6 +291,34 @@ export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
           </div>
         )}
 
+        {/* Resources tab */}
+        {tab === 'resources' && (
+          <div style={s.scrollPad} id="resources-tab">
+            <div style={r.sectionHeader}>
+              <div style={r.sectionTitle}>📦 Resources</div>
+              <div style={r.sectionSub}>Audio reviews, video lessons, and study materials for {title}</div>
+            </div>
+
+            {mediaUrls.length === 0 ? (
+              <div style={s.center}><div style={s.muted}>No resources added yet.</div></div>
+            ) : (
+              mediaUrls.map((url, i) => (
+                <MediaCard key={i} url={url} label={`Resource ${i + 1}`} index={i} />
+              ))
+            )}
+
+            {/* Outro banner in resources tab too */}
+            <a href={YT_CHANNEL} target="_blank" rel="noopener noreferrer"
+              style={{ display:'block', marginTop:16, borderRadius:10, overflow:'hidden' }}>
+              <img src={OUTRO_URL} alt="Like Subscribe"
+                style={{ width:'100%', display:'block' }}
+                onError={e => e.target.style.display='none'} />
+            </a>
+            <div style={{ height:24 }} />
+          </div>
+        )}
+
+        {/* Infographic tab */}
         {tab === 'infographic' && (
           <div style={s.scrollPad}>
             {detail?.infographic_url ? (
@@ -226,6 +335,7 @@ export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
             <div style={{ height:24 }} />
           </div>
         )}
+
       </div>
     </div>
   )
@@ -252,13 +362,20 @@ const s = {
   center        : { flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:32, gap:8 },
   muted         : { fontSize:13, color:'var(--text-muted)', textAlign:'center', lineHeight:1.6 },
   scrollPad     : { flex:1, overflowY:'auto', padding:'16px 16px 0' },
-  iframe        : { flex:1, border:'none', width:'100%', height:'100%', minHeight:'calc(100vh - 130px)' },
+  iframe        : { border:'none', width:'100%', height:'100%', minHeight:'calc(100vh - 200px)' },
   switchBtn     : { marginTop:16, padding:'10px 24px', background:'var(--accent)', color:'#0d0d0d', border:'none', borderRadius:10, fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'inherit' },
   openFullBtn   : { display:'block', textAlign:'center', margin:'12px 0', fontSize:13, color:'var(--accent)', fontWeight:600, textDecoration:'none' },
-  videoWrap     : { marginBottom:20 },
-  videoLabel    : { fontSize:11, fontWeight:600, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'.06em', marginBottom:8 },
-  mobileVideoBtn: { display:'flex', alignItems:'center', gap:10, background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:10, padding:'12px 16px', textDecoration:'none', color:'var(--text-primary)' },
-  ytBtnRow      : { display:'flex', gap:8, marginTop:8 },
+}
+
+const r = {
+  sectionHeader : { marginBottom:16 },
+  sectionTitle  : { fontSize:16, fontWeight:700, color:'var(--text-primary)', marginBottom:4 },
+  sectionSub    : { fontSize:12, color:'var(--text-muted)', lineHeight:1.5 },
+  mediaCard     : { background:'var(--bg-surface)', border:'1px solid var(--border)', borderRadius:12, padding:'14px', marginBottom:14 },
+  mediaLabel    : { fontSize:11, fontWeight:600, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'.06em', marginBottom:6 },
+  ytBtnRow      : { display:'flex', gap:8, marginTop:10 },
   likeBtn       : { flex:1, padding:'9px 0', background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:8, fontSize:12, fontWeight:600, color:'var(--text-primary)', textDecoration:'none', textAlign:'center' },
   subBtn        : { flex:1, padding:'9px 0', background:'#FF0000', border:'none', borderRadius:8, fontSize:12, fontWeight:700, color:'#fff', textDecoration:'none', textAlign:'center' },
+  mobileBtn     : { display:'flex', alignItems:'center', gap:10, background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:10, padding:'12px 16px', textDecoration:'none', color:'var(--text-primary)' },
+  linkBtn       : { display:'inline-block', marginTop:8, padding:'9px 20px', background:'var(--accent-dim)', border:'1px solid var(--accent)', borderRadius:8, fontSize:13, fontWeight:600, color:'var(--accent)', textDecoration:'none' },
 }

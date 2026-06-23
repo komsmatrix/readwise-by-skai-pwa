@@ -2024,6 +2024,11 @@ function TesdaTab() {
       video_url_1     : editing.video_url_1      || null,
       video_url_2     : editing.video_url_2      || null,
       infographic_url : editing.infographic_url  || null,
+      media_url_1     : editing.media_url_1      || null,
+      media_url_2     : editing.media_url_2      || null,
+      media_url_3     : editing.media_url_3      || null,
+      media_url_4     : editing.media_url_4      || null,
+      media_url_5     : editing.media_url_5      || null,
       is_active       : true,
       sort_order      : editing.sort_order || subtopics.length + 1,
     }
@@ -2190,30 +2195,37 @@ function TesdaTab() {
           </div>
         </div>
 
-        <div style={s.field}>
-          <label style={s.label}>YouTube Video Reviewer 1</label>
-          <input style={s.input} value={editing.video_url_1 || ''}
-            placeholder="https://youtu.be/..."
+        <div style={s.field}><label style={s.label}>YouTube Video Reviewer 1</label>
+          <input style={s.input} value={editing.video_url_1 || ''} placeholder="https://youtu.be/..."
             onChange={e => setEditing(p => ({ ...p, video_url_1: e.target.value }))} />
         </div>
 
-        <div style={s.field}>
-          <label style={s.label}>YouTube Video Reviewer 2</label>
-          <input style={s.input} value={editing.video_url_2 || ''}
-            placeholder="https://youtu.be/..."
+        <div style={s.field}><label style={s.label}>YouTube Video Reviewer 2</label>
+          <input style={s.input} value={editing.video_url_2 || ''} placeholder="https://youtu.be/..."
             onChange={e => setEditing(p => ({ ...p, video_url_2: e.target.value }))} />
         </div>
 
-        <div style={s.field}>
-          <label style={s.label}>Infographic URL</label>
-          <input style={s.input} value={editing.infographic_url || ''}
-            placeholder="https://..."
+        <div style={s.field}><label style={s.label}>Infographic URL</label>
+          <input style={s.input} value={editing.infographic_url || ''} placeholder="https://..."
             onChange={e => setEditing(p => ({ ...p, infographic_url: e.target.value }))} />
           {editing.infographic_url && (
             <img src={editing.infographic_url} alt="infographic preview"
               style={{ marginTop:8, width:'100%', borderRadius:8, border:'1px solid var(--border)' }}
               onError={e => e.target.style.display='none'} />
           )}
+        </div>
+
+        {/* Resources Section */}
+        <div style={{ margin:'8px 0 4px', padding:'12px 14px', background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:10 }}>
+          <div style={{ fontSize:11, fontWeight:700, color:'var(--accent)', textTransform:'uppercase', letterSpacing:'.06em', marginBottom:12 }}>📦 Resources (Audio / Video / Mixed — up to 5)</div>
+          <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:12 }}>Paste YouTube URLs or direct audio file URLs. These will appear in the Resources tab inside the reviewer.</div>
+          {[1,2,3,4,5].map(n => (
+            <div key={n} style={s.field}>
+              <label style={s.label}>Resource {n} URL</label>
+              <input style={s.input} value={editing[`media_url_${n}`] || ''} placeholder="https://youtu.be/... or https://audio.mp3"
+                onChange={e => setEditing(p => ({ ...p, [`media_url_${n}`]: e.target.value }))} />
+            </div>
+          ))}
         </div>
 
         <button style={{ ...s.saveBtn, opacity: saving ? 0.6 : 1 }} onClick={saveSubtopic} disabled={saving}>
