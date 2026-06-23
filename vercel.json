@@ -1,0 +1,13 @@
+{
+  "buildCommand": "vite build",
+  "outputDirectory": "dist",
+  "headers": [
+    {
+      "source": "/assets/(.*)\\.png",
+      "headers": [{ "key": "Content-Type", "value": "image/png" }]
+    }
+  ],
+  "rewrites": [
+    { "source": "/((?!assets/).*)", "destination": "/index.html" }
+  ]
+}
