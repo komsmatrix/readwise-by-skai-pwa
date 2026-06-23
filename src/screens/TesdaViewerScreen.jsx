@@ -217,21 +217,21 @@ export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
                 <a href="#resources-tab" onClick={e => { e.preventDefault(); setTab('resources') }}
                   style={{ display:'block', flexShrink:0, background:'#0a0f2e' }}>
                   <img src={BANNER_URL} alt="All resources in one place"
-                    style={{ width:'100%', maxHeight:110, objectFit:'contain', display:'block', cursor:'pointer' }} />
+                    style={{ width:'100%', height:80, objectFit:'fill', display:'block', cursor:'pointer' }} />
                 </a>
                 {/* Reviewer iframe */}
                 <iframe
                   ref={iframeRef}
                   src={iframeSrc}
-                  style={{ width:'100%', height:'calc(100vh - 110px)', minHeight:600, border:'none', display:'block', flexShrink:0 }}
+                  style={{ width:'100%', height:'calc(100vh - 80px)', minHeight:600, border:'none', display:'block', flexShrink:0 }}
                   title={title}
                   sandbox="allow-scripts allow-popups allow-forms allow-modals allow-popups-to-escape-sandbox"
                 />
-                {/* Outro — full image scaled down */}
+                {/* Outro */}
                 <a href={YT_CHANNEL} target="_blank" rel="noopener noreferrer"
-                  style={{ display:'block', flexShrink:0, background:'#0a0f2e' }}>
+                  style={{ display:'block', flexShrink:0 }}>
                   <img src={OUTRO_URL} alt="Like, Subscribe and Turn on the Bell"
-                    style={{ width:'100%', maxHeight:110, objectFit:'contain', display:'block', cursor:'pointer' }} />
+                    style={{ width:'100%', height:80, objectFit:'fill', display:'block', cursor:'pointer' }} />
                 </a>
               </>
             ) : (
