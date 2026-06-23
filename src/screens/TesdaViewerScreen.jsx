@@ -3,8 +3,8 @@ import { useState, useEffect, useRef } from 'react'
 const supabaseUrl  = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnon = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-const BANNER_URL = 'https://tizegwvlksgqtvlkiwvb.supabase.co/storage/v1/object/public/lesson-images/banner_courses.png'
-const OUTRO_URL  = 'https://tizegwvlksgqtvlkiwvb.supabase.co/storage/v1/object/public/lesson-images/outro_for_the_tesda_lecture.png'
+const BANNER_URL = 'https://tizegwvlksgqtvlkiwvb.supabase.co/storage/v1/object/public/lesson-images/Banner%20above%20the%20lecture.png'
+const OUTRO_URL  = 'https://tizegwvlksgqtvlkiwvb.supabase.co/storage/v1/object/public/lesson-images/outro%20after%20the%20lecture.JPG'
 const YT_CHANNEL = 'https://www.youtube.com/@readwisebyskai'
 
 function getYouTubeVideoId(url) {
@@ -217,13 +217,13 @@ export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
                 <a href="#resources-tab" onClick={e => { e.preventDefault(); setTab('resources') }}
                   style={{ display:'block', flexShrink:0, background:'#0a0f2e' }}>
                   <img src={BANNER_URL} alt="All resources in one place"
-                    style={{ width:'100%', maxHeight:90, objectFit:'contain', display:'block', cursor:'pointer' }} />
+                    style={{ width:'100%', maxHeight:110, objectFit:'contain', display:'block', cursor:'pointer' }} />
                 </a>
                 {/* Reviewer iframe */}
                 <iframe
                   ref={iframeRef}
                   src={iframeSrc}
-                  style={{ width:'100%', height:'calc(100vh - 90px)', minHeight:600, border:'none', display:'block', flexShrink:0 }}
+                  style={{ width:'100%', height:'calc(100vh - 110px)', minHeight:600, border:'none', display:'block', flexShrink:0 }}
                   title={title}
                   sandbox="allow-scripts allow-popups allow-forms allow-modals allow-popups-to-escape-sandbox"
                 />
@@ -231,7 +231,7 @@ export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
                 <a href={YT_CHANNEL} target="_blank" rel="noopener noreferrer"
                   style={{ display:'block', flexShrink:0, background:'#0a0f2e' }}>
                   <img src={OUTRO_URL} alt="Like, Subscribe and Turn on the Bell"
-                    style={{ width:'100%', maxHeight:90, objectFit:'contain', display:'block', cursor:'pointer' }} />
+                    style={{ width:'100%', maxHeight:110, objectFit:'contain', display:'block', cursor:'pointer' }} />
                 </a>
               </>
             ) : (
