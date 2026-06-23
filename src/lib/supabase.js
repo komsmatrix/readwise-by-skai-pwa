@@ -329,3 +329,56 @@ export function getDaysLeft(examDate) {
   const diff = new Date(examDate) - new Date()
   return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)))
 }
+
+// ── Session Management ────────────────────────────────────────────────────────
+function generateSessionToken() {
+  return crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now().toString(36)
+}
+
+function getDeviceInfo() {
+  const ua = navigator.userAgent
+  if (/iPhone|iPad|iPod/i.test(ua)) return 'iOS'
+  if (/Android/i.test(ua)) return 'Android'
+  if (/Windows/i.test(ua)) return 'Windows'
+  if (/Mac/i.test(ua)) return 'Mac'
+  return 'Unknown'
+}
+
+export async function createSession(customerId) {
+  const token  = generateSessionToken()
+  const device = getDeviceInfo()
+  localStorage.setItem('rbs_session_token', token)
+  await sb(`/rest/v1/customers?id=eq.${customerId}`, {
+    method : 'PATCH',
+    body   : JSON.stringify({
+      session_token  : token,
+      session_device : device,
+      last_seen_at   : new Date().toISOString(),
+      last_seen_device: device,
+    }),
+  })
+  return token
+}
+
+export async function validateSession(customerId) {
+  const localToken = localStorage.getItem('rbs_session_token')
+  if (!localToken) return { valid: false, reason: 'no_token' }
+  const res  = await sb(`/rest/v1/customers?id=eq.${customerId}&select=session_token,is_active`)
+  const data = await res.json()
+  const cust = data?.[0]
+  if (!cust) return { valid: false, reason: 'not_found' }
+  if (!cust.is_active) return { valid: false, reason: 'inactive' }
+  if (cust.session_token !== localToken) return { valid: false, reason: 'session_expired' }
+  return { valid: true }
+}
+
+export async function updateLastSeen(customerId) {
+  const device = getDeviceInfo()
+  await sb(`/rest/v1/customers?id=eq.${customerId}`, {
+    method : 'PATCH',
+    body   : JSON.stringify({
+      last_seen_at   : new Date().toISOString(),
+      last_seen_device: device,
+    }),
+  })
+}

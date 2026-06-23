@@ -8,6 +8,8 @@ export default function ActivationScreen({ onActivated, onBack }) {
   const [key,      setKey]      = useState('')
   const [status,   setStatus]   = useState('idle')
   const [errorMsg, setErrorMsg] = useState('')
+  const [agreedTC, setAgreedTC] = useState(false)
+  const wasKicked = new URLSearchParams(window.location.search).get('kicked') === '1'
 
   function formatKey(val) {
     const clean = val.toUpperCase().replace(/[^A-Z0-9]/g, '')
@@ -52,6 +54,7 @@ export default function ActivationScreen({ onActivated, onBack }) {
     if (!email.trim()) return showError('Please enter your email address.')
     if (!email.includes('@')) return showError('Please enter a valid email address.')
     if (key.replace(/-/g, '').length < 12) return showError('Access key must be 12 characters (e.g. ABCD-1234-WXYZ).')
+    if (!agreedTC) return showError('Please agree to the Terms & Conditions and Privacy Policy to continue.')
     setStatus('loading'); setErrorMsg('')
     const result = await activateKey(key, name.trim(), email.trim())
     if (result.success) {
@@ -94,6 +97,12 @@ export default function ActivationScreen({ onActivated, onBack }) {
         )}
         <h1 style={s.heading}>Welcome.</h1>
         <p style={s.sub}>Your board exam operating system.</p>
+
+        {wasKicked && (
+          <div style={s.kickedBanner}>
+            ⚠️ You were signed out because your account was opened on another device. Sign in again to continue.
+          </div>
+        )}
 
         {/* Tabs */}
         <div style={s.tabs}>
@@ -156,11 +165,23 @@ export default function ActivationScreen({ onActivated, onBack }) {
                 onKeyDown={e => e.key === 'Enter' && handleActivate()}
                 maxLength={14} spellCheck={false} autoComplete="off"/>
             </div>
+            {/* T&C Checkbox */}
+            <div style={s.tcRow}>
+              <input type="checkbox" id="tc" checked={agreedTC}
+                onChange={e => setAgreedTC(e.target.checked)}
+                style={{ width:16, height:16, accentColor:'var(--accent)', cursor:'pointer', flexShrink:0 }} />
+              <label htmlFor="tc" style={s.tcLabel}>
+                I agree to the{' '}
+                <a href="/terms" target="_blank" rel="noopener noreferrer" style={s.tcLink}>Terms & Conditions</a>
+                {' '}and{' '}
+                <a href="/privacy" target="_blank" rel="noopener noreferrer" style={s.tcLink}>Privacy Policy</a>
+              </label>
+            </div>
             {errorMsg && <p style={s.error} className="animate-in">{errorMsg}</p>}
             <button
-              style={{ ...s.btn, ...(status === 'loading' ? s.btnLoading : {}), ...(status === 'success' ? s.btnSuccess : {}) }}
+              style={{ ...s.btn, ...(status === 'loading' ? s.btnLoading : {}), ...(status === 'success' ? s.btnSuccess : {}), ...(!agreedTC ? { opacity:0.5, cursor:'not-allowed' } : {}) }}
               onClick={handleActivate}
-              disabled={status === 'loading' || status === 'success'}>
+              disabled={status === 'loading' || status === 'success' || !agreedTC}>
               {status === 'loading' ? <><span style={s.spinner}/> Activating…</>
                : status === 'success' ? 'Welcome ✓'
                : 'Activate my access key'}
@@ -202,5 +223,9 @@ const s = {
   spinner  : { width:14, height:14, border:'2px solid rgba(0,0,0,0.2)', borderTop:'2px solid #0d0d0d', borderRadius:'50%', animation:'spin 0.7s linear infinite' },
   backBtn  : { display:'inline-flex', alignItems:'center', gap:6, background:'none', border:'none', color:'var(--text-muted)', fontSize:13, cursor:'pointer', padding:'0 0 16px', fontFamily:'inherit', transition:'color var(--transition)' },
   footer   : { marginTop:20, fontSize:12, color:'var(--text-muted)', textAlign:'center', lineHeight:1.7 },
+  tcRow       : { display:'flex', alignItems:'flex-start', gap:10, padding:'4px 0' },
+  tcLabel     : { fontSize:12, color:'var(--text-muted)', lineHeight:1.6, cursor:'pointer' },
+  tcLink      : { color:'var(--accent)', textDecoration:'underline' },
+  kickedBanner: { fontSize:13, color:'#e05c5c', background:'rgba(224,92,92,0.08)', border:'1px solid rgba(224,92,92,0.2)', borderRadius:8, padding:'10px 14px', marginBottom:16, lineHeight:1.6 },
 }
 

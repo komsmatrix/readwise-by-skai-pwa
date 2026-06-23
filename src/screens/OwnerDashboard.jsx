@@ -1165,10 +1165,23 @@ function StudentsTab() {
   async function loadStudents() {
     const { data } = await supabase
       .from('customers')
-      .select('id, name, email, created_at, is_active, referral_code')
-      .order('created_at', { ascending: false })
+      .select('id, name, email, created_at, is_active, referral_code, last_seen_at, last_seen_device, session_device')
+      .order('last_seen_at', { ascending: false })
     setStudents(data || [])
     setLoading(false)
+  }
+
+  function formatLastSeen(iso) {
+    if (!iso) return 'Never'
+    const diff = Date.now() - new Date(iso).getTime()
+    const mins = Math.floor(diff / 60000)
+    const hrs  = Math.floor(diff / 3600000)
+    const days = Math.floor(diff / 86400000)
+    if (mins < 2)  return '🟢 Online now'
+    if (mins < 60) return `${mins}m ago`
+    if (hrs  < 24) return `${hrs}h ago`
+    if (days < 7)  return `${days}d ago`
+    return new Date(iso).toLocaleDateString('en-PH', { month:'short', day:'numeric', year:'numeric' })
   }
 
   const filtered = students.filter(s =>
@@ -1177,10 +1190,22 @@ function StudentsTab() {
     s.email?.toLowerCase().includes(search.toLowerCase())
   )
 
+  const onlineCount = students.filter(s => {
+    if (!s.last_seen_at) return false
+    return Date.now() - new Date(s.last_seen_at).getTime() < 120000 // 2 mins
+  }).length
+
   return (
     <div style={s.section}>
-      <input style={s.searchInput} placeholder="Search students…"
-        value={search} onChange={e => setSearch(e.target.value)} />
+      <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:12 }}>
+        <input style={{ ...s.searchInput, margin:0, flex:1 }} placeholder="Search students…"
+          value={search} onChange={e => setSearch(e.target.value)} />
+        {onlineCount > 0 && (
+          <div style={{ fontSize:12, color:'#10B981', fontWeight:600, flexShrink:0 }}>
+            🟢 {onlineCount} online now
+          </div>
+        )}
+      </div>
       <div style={s.listCount}>{filtered.length} students</div>
       {loading ? <Loading /> : (
         <div style={s.cardList}>
@@ -1192,14 +1217,18 @@ function StudentsTab() {
                 <div style={s.cardMeta}>
                   <span style={s.chip}>{st.email}</span>
                   {st.referral_code && <span style={s.chip}>ref: {st.referral_code}</span>}
+                  {st.last_seen_device && <span style={s.chip}>📱 {st.last_seen_device}</span>}
                 </div>
               </div>
-              <div style={{ textAlign: 'right' }}>
+              <div style={{ textAlign: 'right', flexShrink:0 }}>
                 <span style={{ ...s.chip, color: st.is_active ? '#10B981' : '#e05c5c' }}>
                   {st.is_active ? 'Active' : 'Inactive'}
                 </span>
                 <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 3 }}>
-                  {new Date(st.created_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  Last seen: {formatLastSeen(st.last_seen_at)}
+                </div>
+                <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 1 }}>
+                  Joined: {new Date(st.created_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}
                 </div>
               </div>
             </div>
@@ -2024,11 +2053,6 @@ function TesdaTab() {
       video_url_1     : editing.video_url_1      || null,
       video_url_2     : editing.video_url_2      || null,
       infographic_url : editing.infographic_url  || null,
-      media_url_1     : editing.media_url_1      || null,
-      media_url_2     : editing.media_url_2      || null,
-      media_url_3     : editing.media_url_3      || null,
-      media_url_4     : editing.media_url_4      || null,
-      media_url_5     : editing.media_url_5      || null,
       is_active       : true,
       sort_order      : editing.sort_order || subtopics.length + 1,
     }
@@ -2195,37 +2219,30 @@ function TesdaTab() {
           </div>
         </div>
 
-        <div style={s.field}><label style={s.label}>YouTube Video Reviewer 1</label>
-          <input style={s.input} value={editing.video_url_1 || ''} placeholder="https://youtu.be/..."
+        <div style={s.field}>
+          <label style={s.label}>YouTube Video Reviewer 1</label>
+          <input style={s.input} value={editing.video_url_1 || ''}
+            placeholder="https://youtu.be/..."
             onChange={e => setEditing(p => ({ ...p, video_url_1: e.target.value }))} />
         </div>
 
-        <div style={s.field}><label style={s.label}>YouTube Video Reviewer 2</label>
-          <input style={s.input} value={editing.video_url_2 || ''} placeholder="https://youtu.be/..."
+        <div style={s.field}>
+          <label style={s.label}>YouTube Video Reviewer 2</label>
+          <input style={s.input} value={editing.video_url_2 || ''}
+            placeholder="https://youtu.be/..."
             onChange={e => setEditing(p => ({ ...p, video_url_2: e.target.value }))} />
         </div>
 
-        <div style={s.field}><label style={s.label}>Infographic URL</label>
-          <input style={s.input} value={editing.infographic_url || ''} placeholder="https://..."
+        <div style={s.field}>
+          <label style={s.label}>Infographic URL</label>
+          <input style={s.input} value={editing.infographic_url || ''}
+            placeholder="https://..."
             onChange={e => setEditing(p => ({ ...p, infographic_url: e.target.value }))} />
           {editing.infographic_url && (
             <img src={editing.infographic_url} alt="infographic preview"
               style={{ marginTop:8, width:'100%', borderRadius:8, border:'1px solid var(--border)' }}
               onError={e => e.target.style.display='none'} />
           )}
-        </div>
-
-        {/* Resources Section */}
-        <div style={{ margin:'8px 0 4px', padding:'12px 14px', background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:10 }}>
-          <div style={{ fontSize:11, fontWeight:700, color:'var(--accent)', textTransform:'uppercase', letterSpacing:'.06em', marginBottom:12 }}>📦 Resources (Audio / Video / Mixed — up to 5)</div>
-          <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:12 }}>Paste YouTube URLs or direct audio file URLs. These will appear in the Resources tab inside the reviewer.</div>
-          {[1,2,3,4,5].map(n => (
-            <div key={n} style={s.field}>
-              <label style={s.label}>Resource {n} URL</label>
-              <input style={s.input} value={editing[`media_url_${n}`] || ''} placeholder="https://youtu.be/... or https://audio.mp3"
-                onChange={e => setEditing(p => ({ ...p, [`media_url_${n}`]: e.target.value }))} />
-            </div>
-          ))}
         </div>
 
         <button style={{ ...s.saveBtn, opacity: saving ? 0.6 : 1 }} onClick={saveSubtopic} disabled={saving}>

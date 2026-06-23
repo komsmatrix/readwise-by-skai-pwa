@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { getCustomer, getStudentExam } from './lib/supabase.js'
+import { getCustomer, getStudentExam, createSession, validateSession, updateLastSeen } from './lib/supabase.js'
 import ActivationScreen  from './screens/ActivationScreen.jsx'
 import OnboardingScreen  from './screens/OnboardingScreen.jsx'
 import HomeScreen        from './screens/HomeScreen.jsx'
@@ -67,6 +67,22 @@ export default function App() {
         if (session.email && session.customerId) {
           const { customer: cust } = await getCustomer(session.email)
           if (cust && cust.is_active) {
+            // Validate session token — check if this device still owns the session
+            const { valid, reason } = await validateSession(cust.id)
+            if (!valid) {
+              localStorage.removeItem('rbs_session')
+              localStorage.removeItem('rbs_session_token')
+              if (reason === 'session_expired') {
+                setScreen('activation')
+                // Show kicked message via URL param
+                window.history.replaceState({}, '', '?kicked=1')
+                return
+              }
+              setScreen('activation')
+              return
+            }
+            // Update last seen
+            updateLastSeen(cust.id)
             setCustomer(cust)
             const enrollment = await getStudentExam(cust.id)
             setStudentExam(enrollment)
@@ -77,6 +93,7 @@ export default function App() {
         }
       } catch {}
       localStorage.removeItem('rbs_session')
+      localStorage.removeItem('rbs_session_token')
     }
 
     const savedTrial = getSavedTrial()
@@ -111,6 +128,8 @@ export default function App() {
       customerId: result.customerId,
       email:      result.email,
     }))
+    // Create session token for this device
+    await createSession(result.customerId)
     const enrollment = await getStudentExam(result.customerId)
     setStudentExam(enrollment)
     setActiveCourse(null)
@@ -124,6 +143,7 @@ export default function App() {
 
   function handleSignOut() {
     localStorage.removeItem('rbs_session')
+    localStorage.removeItem('rbs_session_token')
     localStorage.removeItem('trial_session')
     setCustomer(null)
     setStudentExam(null)
