@@ -190,6 +190,12 @@ export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
               ...s.tab, ...(tab === t.id ? s.tabActive : {})
             }}>{t.label}</button>
           ))}
+          {/* Highlighted Resources quick link — always visible */}
+          {hasResources && tab !== 'resources' && (
+            <button onClick={() => setTab('resources')} style={s.resourcesQuickBtn}>
+              📦 Resources ✨
+            </button>
+          )}
         </div>
         {tab === 'reviewer' && (hasEn || hasFil) && (
           <div style={s.langToggle}>
@@ -213,25 +219,19 @@ export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
               <div style={s.center}><div style={s.muted}>Loading reviewer…</div></div>
             ) : iframeSrc ? (
               <>
-                {/* Banner — full image scaled down */}
-                <a href="#resources-tab" onClick={e => { e.preventDefault(); setTab('resources') }}
-                  style={{ display:'block', flexShrink:0, background:'#0a0f2e' }}>
-                  <img src={BANNER_URL} alt="All resources in one place"
-                    style={{ width:'100%', height:'auto', display:'block', cursor:'pointer' }} />
-                </a>
                 {/* Reviewer iframe */}
                 <iframe
                   ref={iframeRef}
                   src={iframeSrc}
-                  style={{ width:'100%', height:'calc(100vh - 160px)', minHeight:500, border:'none', display:'block', flexShrink:0 }}
+                  style={{ width:'100%', flex:1, border:'none', display:'block', minHeight:400 }}
                   title={title}
                   sandbox="allow-scripts allow-popups allow-forms allow-modals allow-popups-to-escape-sandbox"
                 />
-                {/* Outro */}
+                {/* Outro — fixed at bottom of scroll, natural size */}
                 <a href={YT_CHANNEL} target="_blank" rel="noopener noreferrer"
                   style={{ display:'block', flexShrink:0 }}>
                   <img src={OUTRO_URL} alt="Like, Subscribe and Turn on the Bell"
-                    style={{ width:'100%', height:'auto', display:'block', cursor:'pointer' }} />
+                    style={{ width:'100%', height:'auto', maxHeight:120, objectFit:'cover', objectPosition:'center', display:'block', cursor:'pointer' }} />
                 </a>
               </>
             ) : (
@@ -352,6 +352,7 @@ const s = {
   tabRow        : { display:'flex', gap:4, overflowX:'auto' },
   tab           : { padding:'6px 12px', borderRadius:20, fontSize:11, fontWeight:500, cursor:'pointer', background:'none', border:'1px solid var(--border)', color:'var(--text-muted)', fontFamily:'inherit', whiteSpace:'nowrap' },
   tabActive     : { background:'var(--accent-dim)', borderColor:'var(--accent)', color:'var(--accent)', fontWeight:700 },
+  resourcesQuickBtn: { padding:'6px 12px', borderRadius:20, fontSize:11, fontWeight:700, cursor:'pointer', background:'linear-gradient(135deg, #c9a96e, #e8c97a)', border:'none', color:'#0d0d0d', fontFamily:'inherit', whiteSpace:'nowrap', animation:'pulse 2s infinite', flexShrink:0 },
   langToggle    : { display:'flex', gap:4, flexShrink:0 },
   langBtn       : { padding:'5px 10px', borderRadius:20, fontSize:11, fontWeight:500, cursor:'pointer', background:'none', border:'1px solid var(--border)', color:'var(--text-muted)', fontFamily:'inherit' },
   langBtnActive : { background:'var(--bg-elevated)', borderColor:'var(--accent)', color:'var(--text-primary)', fontWeight:700 },
