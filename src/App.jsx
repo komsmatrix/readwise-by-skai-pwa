@@ -18,6 +18,8 @@ import MockBoardScreen   from './screens/MockBoardScreen.jsx'
 import TesdaHubScreen    from './screens/TesdaHubScreen.jsx'
 import TesdaViewerScreen from './screens/TesdaViewerScreen.jsx'
 import CourseHubScreen   from './screens/CourseHubScreen.jsx'
+import TermsScreen       from './screens/TermsScreen.jsx'
+import PrivacyScreen     from './screens/PrivacyScreen.jsx'
 
 const savedTheme = localStorage.getItem('rbs_theme') || 'dark'
 if (savedTheme !== 'dark') {
@@ -55,10 +57,9 @@ export default function App() {
       setScreen(ownerPass ? 'owner' : 'owner_login')
       return
     }
-    if (window.location.pathname === '/buy') {
-      setScreen('buy')
-      return
-    }
+    if (window.location.pathname === '/buy')     { setScreen('buy');     return }
+    if (window.location.pathname === '/terms')   { setScreen('terms');   return }
+    if (window.location.pathname === '/privacy') { setScreen('privacy'); return }
 
     const savedSession = localStorage.getItem('rbs_session')
     if (savedSession) {
@@ -180,6 +181,8 @@ export default function App() {
     return <OwnerDashboard isLoggedIn={screen === 'owner'} onLogin={() => setScreen('owner')} />
   }
   if (screen === 'buy')     return <BuyScreen />
+  if (screen === 'terms')   return <TermsScreen />
+  if (screen === 'privacy') return <PrivacyScreen />
   if (screen === 'loading') return <LoadingScreen />
 
   if (screen === 'trial_expired') {
