@@ -138,11 +138,35 @@ async function handleWelcome({ name, email, referral_code, gcash_number }, res) 
 }
 
 // ── BLAST ─────────────────────────────────────────────────────────────────────
-async function handleBlast({ subject, message, resource_url, resource_label }, res) {
-  if (!subject || !message) {
+async function handleBlast({ subject, message, body, resource_url, resource_label, emails, course }, res) {
+  if (!subject || (!message && !body)) {
     return res.status(400).json({ error: 'subject and message are required' })
   }
+  const messageText = body || message
 
+  // If emails array is provided — student blast with course filter
+  if (emails && Array.isArray(emails)) {
+    if (!emails.length) return res.status(200).json({ success: true, sent: 0, failed: 0, total: 0 })
+    let sent = 0, failed = 0
+    for (const { email, name } of emails) {
+      const firstName = name?.split(' ')[0] || 'Student'
+      try {
+        await sendEmail({
+          from   : 'Readwise by Skai <hello@readwisebyskai.com>',
+          to     : email,
+          subject,
+          html   : studentBlastHTML({ firstName, subject, message: messageText }),
+        })
+        sent++
+      } catch (e) {
+        console.error(`Student blast failed for ${email}:`, e)
+        failed++
+      }
+    }
+    return res.status(200).json({ success: true, sent, failed, total: emails.length, course: course || 'ALL' })
+  }
+
+  // Legacy: agent blast
   const { data: agents, error } = await supabase
     .from('agents')
     .select('name, email, referral_code, total_referrals')
@@ -160,7 +184,7 @@ async function handleBlast({ subject, message, resource_url, resource_label }, r
         from   : 'Readwise by Skai <skai@readwisebyskai.com>',
         to     : agent.email,
         subject,
-        html   : blastHTML({ firstName, agent, message, resource_url, resource_label }),
+        html   : blastHTML({ firstName, agent, message: messageText, resource_url, resource_label }),
       })
       sent++
     } catch (e) {
@@ -301,6 +325,34 @@ function agentWelcomeHTML({ firstName, name, email, referral_code, gcash_number,
   </div>
 </div>
 </div>
+</body>
+</html>`
+}
+
+function studentBlastHTML({ firstName, subject, message }) {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#0d0d0d;font-family:'Helvetica Neue',Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#0d0d0d;padding:40px 20px;">
+<tr><td align="center">
+<table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;">
+  <tr><td style="padding:0 0 24px 0;">
+    <div style="font-size:16px;font-weight:700;color:#f0ede8;">Readwise by Skai</div>
+    <div style="font-size:11px;color:#c9a96e;letter-spacing:0.08em;text-transform:uppercase;margin-top:2px;">Board Exam Operating System</div>
+  </td></tr>
+  <tr><td style="background:#161616;border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:36px;">
+    <p style="margin:0 0 8px;font-size:20px;font-weight:700;color:#f0ede8;">Hi ${firstName}! 👋</p>
+    <p style="margin:0 0 28px;font-size:14px;color:#9a9690;line-height:1.7;">${message.replace(/\n/g, '<br>')}</p>
+    <div style="height:1px;background:rgba(255,255,255,0.07);margin:0 0 24px;"></div>
+    <a href="https://readwisebyskai.com" style="display:inline-block;background:#c9a96e;color:#0d0d0d;text-decoration:none;padding:12px 24px;border-radius:8px;font-size:14px;font-weight:700;">Open Readwise by Skai →</a>
+  </td></tr>
+  <tr><td style="padding:20px 0 0;text-align:center;">
+    <p style="margin:0;font-size:12px;color:#5a5753;">You received this because you have an active Readwise by Skai account. Questions? Reply to this email.</p>
+  </td></tr>
+</table>
+</td></tr>
+</table>
 </body>
 </html>`
 }

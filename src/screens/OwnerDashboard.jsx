@@ -992,11 +992,18 @@ function ResourcesTab({ topics }) {
 
 // ── Announcements Tab ─────────────────────────────────────────────────────────
 function AnnouncementsTab() {
-  const [items, setItems] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [form, setForm] = useState({ title: '', body: '', active: true })
-  const [saving, setSaving] = useState(false)
-  const [showForm, setShowForm] = useState(false)
+  const [items,     setItems]     = useState([])
+  const [loading,   setLoading]   = useState(true)
+  const [form,      setForm]      = useState({ title: '', body: '', active: true })
+  const [saving,    setSaving]    = useState(false)
+  const [showForm,  setShowForm]  = useState(false)
+  // Email blast state
+  const [showBlast,    setShowBlast]    = useState(false)
+  const [blastSubject, setBlastSubject] = useState('')
+  const [blastBody,    setBlastBody]    = useState('')
+  const [blastCourse,  setBlastCourse]  = useState('ALL')
+  const [blasting,     setBlasting]     = useState(false)
+  const [blastResult,  setBlastResult]  = useState(null)
 
   useEffect(() => { loadItems() }, [])
 
@@ -1033,8 +1040,92 @@ function AnnouncementsTab() {
     setItems(prev => prev.filter(i => i.id !== id))
   }
 
+  async function sendBlast() {
+    if (!blastSubject.trim() || !blastBody.trim()) return alert('Subject and message are required.')
+    setBlasting(true)
+    setBlastResult(null)
+    try {
+      // Fetch matching customers
+      let query = supabase.from('customers').select('email, name, courses').eq('is_active', true)
+      const { data: customers } = await query
+      const targets = blastCourse === 'ALL'
+        ? customers
+        : customers.filter(c => Array.isArray(c.courses) && c.courses.includes(blastCourse))
+
+      const res = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type:    'blast',
+          subject: blastSubject.trim(),
+          body:    blastBody.trim(),
+          course:  blastCourse,
+          emails:  targets.map(c => ({ email: c.email, name: c.name })),
+        }),
+      })
+      const data = await res.json()
+      setBlastResult({ success: true, count: targets.length, course: blastCourse })
+      setBlastSubject('')
+      setBlastBody('')
+    } catch (e) {
+      setBlastResult({ success: false, error: e.message })
+    }
+    setBlasting(false)
+  }
+
   return (
     <div style={s.section}>
+
+      {/* Email Blast Section */}
+      <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:12, padding:16, marginBottom:16 }}>
+        <div style={{ fontSize:13, fontWeight:700, color:'var(--text-primary)', marginBottom:12 }}>📣 Email Blast</div>
+        {!showBlast ? (
+          <button style={s.ghostBtn} onClick={() => setShowBlast(true)}>📧 Send Email to Students</button>
+        ) : (
+          <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+            {/* Course filter */}
+            <div style={s.field}>
+              <label style={s.label}>Send to</label>
+              <select style={s.select} value={blastCourse} onChange={e => setBlastCourse(e.target.value)}>
+                <option value="ALL">All Students (All Courses)</option>
+                <option value="LET">LET Students Only</option>
+                <option value="TESDA">TESDA Students Only</option>
+                <option value="NLE">NLE Students Only</option>
+                <option value="CPA">CPA Students Only</option>
+                <option value="BAR">Bar Students Only</option>
+              </select>
+            </div>
+            <div style={s.field}>
+              <label style={s.label}>Subject</label>
+              <input style={s.input} placeholder="e.g. New content added for LET reviewers"
+                value={blastSubject} onChange={e => setBlastSubject(e.target.value)} />
+            </div>
+            <div style={s.field}>
+              <label style={s.label}>Message</label>
+              <textarea style={s.textarea} rows={5}
+                placeholder="Write your message to students…"
+                value={blastBody} onChange={e => setBlastBody(e.target.value)} />
+            </div>
+            {blastResult && (
+              <div style={{ fontSize:13, padding:'10px 14px', borderRadius:8,
+                background: blastResult.success ? 'rgba(16,185,129,0.1)' : 'rgba(224,92,92,0.1)',
+                color: blastResult.success ? '#10B981' : '#e05c5c' }}>
+                {blastResult.success
+                  ? `✅ Email sent to ${blastResult.count} ${blastResult.course === 'ALL' ? '' : blastResult.course + ' '}students`
+                  : `❌ Failed: ${blastResult.error}`}
+              </div>
+            )}
+            <div style={{ display:'flex', gap:8 }}>
+              <button style={s.btn} onClick={sendBlast} disabled={blasting}>
+                {blasting ? 'Sending…' : `Send to ${blastCourse === 'ALL' ? 'All' : blastCourse} Students`}
+              </button>
+              <button style={s.ghostBtn} onClick={() => { setShowBlast(false); setBlastResult(null) }}>Cancel</button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Announcement posts */}
       {!showForm ? (
         <button style={s.btn} onClick={() => setShowForm(true)}>+ New Announcement</button>
       ) : (
