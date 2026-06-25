@@ -114,15 +114,24 @@ export default function App() {
   }
 
   async function handleActivated(result) {
-    const cust = {
-      id:            result.customerId,
-      name:          result.name,
-      email:         result.email,
-      is_active:     true,
-      referral_code: result.referral_code || null,
-      courses:       result.courses || ['LET'],
+    // Always re-fetch from DB to get the real courses array
+    // (building manually from result.courses risks missing TESDA if activate-key.js doesn't return it)
+    const { customer: freshCust } = await getCustomer(result.email)
+
+    if (freshCust && freshCust.is_active) {
+      setCustomer(freshCust)
+    } else {
+      // Fallback only if DB fetch fails
+      setCustomer({
+        id:            result.customerId,
+        name:          result.name,
+        email:         result.email,
+        is_active:     true,
+        referral_code: result.referral_code || null,
+        courses:       result.courses || ['LET'],
+      })
     }
-    setCustomer(cust)
+
     localStorage.removeItem('trial_session')
     setTrialData(null)
     localStorage.setItem('rbs_session', JSON.stringify({
