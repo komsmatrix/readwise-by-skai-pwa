@@ -2421,7 +2421,7 @@ function TesdaTab() {
       {loading ? (
         <div style={{ fontSize:13, color:'var(--text-muted)' }}>Loading…</div>
       ) : (
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:10 }}>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))', gap:10 }}>
           {quals.map(q => (
             <div key={q.id} style={{ background:'var(--bg-surface)', border:'1px solid var(--border)', borderRadius:12, padding:'14px 16px', display:'flex', alignItems:'center', justifyContent:'space-between', cursor:'pointer', transition:'all .15s' }}
               onClick={() => selectQual(q)}>
