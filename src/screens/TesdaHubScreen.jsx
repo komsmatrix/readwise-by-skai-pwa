@@ -26,7 +26,16 @@ export default function TesdaHubScreen({ customer, onOpenViewer, onBack }) {
     setLoading(true)
     try {
       const data = await sb('/rest/v1/tesda_qualifications?is_active=eq.true&order=sort_order')
-      setQualifications(data.length ? data : FALLBACK_QUALS)
+      if (!data.length) { setQualifications(FALLBACK_QUALS); setLoading(false); return }
+
+      // For each qualification, check if it has at least one subtopic with real html_content
+      const withContent = await Promise.all(data.map(async (q) => {
+        const subtopics = await sb(
+          `/rest/v1/tesda_subtopics?qualification_id=eq.${q.id}&is_active=eq.true&html_content=not.is.null&limit=1`
+        )
+        return { ...q, _hasContent: subtopics.length > 0 }
+      }))
+      setQualifications(withContent)
     } catch {
       setQualifications(FALLBACK_QUALS)
     }
@@ -86,8 +95,8 @@ export default function TesdaHubScreen({ customer, onOpenViewer, onBack }) {
 
   // ── Hub view ──────────────────────────────────────────────────────────────
   if (view === 'hub') {
-    // Only show qualifications that have at least 1 uploaded topic
-    const available = qualifications.filter(q => (q.subtopic_count || 0) > 0)
+    // Only show qualifications that have at least 1 subtopic with real html_content uploaded
+    const available = qualifications.filter(q => q._hasContent)
     const filtered = available.filter(q =>
       q.name.toLowerCase().includes(search.toLowerCase()) ||
       (q.description || '').toLowerCase().includes(search.toLowerCase())
