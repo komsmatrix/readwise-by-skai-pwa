@@ -266,7 +266,7 @@ export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
                   src={iframeSrc}
                   style={{ width:'100%', flex:1, border:'none', display:'block', minHeight:400 }}
                   title={title}
-                  sandbox="allow-scripts allow-popups allow-forms allow-modals allow-popups-to-escape-sandbox"
+                  sandbox="allow-scripts allow-popups allow-forms allow-modals allow-popups-to-escape-sandbox allow-same-origin"
                 />
                 {/* Outro — full width on mobile, 50% centered on desktop */}
                 <a href={YT_CHANNEL} target="_blank" rel="noopener noreferrer"
