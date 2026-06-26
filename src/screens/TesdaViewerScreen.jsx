@@ -186,14 +186,20 @@ export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
     .map(n => detail?.[`media_url_${n}`])
     .filter(Boolean)
 
-  const hasVideos      = detail?.video_url_1 || detail?.video_url_2
+  const videoUrls = [
+    detail?.video_url_1,
+    detail?.video_url_2,
+    detail?.video_url_3,
+    detail?.video_url_4,
+  ].filter(Boolean)
+
+  const hasVideos      = videoUrls.length > 0
   const hasInfographic = detail?.infographic_url
-  const hasResources   = mediaUrls.length > 0
+  const hasResources   = mediaUrls.length > 0 || hasVideos
 
   const tabs = [
     { id:'reviewer',    label:'📖 Reviewer',   show: true },
-    { id:'videos',      label:'📹 Videos',     show: !!hasVideos },
-    { id:'resources',   label:'📦 Resources',  show: hasResources },
+    { id:'resources',   label:'🎬 Resources',  show: hasResources },
     { id:'infographic', label:'🖼 Infographic', show: !!hasInfographic },
   ].filter(t => t.show)
 
@@ -234,7 +240,7 @@ export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
           {/* Highlighted Resources quick link — always visible */}
           {hasResources && tab !== 'resources' && (
             <button onClick={() => setTab('resources')} style={s.resourcesQuickBtn}>
-              📦 Resources ✨
+              🎬 Videos & Resources ✨
             </button>
           )}
         </div>
@@ -287,8 +293,8 @@ export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
                     : `The ${title} reviewer is being prepared. Check back soon.`}
                 </div>
                 {hasVideos && (
-                  <button onClick={() => setTab('videos')} style={s.switchBtn}>
-                    Watch Videos Instead →
+                  <button onClick={() => setTab('resources')} style={s.switchBtn}>
+                    🎬 Watch Videos & Resources →
                   </button>
                 )}
               </div>
@@ -296,59 +302,53 @@ export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
           </div>
         )}
 
-        {/* Videos tab */}
-        {tab === 'videos' && (
-          <div style={s.scrollPad}>
-            {detail?.video_url_1 && (
-              <div style={r.mediaCard}>
-                <div style={r.mediaLabel}>📹 Video Reviewer 1</div>
-                <iframe src={toYouTubeEmbed(detail.video_url_1)}
-                  style={{ width:'100%', aspectRatio:'16/9', borderRadius:10, border:'none', display:'block', marginTop:6 }}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
-                <div style={r.ytBtnRow}>
-                  <a href={`https://www.youtube.com/watch?v=${getYouTubeVideoId(detail.video_url_1)}`} target="_blank" rel="noopener noreferrer" style={r.likeBtn}>👍 Like</a>
-                  <a href={`${YT_CHANNEL}?sub_confirmation=1`} target="_blank" rel="noopener noreferrer" style={r.subBtn}>🔔 Subscribe</a>
-                </div>
-              </div>
-            )}
-            {detail?.video_url_2 && (
-              <div style={r.mediaCard}>
-                <div style={r.mediaLabel}>📹 Video Reviewer 2</div>
-                <iframe src={toYouTubeEmbed(detail.video_url_2)}
-                  style={{ width:'100%', aspectRatio:'16/9', borderRadius:10, border:'none', display:'block', marginTop:6 }}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
-                <div style={r.ytBtnRow}>
-                  <a href={`https://www.youtube.com/watch?v=${getYouTubeVideoId(detail.video_url_2)}`} target="_blank" rel="noopener noreferrer" style={r.likeBtn}>👍 Like</a>
-                  <a href={`${YT_CHANNEL}?sub_confirmation=1`} target="_blank" rel="noopener noreferrer" style={r.subBtn}>🔔 Subscribe</a>
-                </div>
-              </div>
-            )}
-            {!detail?.video_url_1 && !detail?.video_url_2 && (
-              <div style={s.center}><div style={s.muted}>No videos added yet.</div></div>
-            )}
-            <div style={{ height:24 }} />
-          </div>
-        )}
-
-        {/* Resources tab */}
+        {/* Resources tab — Videos + media all in one place */}
         {tab === 'resources' && (
           <div style={s.scrollPad} id="resources-tab">
-            <div style={r.sectionHeader}>
-              <div style={r.sectionTitle}>📦 Resources</div>
-              <div style={r.sectionSub}>Audio reviews, video lessons, and study materials for {title}</div>
+
+            {/* Highlighted header */}
+            <div style={{ margin:'0 0 16px', background:'linear-gradient(135deg, rgba(201,169,110,0.15), rgba(201,169,110,0.05))', border:'1.5px solid rgba(201,169,110,0.4)', borderRadius:14, padding:'14px 16px' }}>
+              <div style={{ fontSize:15, fontWeight:800, color:'var(--accent)', marginBottom:4 }}>🎬 Videos & Resources</div>
+              <div style={{ fontSize:12, color:'var(--text-secondary)', lineHeight:1.5 }}>
+                Watch the video reviewers, then read the HTML reviewer above to master this topic.
+              </div>
             </div>
 
-            {mediaUrls.length === 0 ? (
-              <div style={s.center}><div style={s.muted}>No resources added yet.</div></div>
-            ) : (
-              mediaUrls.map((url, i) => (
-                <MediaCard key={i} url={url} label={`Resource ${i + 1}`} index={i} />
-              ))
+            {/* YouTube Videos — all 4 */}
+            {videoUrls.length > 0 && (
+              <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+                {videoUrls.map((url, i) => (
+                  <div key={i} style={r.mediaCard}>
+                    <div style={r.mediaLabel}>📹 Video Reviewer {i + 1}</div>
+                    <iframe src={toYouTubeEmbed(url)}
+                      style={{ width:'100%', aspectRatio:'16/9', borderRadius:10, border:'none', display:'block', marginTop:6 }}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
+                    <div style={r.ytBtnRow}>
+                      <a href={`https://www.youtube.com/watch?v=${getYouTubeVideoId(url)}`} target="_blank" rel="noopener noreferrer" style={r.likeBtn}>👍 Like</a>
+                      <a href={`${YT_CHANNEL}?sub_confirmation=1`} target="_blank" rel="noopener noreferrer" style={r.subBtn}>🔔 Subscribe</a>
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
 
-            {/* Outro banner in resources tab too */}
+            {/* Other media resources */}
+            {mediaUrls.length > 0 && (
+              <div style={{ marginTop: videoUrls.length > 0 ? 20 : 0 }}>
+                <div style={r.sectionTitle}>📦 Additional Resources</div>
+                {mediaUrls.map((url, i) => (
+                  <MediaCard key={i} url={url} label={`Resource ${i + 1}`} index={i} />
+                ))}
+              </div>
+            )}
+
+            {!hasResources && (
+              <div style={s.center}><div style={s.muted}>No resources added yet.</div></div>
+            )}
+
+            {/* Outro banner */}
             <a href={YT_CHANNEL} target="_blank" rel="noopener noreferrer"
-              style={{ display:'block', marginTop:16, borderRadius:10, overflow:'hidden' }}>
+              style={{ display:'block', marginTop:20, borderRadius:10, overflow:'hidden' }}>
               <img src={OUTRO_URL} alt="Like Subscribe"
                 style={{ width:'100%', display:'block' }}
                 onError={e => e.target.style.display='none'} />
