@@ -86,12 +86,53 @@ function MediaCard({ url, label, index }) {
   )
 }
 
+const INJECTED_CSS = `
+<style id="rbs-responsive-fix">
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { overflow-x: hidden; max-width: 100%; }
+  img, video, audio, iframe, embed, object {
+    max-width: 100%; height: auto; display: block;
+  }
+  table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-collapse: collapse;
+  }
+  td, th {
+    white-space: normal;
+    min-width: 72px;
+    word-break: break-word;
+  }
+  pre, code {
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-x: auto;
+  }
+  @media (orientation: landscape) and (max-width: 900px) {
+    body { font-size: 13px; }
+    h1   { font-size: 1.4em; }
+    h2   { font-size: 1.2em; }
+  }
+</style>`
+
+function injectResponsiveFix(html) {
+  if (!html) return html
+  if (html.includes('rbs-responsive-fix')) return html
+  if (html.includes('</head>')) {
+    return html.replace('</head>', INJECTED_CSS + '\n</head>')
+  }
+  return INJECTED_CSS + '\n' + html
+}
+
 function useHtmlBlobUrl(html) {
   const [blobUrl, setBlobUrl] = useState(null)
   useEffect(() => {
     if (!html) { setBlobUrl(null); return }
-    const blob = new Blob([html], { type: 'text/html' })
-    const url  = URL.createObjectURL(blob)
+    const fixed = injectResponsiveFix(html)
+    const blob  = new Blob([fixed], { type: 'text/html' })
+    const url   = URL.createObjectURL(blob)
     setBlobUrl(url)
     return () => URL.revokeObjectURL(url)
   }, [html])
