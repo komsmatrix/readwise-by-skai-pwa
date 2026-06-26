@@ -1428,7 +1428,7 @@ const s = {
   tabBtn          : { padding: '8px 12px', background: 'transparent', border: 'none', borderBottom: '2px solid transparent', color: 'var(--text-muted)', fontSize: 12, fontWeight: 500, cursor: 'pointer', transition: 'all 0.15s', marginBottom: -1, whiteSpace: 'nowrap', fontFamily: 'inherit' },
   tabBtnActive    : { color: 'var(--accent)', borderBottomColor: 'var(--accent)' },
   tabContent      : { flex: 1, overflowY: 'auto' },
-  section         : { padding: '20px', display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 600 },
+  section         : { padding: '20px', display: 'flex', flexDirection: 'column', gap: 14 },
   sectionLabel    : { fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.05em', fontWeight: 600 },
   subtabBar       : { display: 'flex', gap: 6, marginBottom: 4 },
   subtabBtn       : { padding: '6px 14px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 20, fontSize: 12, color: 'var(--text-muted)', cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' },
@@ -2421,7 +2421,7 @@ function TesdaTab() {
       {loading ? (
         <div style={{ fontSize:13, color:'var(--text-muted)' }}>Loading…</div>
       ) : (
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))', gap:10 }}>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:10 }}>
           {quals.map(q => (
             <div key={q.id} style={{ background:'var(--bg-surface)', border:'1px solid var(--border)', borderRadius:12, padding:'14px 16px', display:'flex', alignItems:'center', justifyContent:'space-between', cursor:'pointer', transition:'all .15s' }}
               onClick={() => selectQual(q)}>
