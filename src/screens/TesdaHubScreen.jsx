@@ -86,10 +86,13 @@ export default function TesdaHubScreen({ customer, onOpenViewer, onBack }) {
 
   // ── Hub view ──────────────────────────────────────────────────────────────
   if (view === 'hub') {
-    const filtered = qualifications.filter(q =>
+    // Only show qualifications that have at least 1 uploaded topic
+    const available = qualifications.filter(q => (q.subtopic_count || 0) > 0)
+    const filtered = available.filter(q =>
       q.name.toLowerCase().includes(search.toLowerCase()) ||
       (q.description || '').toLowerCase().includes(search.toLowerCase())
     )
+    const isDesktop = window.innerWidth >= 768
 
     return (
       <div style={s.root}>
@@ -113,7 +116,7 @@ export default function TesdaHubScreen({ customer, onOpenViewer, onBack }) {
 
           <div style={s.statsRow}>
             <div style={s.statBox}>
-              <div style={s.statNum}>{qualifications.length}</div>
+              <div style={s.statNum}>{available.length}</div>
               <div style={s.statLabel}>Qualifications</div>
             </div>
             <div style={s.statBox}>
@@ -128,13 +131,21 @@ export default function TesdaHubScreen({ customer, onOpenViewer, onBack }) {
 
           {loading ? (
             <div style={s.center}><div style={s.muted}>Loading…</div></div>
-          ) : filtered.length === 0 ? (
+          ) : filtered.length === 0 && search ? (
             <div style={s.center}><div style={s.muted}>No qualifications found.</div></div>
+          ) : filtered.length === 0 ? (
+            <div style={s.center}>
+              <div style={{ fontSize:32, marginBottom:12 }}>🏗️</div>
+              <div style={s.emptyTitle}>Content Coming Soon</div>
+              <div style={s.muted}>Reviewers are being uploaded. Check back shortly!</div>
+            </div>
           ) : (
-            <div style={s.listWrap}>
+            <div style={isDesktop ? s.gridWrapDesktop : s.listWrap}>
               {filtered.map(q => (
-                <button key={q.id} style={s.qualCard} onClick={() => openQualification(q)}>
-                  <div style={s.qualEmoji}>{q.emoji || '📋'}</div>
+                <button key={q.id}
+                  style={isDesktop ? s.qualCardDesktop : s.qualCard}
+                  onClick={() => openQualification(q)}>
+                  <div style={isDesktop ? s.qualEmojiDesktop : s.qualEmoji}>{q.emoji || '📋'}</div>
                   <div style={s.qualBody}>
                     <div style={s.qualName}>{q.name}</div>
                     <div style={s.qualDesc}>{q.description || 'Tap to view core competencies'}</div>
@@ -145,7 +156,7 @@ export default function TesdaHubScreen({ customer, onOpenViewer, onBack }) {
                       )}
                     </div>
                   </div>
-                  <div style={s.arrow}>›</div>
+                  {!isDesktop && <div style={s.arrow}>›</div>}
                 </button>
               ))}
             </div>
@@ -299,9 +310,12 @@ const s = {
   statBox       : { background:'var(--bg-surface)', border:'1px solid var(--border)', borderRadius:10, padding:'10px 8px', textAlign:'center' },
   statNum       : { fontFamily:'var(--font-display)', fontSize:20, fontWeight:700, color:'var(--accent)' },
   statLabel     : { fontSize:10, color:'var(--text-muted)', marginTop:2, textTransform:'uppercase', letterSpacing:'.04em' },
-  listWrap      : { padding:'0 20px', display:'flex', flexDirection:'column', gap:8 },
-  qualCard      : { display:'flex', alignItems:'center', gap:14, background:'var(--bg-surface)', border:'1px solid var(--border)', borderRadius:14, padding:'14px 16px', cursor:'pointer', textAlign:'left', fontFamily:'inherit', transition:'all .15s', width:'100%' },
-  qualEmoji     : { fontSize:26, flexShrink:0, width:44, height:44, background:'var(--bg-elevated)', borderRadius:12, display:'flex', alignItems:'center', justifyContent:'center' },
+  listWrap          : { padding:'0 20px', display:'flex', flexDirection:'column', gap:8 },
+  gridWrapDesktop   : { padding:'0 20px', display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:12 },
+  qualCard          : { display:'flex', alignItems:'center', gap:14, background:'var(--bg-surface)', border:'1px solid var(--border)', borderRadius:14, padding:'14px 16px', cursor:'pointer', textAlign:'left', fontFamily:'inherit', transition:'all .15s', width:'100%' },
+  qualCardDesktop   : { display:'flex', flexDirection:'column', alignItems:'flex-start', gap:10, background:'var(--bg-surface)', border:'1px solid var(--border)', borderRadius:14, padding:'18px 16px', cursor:'pointer', textAlign:'left', fontFamily:'inherit', transition:'all .15s', width:'100%' },
+  qualEmoji         : { fontSize:26, flexShrink:0, width:44, height:44, background:'var(--bg-elevated)', borderRadius:12, display:'flex', alignItems:'center', justifyContent:'center' },
+  qualEmojiDesktop  : { fontSize:28, width:48, height:48, background:'var(--bg-elevated)', borderRadius:12, display:'flex', alignItems:'center', justifyContent:'center', marginBottom:2 },
   qualBody      : { flex:1, minWidth:0 },
   qualName      : { fontSize:14, fontWeight:700, color:'var(--text-primary)', marginBottom:3 },
   qualDesc      : { fontSize:11, color:'var(--text-secondary)', lineHeight:1.5, marginBottom:6 },
