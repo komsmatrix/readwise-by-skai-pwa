@@ -112,7 +112,7 @@ function escHtml(text) {
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
-export default function StudyScreen({ customer, studentExam, onDone }) {
+export default function StudyScreen({ customer, studentExam, onDone, focusTopic }) {
   const [phase,    setPhase]    = useState('loading') // loading | session | summary
   const [cards,    setCards]    = useState([])
   const [idx,      setIdx]      = useState(0)
@@ -123,6 +123,7 @@ export default function StudyScreen({ customer, studentExam, onDone }) {
   const [sessionId,setSessionId]= useState(null)
   const [summary,  setSummary]  = useState(null)
   const [healthBefore, setHealthBefore] = useState({})
+  const [activeFocus,  setActiveFocus]  = useState(focusTopic || null)
 
   const mode     = studentExam?.study_mode || 'Standard'
   const target   = MODE_SIZES[mode] || 25
@@ -138,42 +139,19 @@ export default function StudyScreen({ customer, studentExam, onDone }) {
       const healthMap = await getTopicHealth(customer.id)
       setHealthBefore(healthMap)
 
-      const allCards = await getCardsForExam(examId)
+      let allCards = await getCardsForExam(examId)
       if (!allCards.length) { setCards([]); setPhase('no-cards'); return }
 
-      // Get all review records for this student
       const allReviews = await getCardReviews(customer.id)
       const reviewMap  = {}
       for (const r of allReviews) reviewMap[r.card_id] = r
 
       const today = new Date().toISOString().split('T')[0]
 
-      // Categorize cards into 3 buckets:
-      // 1. Due (next_review_at <= today) — highest priority, needs review
-      // 2. Unseen (never reviewed) — medium priority
-      // 3. Not due (next_review_at > today) — skip unless queue is short
-      const dueCards    = []
-      const unseenCards = []
-      const notDueCards = []
-
-      for (const card of allCards) {
-        const review = reviewMap[card.id]
-        if (!review) {
-          unseenCards.push(card)
-        } else if (review.next_review_at <= today) {
-          dueCards.push(card)
-        } else {
-          notDueCards.push(card)
-        }
-      }
-
-      // Shuffle each pool
+      // RULE: Never show a card that was answered correctly and is not due yet
+      // A card is eligible only if: never seen OR due today OR answered wrong last time
       const shuffle = arr => [...arr].sort(() => Math.random() - 0.5)
-      const shuffledDue    = shuffle(dueCards)
-      const shuffledUnseen = shuffle(unseenCards)
-      const shuffledNotDue = shuffle(notDueCards)
 
-      // Round-robin across topics for unseen cards
       function spreadAcrossTopics(cards) {
         const buckets = {}
         for (const c of cards) {
@@ -193,33 +171,94 @@ export default function StudyScreen({ customer, studentExam, onDone }) {
         return result
       }
 
-      const spreadUnseen = spreadAcrossTopics(shuffledUnseen)
-      const spreadNotDue = spreadAcrossTopics(shuffledNotDue)
+      // ── FOCUS MODE: 80% from focus topic, 20% from others ─────────────────
+      const currentFocus = activeFocus
+      if (currentFocus) {
+        const focusId = currentFocus.id
 
-      // Fill queue: due first (max 40%), then unseen (spread), then not-due as fallback
-      const dueSlots    = Math.min(shuffledDue.length,  Math.floor(target * 0.4))
+        // Eligible = never seen OR (due AND not correctly scheduled for future)
+        const isEligible = (card) => {
+          const review = reviewMap[card.id]
+          if (!review) return true                        // never seen
+          if (review.next_review_at <= today) return true // due
+          return false                                    // correctly scheduled — skip
+        }
+
+        const focusCards  = shuffle(allCards.filter(c => c.topic_id === focusId && isEligible(c)))
+        const otherCards  = shuffle(allCards.filter(c => c.topic_id !== focusId && isEligible(c)))
+
+        const focusSlots  = Math.min(focusCards.length,  Math.ceil(target * 0.8))
+        const otherSlots  = Math.min(otherCards.length,  target - focusSlots)
+
+        // If not enough eligible focus cards, pull in wrong-answered ones even if not due
+        let extraFocus = []
+        const needed = Math.ceil(target * 0.8) - focusSlots
+        if (needed > 0) {
+          extraFocus = shuffle(allCards.filter(c => {
+            if (c.topic_id !== focusId) return false
+            const review = reviewMap[c.id]
+            // Include if answered wrong on last attempt (not future-scheduled correct)
+            return review && review.next_review_at > new Date().toISOString().split('T')[0] && !review.correct
+          })).slice(0, needed)
+        }
+
+        const queue = shuffle([
+          ...focusCards.slice(0, focusSlots),
+          ...extraFocus,
+          ...otherCards.slice(0, otherSlots),
+        ])
+
+        if (!queue.length) { setCards([]); setPhase('no-cards'); return }
+        const sess = await startSession(customer.id, examId, 'Foundation')
+        setSessionId(sess?.id)
+        setCards(queue)
+        setIdx(0); setResults([]); setAnswered(false); setChosen(null); setConf(null)
+        setPhase('session')
+        return
+      }
+
+      // ── NORMAL MODE ────────────────────────────────────────────────────────
+      // Bucket 1: Due cards (next_review_at <= today) — includes wrong answers
+      // Bucket 2: Unseen cards (never reviewed)
+      // Bucket 3: Not due — only use as last resort padding
+      const dueCards    = []
+      const unseenCards = []
+      const notDueCards = []
+
+      for (const card of allCards) {
+        const review = reviewMap[card.id]
+        if (!review) {
+          unseenCards.push(card)
+        } else if (review.next_review_at <= today) {
+          dueCards.push(card)
+        } else {
+          // Correctly answered and scheduled for future — skip unless needed for padding
+          notDueCards.push(card)
+        }
+      }
+
+      // Round-robin BOTH due and unseen across topics so no single topic dominates
+      const spreadDue    = spreadAcrossTopics(shuffle(dueCards))
+      const spreadUnseen = spreadAcrossTopics(shuffle(unseenCards))
+      const spreadNotDue = spreadAcrossTopics(shuffle(notDueCards))
+
+      // Max 40% due, then unseen fills up, then not-due as fallback only
+      const dueSlots    = Math.min(spreadDue.length,    Math.floor(target * 0.4))
       const unseenSlots = Math.min(spreadUnseen.length, target - dueSlots)
       const fallback    = target - dueSlots - unseenSlots
 
-      let queue = [
-        ...shuffledDue.slice(0, dueSlots),
+      const queue = shuffle([
+        ...spreadDue.slice(0, dueSlots),
         ...spreadUnseen.slice(0, unseenSlots),
         ...spreadNotDue.slice(0, fallback),
-      ]
-
-      // Final shuffle so due cards don't cluster
-      queue = shuffle(queue)
+      ])
 
       if (!queue.length) { setCards([]); setPhase('no-cards'); return }
 
       const sess = await startSession(customer.id, examId, 'Foundation')
       setSessionId(sess?.id)
       setCards(queue)
-      setIdx(0)
-      setResults([])
-      setAnswered(false)
-      setChosen(null)
-      setConf(null)
+      setIdx(0); setResults([]); setAnswered(false); setChosen(null); setConf(null)
       setPhase('session')
     } catch (e) {
       console.error(e)
@@ -419,9 +458,24 @@ export default function StudyScreen({ customer, studentExam, onDone }) {
               </div>
             )}
 
+            {worstTopic && (
+              <button
+                onClick={() => {
+                  // Find the topic object from cards
+                  const topicCard = cards.find(c => c.topic?.name === worstTopic.name)
+                  if (topicCard?.topic) {
+                    setActiveFocus(topicCard.topic)
+                  }
+                  buildQueue()
+                }}
+                style={{ ...s.btnPrimary, background:'#e05c5c', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
+                🎯 Focus on {worstTopic.name}
+              </button>
+            )}
+
             <div style={s.summaryBtns}>
-              <button style={s.btnPrimary} onClick={onDone}>Done ✓</button>
-              <button style={s.btnGhost} onClick={buildQueue}>Study More</button>
+              <button style={s.btnPrimary} onClick={() => { setActiveFocus(null); onDone() }}>Done ✓</button>
+              <button style={s.btnGhost} onClick={() => { setActiveFocus(null); buildQueue() }}>Study All Topics</button>
             </div>
 
           </div>
@@ -460,11 +514,22 @@ export default function StudyScreen({ customer, studentExam, onDone }) {
   return (
     <div style={s.root}>
       <div style={s.scroll}>
+        {/* Focus mode banner */}
+        {focusTopic && (
+          <div style={{ margin:'12px 16px 0', background:'rgba(201,169,110,0.1)', border:'1px solid rgba(201,169,110,0.3)', borderRadius:10, padding:'8px 14px', display:'flex', alignItems:'center', gap:8 }}>
+            <span style={{ fontSize:14 }}>🎯</span>
+            <div>
+              <div style={{ fontSize:11, fontWeight:700, color:'var(--accent)', textTransform:'uppercase', letterSpacing:'.05em' }}>Focus Mode</div>
+              <div style={{ fontSize:12, color:'var(--text-secondary)' }}>80% of cards from <strong style={{ color:'var(--text-primary)' }}>{focusTopic.name}</strong></div>
+            </div>
+          </div>
+        )}
+
         {/* Header */}
         <div style={s.sessionHeader}>
           <div>
             <div style={s.topicLabel}>{card.topic?.name || 'Board Review'}</div>
-            <div style={s.sessionTitle}>Today's Session</div>
+            <div style={s.sessionTitle}>{focusTopic ? 'Focus Session' : "Today's Session"}</div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
             <div style={s.modeBadge}>{mode}</div>
