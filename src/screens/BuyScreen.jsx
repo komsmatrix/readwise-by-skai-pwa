@@ -171,8 +171,17 @@ export default function BuyScreen() {
 
         {/* TESDA description */}
         {selectedCourse === 'TESDA' && (
-          <div style={{ fontSize:12, color:'var(--text-secondary)', background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 12px', marginBottom:4, lineHeight:1.6 }}>
-            📋 Includes full reviewers for NC II qualifications — Cookery, Caregiving, Housekeeping, Domestic Work, Beauty Care, Electrical Installation, and more. Each reviewer has video lessons and infographics.
+          <div style={{ background:'rgba(59,130,246,0.06)', border:'1px solid rgba(59,130,246,0.2)', borderRadius:10, padding:'12px 14px', marginBottom:4, display:'flex', flexDirection:'column', gap:10 }}>
+            <div style={{ fontSize:12, color:'var(--text-secondary)', lineHeight:1.7 }}>
+              📋 Includes full HTML reviewers for <strong style={{ color:'var(--text-primary)' }}>30 NC II qualifications</strong> — Cookery, Caregiving, Housekeeping, Food & Beverage, Masonry, Electrical Installation, and more. Each reviewer includes video lessons and infographics.
+            </div>
+            <div style={{ fontSize:12, color:'var(--text-muted)', lineHeight:1.6 }}>
+              ℹ️ Free trial is not yet available for TESDA. Want to preview the reviewer before buying?
+            </div>
+            <a href="https://www.youtube.com/@readwisebyskai" target="_blank" rel="noopener noreferrer"
+              style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, background:'#FF0000', color:'white', borderRadius:8, padding:'9px 14px', fontWeight:700, fontSize:12, textDecoration:'none' }}>
+              ▶ Watch Sneak Peek on YouTube
+            </a>
           </div>
         )}
 

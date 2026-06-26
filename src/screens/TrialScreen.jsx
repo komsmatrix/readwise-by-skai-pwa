@@ -167,7 +167,7 @@ export default function TrialScreen({ onTrialStart, onBack }) {
             <div className="trial-course-grid">
               {[
                 { id: "LET",      label: "LET",      sub: "Licensure Exam for Teachers",  disabled: false },
-                { id: "TESDA",    label: "TESDA",     sub: "NC Qualifications Bundle",     disabled: false },
+                { id: "TESDA",    label: "TESDA",     sub: "NC Qualifications Bundle",     disabled: true  },
                 { id: "NLE",      label: "NLE",       sub: "Coming soon",                  disabled: true  },
                 { id: "NAPOLCOM", label: "NAPOLCOM",  sub: "Coming soon",                  disabled: true  },
               ].map((c) => (
@@ -183,6 +183,26 @@ export default function TrialScreen({ onTrialStart, onBack }) {
               ))}
             </div>
           </div>
+
+          {course === 'TESDA' && (
+            <div style={{ background:'rgba(59,130,246,0.08)', border:'1px solid rgba(59,130,246,0.25)', borderRadius:10, padding:'14px 16px', display:'flex', flexDirection:'column', gap:10 }}>
+              <div style={{ fontSize:13, fontWeight:700, color:'#3b82f6' }}>🏅 TESDA Free Trial — Coming Soon</div>
+              <div style={{ fontSize:13, color:'var(--text-secondary)', lineHeight:1.6 }}>
+                The free trial is currently available for <strong style={{ color:'var(--text-primary)' }}>LET only</strong>. TESDA reviewer access requires a one-time purchase of ₱99.
+              </div>
+              <div style={{ fontSize:13, color:'var(--text-secondary)', lineHeight:1.6 }}>
+                Want to see what's inside? Watch our sneak peek on YouTube before you buy.
+              </div>
+              <a href="https://www.youtube.com/@readwisebyskai" target="_blank" rel="noopener noreferrer"
+                style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, background:'#FF0000', color:'white', borderRadius:8, padding:'10px 16px', fontWeight:700, fontSize:13, textDecoration:'none' }}>
+                ▶ Watch Sneak Peek on YouTube
+              </a>
+              <a href="/buy?course=TESDA"
+                style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, background:'rgba(59,130,246,0.15)', color:'#3b82f6', border:'1px solid rgba(59,130,246,0.3)', borderRadius:8, padding:'10px 16px', fontWeight:700, fontSize:13, textDecoration:'none' }}>
+                Get TESDA Access · ₱99 →
+              </a>
+            </div>
+          )}
 
           {error && (
             <div className="trial-error-block">
@@ -200,17 +220,21 @@ export default function TrialScreen({ onTrialStart, onBack }) {
             </div>
           )}
 
-          <button
-            className="trial-start-btn"
-            onClick={handleStart}
-            disabled={loading}
-          >
-            {loading ? "Checking…" : "Start free trial →"}
-          </button>
+          {course !== 'TESDA' && (
+            <>
+              <button
+                className="trial-start-btn"
+                onClick={handleStart}
+                disabled={loading}
+              >
+                {loading ? "Checking…" : "Start free trial →"}
+              </button>
 
-          <p className="trial-fine-print">
-            1 hour access · No card required · ₱{activePrice} to unlock full access
-          </p>
+              <p className="trial-fine-print">
+                1 hour access · No card required · ₱{activePrice} to unlock full access
+              </p>
+            </>
+          )}
         </div>
       </div>
 
