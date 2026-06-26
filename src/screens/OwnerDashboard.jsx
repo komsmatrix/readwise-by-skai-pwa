@@ -2143,6 +2143,8 @@ function TesdaTab() {
       html_content_fil: editing.html_content_fil || null,
       video_url_1     : editing.video_url_1      || null,
       video_url_2     : editing.video_url_2      || null,
+      video_url_3     : editing.video_url_3      || null,
+      video_url_4     : editing.video_url_4      || null,
       infographic_url : editing.infographic_url  || null,
       is_active       : true,
       sort_order      : editing.sort_order || subtopics.length + 1,
@@ -2150,11 +2152,27 @@ function TesdaTab() {
     if (editing.id) {
       await supabase.from('tesda_subtopics').update(payload).eq('id', editing.id)
     } else {
-      await supabase.from('tesda_subtopics').insert([payload])
+      // Must supply id — DB does not have auto-generate configured
+      const newId = crypto.randomUUID()
+      const { error: insertError } = await supabase
+        .from('tesda_subtopics')
+        .insert([{ id: newId, ...payload }])
+      if (insertError) {
+        alert('Failed to add topic: ' + insertError.message)
+        setSaving(false)
+        return
+      }
     }
-    // Update subtopic_count on qualification
-    const newCount = editing.id ? subtopics.length : subtopics.length + 1
-    await supabase.from('tesda_qualifications').update({ subtopic_count: newCount }).eq('id', activeQual.id)
+    // Sync subtopic_count from actual DB count (always accurate)
+    const { count } = await supabase
+      .from('tesda_subtopics')
+      .select('id', { count: 'exact', head: true })
+      .eq('qualification_id', activeQual.id)
+      .eq('is_active', true)
+    await supabase
+      .from('tesda_qualifications')
+      .update({ subtopic_count: count || 0 })
+      .eq('id', activeQual.id)
     setSaving(false)
     setEditing(null)
     await loadSubtopics(activeQual.id)
@@ -2325,6 +2343,20 @@ function TesdaTab() {
         </div>
 
         <div style={s.field}>
+          <label style={s.label}>YouTube Video Reviewer 3</label>
+          <input style={s.input} value={editing.video_url_3 || ''}
+            placeholder="https://youtu.be/..."
+            onChange={e => setEditing(p => ({ ...p, video_url_3: e.target.value }))} />
+        </div>
+
+        <div style={s.field}>
+          <label style={s.label}>YouTube Video Reviewer 4</label>
+          <input style={s.input} value={editing.video_url_4 || ''}
+            placeholder="https://youtu.be/..."
+            onChange={e => setEditing(p => ({ ...p, video_url_4: e.target.value }))} />
+        </div>
+
+        <div style={s.field}>
           <label style={s.label}>Infographic URL</label>
           <input style={s.input} value={editing.infographic_url || ''}
             placeholder="https://..."
@@ -2379,6 +2411,8 @@ function TesdaTab() {
                   {(st.html_url || st.html_content) && <span style={{ fontSize:10, padding:'2px 7px', background:'rgba(16,185,129,0.1)', color:'#10B981', borderRadius:20, border:'1px solid rgba(16,185,129,0.2)' }}>📖 Reviewer</span>}
                   {st.video_url_1     && <span style={{ fontSize:10, padding:'2px 7px', background:'var(--bg-elevated)', color:'var(--text-muted)', borderRadius:20, border:'1px solid var(--border)' }}>📹 Video 1</span>}
                   {st.video_url_2     && <span style={{ fontSize:10, padding:'2px 7px', background:'var(--bg-elevated)', color:'var(--text-muted)', borderRadius:20, border:'1px solid var(--border)' }}>📹 Video 2</span>}
+                  {st.video_url_3     && <span style={{ fontSize:10, padding:'2px 7px', background:'var(--bg-elevated)', color:'var(--text-muted)', borderRadius:20, border:'1px solid var(--border)' }}>📹 Video 3</span>}
+                  {st.video_url_4     && <span style={{ fontSize:10, padding:'2px 7px', background:'var(--bg-elevated)', color:'var(--text-muted)', borderRadius:20, border:'1px solid var(--border)' }}>📹 Video 4</span>}
                   {st.infographic_url && <span style={{ fontSize:10, padding:'2px 7px', background:'var(--bg-elevated)', color:'var(--text-muted)', borderRadius:20, border:'1px solid var(--border)' }}>🖼 Infographic</span>}
                 </div>
               </div>
