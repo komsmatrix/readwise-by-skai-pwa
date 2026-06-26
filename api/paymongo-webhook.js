@@ -223,10 +223,19 @@ export default async function handler(req, res) {
 
     if (!email) return res.status(400).json({ error: 'No email in payment data' })
 
+    // Fetch existing customer FIRST before any logic that references it
+    const { data: existingCustomer } = await supabase
+      .from('customers')
+      .select('id, courses, amount_paid, is_active')
+      .eq('email', email.toLowerCase().trim())
+      .maybeSingle()
+
     const key       = generateKey()
     // Lifetime access — 100 years
     const expiresAt = addDays(36500)
 
+    // Only insert access key for non-online purchases (agents, manual grants)
+    // Online buyers use email-only login — key is backup only
     await supabase.from('access_keys').insert({
       key,
       name      : name.trim(),

@@ -142,7 +142,7 @@ export default function ActivationScreen({ onActivated, onBack }) {
         {/* New — name + email + key */}
         {tab === 'new' && (
           <div style={s.form} className="animate-in">
-            <p style={s.tabHint}>First time? Enter the details from your purchase confirmation email.</p>
+            <p style={s.tabHint}>For offline or agent purchases only. If you paid online at readwisebyskai.com, use the <strong style={{ color:'var(--accent)' }}>Returning Customer</strong> tab and just enter your email — no key needed.</p>
             <div style={s.field}>
               <label style={s.label}>Full name</label>
               <input style={s.input} type="text" placeholder="e.g. Juan Dela Cruz"
@@ -191,8 +191,8 @@ export default function ActivationScreen({ onActivated, onBack }) {
 
         <p style={s.footer}>
           {tab === 'returning'
-            ? 'Your account is tied to your email — sign in on any device anytime.'
-            : 'Your key is personal and must be activated within 7 days of purchase.'}
+            ? 'Paid online? Your account is ready — just enter your email above.'
+            : 'Use this tab only if you received a key from an agent or offline purchase.'}
         </p>
       </div>
     </div>
