@@ -2145,7 +2145,9 @@ function TesdaTab() {
       video_url_2     : editing.video_url_2      || null,
       video_url_3     : editing.video_url_3      || null,
       video_url_4     : editing.video_url_4      || null,
-      infographic_url : editing.infographic_url  || null,
+      infographic_url  : editing.infographic_url   || null,
+      infographic_url_2: editing.infographic_url_2 || null,
+      infographic_url_3: editing.infographic_url_3 || null,
       is_active       : true,
       sort_order      : editing.sort_order || subtopics.length + 1,
     }
@@ -2357,12 +2359,36 @@ function TesdaTab() {
         </div>
 
         <div style={s.field}>
-          <label style={s.label}>Infographic URL</label>
+          <label style={s.label}>Infographic URL 1</label>
           <input style={s.input} value={editing.infographic_url || ''}
             placeholder="https://..."
             onChange={e => setEditing(p => ({ ...p, infographic_url: e.target.value }))} />
           {editing.infographic_url && (
-            <img src={editing.infographic_url} alt="infographic preview"
+            <img src={editing.infographic_url} alt="infographic 1 preview"
+              style={{ marginTop:8, width:'100%', borderRadius:8, border:'1px solid var(--border)' }}
+              onError={e => e.target.style.display='none'} />
+          )}
+        </div>
+
+        <div style={s.field}>
+          <label style={s.label}>Infographic URL 2</label>
+          <input style={s.input} value={editing.infographic_url_2 || ''}
+            placeholder="https://..."
+            onChange={e => setEditing(p => ({ ...p, infographic_url_2: e.target.value }))} />
+          {editing.infographic_url_2 && (
+            <img src={editing.infographic_url_2} alt="infographic 2 preview"
+              style={{ marginTop:8, width:'100%', borderRadius:8, border:'1px solid var(--border)' }}
+              onError={e => e.target.style.display='none'} />
+          )}
+        </div>
+
+        <div style={s.field}>
+          <label style={s.label}>Infographic URL 3</label>
+          <input style={s.input} value={editing.infographic_url_3 || ''}
+            placeholder="https://..."
+            onChange={e => setEditing(p => ({ ...p, infographic_url_3: e.target.value }))} />
+          {editing.infographic_url_3 && (
+            <img src={editing.infographic_url_3} alt="infographic 3 preview"
               style={{ marginTop:8, width:'100%', borderRadius:8, border:'1px solid var(--border)' }}
               onError={e => e.target.style.display='none'} />
           )}
@@ -2413,7 +2439,9 @@ function TesdaTab() {
                   {st.video_url_2     && <span style={{ fontSize:10, padding:'2px 7px', background:'var(--bg-elevated)', color:'var(--text-muted)', borderRadius:20, border:'1px solid var(--border)' }}>📹 Video 2</span>}
                   {st.video_url_3     && <span style={{ fontSize:10, padding:'2px 7px', background:'var(--bg-elevated)', color:'var(--text-muted)', borderRadius:20, border:'1px solid var(--border)' }}>📹 Video 3</span>}
                   {st.video_url_4     && <span style={{ fontSize:10, padding:'2px 7px', background:'var(--bg-elevated)', color:'var(--text-muted)', borderRadius:20, border:'1px solid var(--border)' }}>📹 Video 4</span>}
-                  {st.infographic_url && <span style={{ fontSize:10, padding:'2px 7px', background:'var(--bg-elevated)', color:'var(--text-muted)', borderRadius:20, border:'1px solid var(--border)' }}>🖼 Infographic</span>}
+                  {st.infographic_url   && <span style={{ fontSize:10, padding:'2px 7px', background:'var(--bg-elevated)', color:'var(--text-muted)', borderRadius:20, border:'1px solid var(--border)' }}>🖼 Infographic 1</span>}
+                  {st.infographic_url_2 && <span style={{ fontSize:10, padding:'2px 7px', background:'var(--bg-elevated)', color:'var(--text-muted)', borderRadius:20, border:'1px solid var(--border)' }}>🖼 Infographic 2</span>}
+                  {st.infographic_url_3 && <span style={{ fontSize:10, padding:'2px 7px', background:'var(--bg-elevated)', color:'var(--text-muted)', borderRadius:20, border:'1px solid var(--border)' }}>🖼 Infographic 3</span>}
                 </div>
               </div>
               <div style={{ display:'flex', gap:6, flexShrink:0 }}>
