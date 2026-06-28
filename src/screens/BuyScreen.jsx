@@ -35,13 +35,16 @@ export default function BuyScreen() {
   const [errorMsg,     setErrorMsg]     = useState('')
   const [success,      setSuccess]      = useState(false)
   const [cancelled,    setCancelled]    = useState(false)
-  const [studentCount, setStudentCount] = useState(null)
+  const [studentCount,  setStudentCount]  = useState(null)
+  const [tesdaQuals,    setTesdaQuals]    = useState([])
+  const [showQuals,     setShowQuals]     = useState(false)
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     if (params.get('success') === 'true')   setSuccess(true)
     if (params.get('cancelled') === 'true') setCancelled(true)
     loadStudentCount()
+    loadTesdaQuals()
     if (initRef) checkReferralCode(initRef)
   }, [])
 
@@ -52,6 +55,18 @@ export default function BuyScreen() {
         .select('*', { count: 'exact', head: true })
         .eq('is_active', true)
       if (count !== null) setStudentCount(count)
+    } catch(e) {}
+  }
+
+  async function loadTesdaQuals() {
+    try {
+      const { data } = await supabase
+        .from('tesda_qualifications')
+        .select('name, emoji, subtopic_count')
+        .eq('is_active', true)
+        .gt('subtopic_count', 0)
+        .order('sort_order')
+      if (data) setTesdaQuals(data)
     } catch(e) {}
   }
 
@@ -67,7 +82,7 @@ export default function BuyScreen() {
       const res = await fetch('/api/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'referral', code, email, course: selectedCourse }),
+        body: JSON.stringify({ type: 'referral', code, email }),
       })
       const data = await res.json()
       if (data.valid) {
@@ -171,13 +186,52 @@ export default function BuyScreen() {
 
         {/* TESDA description */}
         {selectedCourse === 'TESDA' && (
-          <div style={{ background:'rgba(59,130,246,0.06)', border:'1px solid rgba(59,130,246,0.2)', borderRadius:10, padding:'12px 14px', marginBottom:4, display:'flex', flexDirection:'column', gap:10 }}>
-            <div style={{ fontSize:12, color:'var(--text-secondary)', lineHeight:1.7 }}>
-              📋 Includes full HTML reviewers for <strong style={{ color:'var(--text-primary)' }}>30 NC II qualifications</strong> — Cookery, Caregiving, Housekeeping, Food & Beverage, Masonry, Electrical Installation, and more. Each reviewer includes video lessons and infographics.
+          <div style={{ display:'flex', flexDirection:'column', gap:10, marginBottom:4 }}>
+
+            {/* What you get */}
+            <div style={{ background:'rgba(59,130,246,0.06)', border:'1px solid rgba(59,130,246,0.2)', borderRadius:10, padding:'12px 14px' }}>
+              <div style={{ fontSize:12, fontWeight:700, color:'#3b82f6', marginBottom:6 }}>🏅 What's Included</div>
+              <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
+                {[
+                  '📖 Full HTML reviewers per qualification',
+                  '🎬 Video lessons embedded in the app',
+                  '🖼 Infographics for quick review',
+                  '🌐 English and Filipino toggle',
+                  '🖨 Print reviewer for offline study',
+                  '🔄 New resources uploaded regularly',
+                  '♾ Lifetime access — pay once, study forever',
+                ].map((b,i) => (
+                  <div key={i} style={{ fontSize:12, color:'var(--text-secondary)', lineHeight:1.6 }}>{b}</div>
+                ))}
+              </div>
             </div>
-            <div style={{ fontSize:12, color:'var(--text-muted)', lineHeight:1.6 }}>
-              ℹ️ Free trial is not yet available for TESDA. Want to preview the reviewer before buying?
+
+            {/* Available qualifications */}
+            <div style={{ background:'rgba(16,185,129,0.05)', border:'1px solid rgba(16,185,129,0.2)', borderRadius:10, padding:'12px 14px' }}>
+              <button
+                onClick={() => setShowQuals(q => !q)}
+                style={{ width:'100%', background:'none', border:'none', padding:0, cursor:'pointer', display:'flex', justifyContent:'space-between', alignItems:'center', fontFamily:'inherit' }}>
+                <div style={{ fontSize:12, fontWeight:700, color:'#10B981' }}>
+                  ✅ {tesdaQuals.length} Qualifications Now Available
+                </div>
+                <div style={{ fontSize:12, color:'var(--text-muted)' }}>{showQuals ? '▲ Hide' : '▼ Show all'}</div>
+              </button>
+              {showQuals && (
+                <div style={{ marginTop:10, display:'flex', flexDirection:'column', gap:4 }}>
+                  {tesdaQuals.map((q,i) => (
+                    <div key={i} style={{ fontSize:12, color:'var(--text-secondary)', display:'flex', alignItems:'center', gap:6 }}>
+                      <span>{q.emoji || '📋'}</span>
+                      <span>{q.name}</span>
+                    </div>
+                  ))}
+                  <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:6, fontStyle:'italic' }}>
+                    + More qualifications being added regularly
+                  </div>
+                </div>
+              )}
             </div>
+
+            {/* YouTube sneak peek */}
             <a href="https://www.youtube.com/@readwisebyskai" target="_blank" rel="noopener noreferrer"
               style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, background:'#FF0000', color:'white', borderRadius:8, padding:'9px 14px', fontWeight:700, fontSize:12, textDecoration:'none' }}>
               ▶ Watch Sneak Peek on YouTube
@@ -241,7 +295,7 @@ export default function BuyScreen() {
             {status === 'loading' ? 'Setting up payment…' : `Get ${selectedCourse} Access · ₱${finalPrice}`}
           </button>
 
-          <p style={s.payNote}>Secure payment via PayMongo · QRPh · GrabPay · BPI · UBP</p>
+          <p style={s.payNote}>Secure payment via PayMongo · QRPh · GrabPay</p>
         </div>
 
         <p style={s.footer}>

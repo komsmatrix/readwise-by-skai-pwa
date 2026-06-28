@@ -18,6 +18,25 @@ function useIsMobile() {
   return isMobile
 }
 
+function FaqItem({ q, a }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border)', borderRadius:12, overflow:'hidden' }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{ width:'100%', padding:'14px 18px', background:'none', border:'none', cursor:'pointer', display:'flex', justifyContent:'space-between', alignItems:'center', gap:12, fontFamily:'inherit', textAlign:'left' }}>
+        <span style={{ fontSize:14, fontWeight:600, color:'var(--text-primary)', lineHeight:1.4 }}>{q}</span>
+        <span style={{ fontSize:18, color:'var(--text-muted)', flexShrink:0, transition:'transform .2s', transform: open ? 'rotate(180deg)' : 'none' }}>▾</span>
+      </button>
+      {open && (
+        <div style={{ padding:'0 18px 14px', fontSize:13, color:'var(--text-secondary)', lineHeight:1.7, borderTop:'1px solid var(--border)' }}>
+          {a}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
   // onGetAccess(course), onTryFree(course)
 
@@ -138,6 +157,8 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
           <a href="#how" style={s.navLink}>How it works</a>
           <a href="#courses" style={s.navLink}>Courses</a>
           <a href="#pricing" style={s.navLink}>Pricing</a>
+          <a href="#tesda" style={s.navLink}>TESDA</a>
+          <a href="#faq" style={s.navLink}>FAQ</a>
           <a href="#updates" style={s.navLink}>Updates</a>
           <button style={s.navSignIn} onClick={onSignIn}>Sign In</button>
           <button style={s.navCta} onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior:'smooth' })}>See Pricing →</button>
@@ -387,18 +408,24 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
               <div style={s.priceDivider}/>
               <div style={s.priceFeatures}>
                 {[
-                  '10+ NC II qualifications in one bundle',
-                  'Full HTML reviewer per core competency',
-                  '🇵🇭 Filipino & English versions',
-                  'Video lessons + infographics',
-                  'Cookery, Caregiving, Housekeeping + more',
-                  'All future qualifications included',
+                  '✅ Cookery NC II',
+                  '✅ Housekeeping NC II',
+                  '✅ Beauty Care NC II',
+                  '✅ Shielded Metal Arc Welding NC II',
+                  '✅ Food and Beverage Services NC II',
+                  '✅ Masonry NC II',
+                  '🔜 More qualifications added regularly',
+                  '📖 Full HTML reviewer per qualification',
+                  '🎬 Video lessons embedded in the app',
+                  '🌐 English and Filipino toggle',
+                  '🖨 Print for offline study',
+                  '♾ Lifetime access — pay once, study forever',
                 ].map(f => (
-                  <div key={f} style={s.priceFeature}><span style={{ color:'#3b82f6', fontWeight:700 }}>✓</span> {f}</div>
+                  <div key={f} style={s.priceFeature}><span style={{ color:'#3b82f6', fontWeight:700 }}></span> {f}</div>
                 ))}
               </div>
-              <button style={{ ...s.priceCta, background:'#3b82f6' }} onClick={() => onGetAccess('TESDA')}>Get Access to TESDA · ₱99</button>
-              <div style={s.priceSub}>GCash · Maya · Card · PayMongo</div>
+              <button style={{ ...s.priceCta, background:'#3b82f6' }} onClick={() => onGetAccess('TESDA')}>Get TESDA Bundle · ₱99</button>
+              <div style={s.priceSub}>QRPh · GrabPay · PayMongo</div>
             </div>
 
           </div>
@@ -458,6 +485,95 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
         </div>
       </section>
 
+      {/* TESDA SPOTLIGHT SECTION */}
+      <section id="tesda" style={{ ...s.section, background:'rgba(59,130,246,0.03)', borderTop:'1px solid rgba(59,130,246,0.1)', borderBottom:'1px solid rgba(59,130,246,0.1)' }}>
+        <div style={s.container}>
+          <div style={{ textAlign:'center', marginBottom:36 }}>
+            <div style={{ display:'inline-block', padding:'4px 14px', background:'rgba(59,130,246,0.1)', border:'1px solid rgba(59,130,246,0.25)', borderRadius:20, fontSize:11, fontWeight:700, color:'#3b82f6', letterSpacing:'.08em', marginBottom:12 }}>
+              🏅 TESDA NC II REVIEWER BUNDLE
+            </div>
+            <h2 style={{ ...s.sectionTitle, color:'var(--text-primary)', marginBottom:12 }}>
+              The Ultimate TESDA NC II Hub
+            </h2>
+            <p style={{ ...s.sectionSub, maxWidth:560, margin:'0 auto' }}>
+              Everything you need to pass your TESDA assessment — in one app, on your phone, in English or Filipino. No review center. No scattered photocopied modules. Just complete, organized, always-updated reviewers.
+            </p>
+          </div>
+
+          {/* How TESDA works differently */}
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(240px, 1fr))', gap:16, marginBottom:36 }}>
+            {[
+              { icon:'📖', title:'Full HTML Reviewers', desc:'Structured, complete content for every core competency. Read it like a book — beautifully formatted on any screen.' },
+              { icon:'🎬', title:'Video Lessons', desc:'YouTube video reviewers embedded directly in the app. No searching needed — everything in one place.' },
+              { icon:'🖼', title:'Infographics', desc:'Visual summaries of key topics so you can review faster and retain more before assessment day.' },
+              { icon:'🌐', title:'English & Filipino', desc:'Switch between English and Filipino versions of the reviewer with one tap — your choice, anytime.' },
+              { icon:'🖨', title:'Print for Offline Study', desc:'Print your reviewer as a PDF and study anywhere — even without internet connection.' },
+              { icon:'🔄', title:'Always Updated', desc:'We upload new resources and qualifications regularly. Buy once and get everything new automatically.' },
+            ].map(({ icon, title, desc }) => (
+              <div key={title} style={{ background:'var(--bg-surface)', border:'1px solid rgba(59,130,246,0.15)', borderRadius:14, padding:'18px 16px' }}>
+                <div style={{ fontSize:24, marginBottom:8 }}>{icon}</div>
+                <div style={{ fontSize:14, fontWeight:700, color:'var(--text-primary)', marginBottom:6 }}>{title}</div>
+                <div style={{ fontSize:12, color:'var(--text-secondary)', lineHeight:1.6 }}>{desc}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Who this is for */}
+          <div style={{ background:'rgba(59,130,246,0.06)', border:'1px solid rgba(59,130,246,0.2)', borderRadius:14, padding:'20px 24px', marginBottom:24 }}>
+            <div style={{ fontSize:13, fontWeight:700, color:'#3b82f6', marginBottom:12 }}>🎯 Who is this for?</div>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(180px, 1fr))', gap:8 }}>
+              {[
+                'Cookery NC II candidates',
+                'Housekeeping NC II candidates',
+                'Beauty Care NC II candidates',
+                'Welding NC II candidates',
+                'Food & Beverage NC II candidates',
+                'Masonry NC II candidates',
+                'OFW applicants needing TESDA cert',
+                'Anyone preparing for NC II assessment',
+              ].map(w => (
+                <div key={w} style={{ fontSize:12, color:'var(--text-secondary)', display:'flex', alignItems:'center', gap:6 }}>
+                  <span style={{ color:'#3b82f6', fontWeight:700 }}>→</span> {w}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ textAlign:'center' }}>
+            <button style={{ ...s.btnPrimary, background:'#3b82f6', fontSize:16, padding:'14px 32px' }}
+              onClick={() => onGetAccess('TESDA')}>
+              Get TESDA Bundle — ₱99 Only →
+            </button>
+            <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:8 }}>One-time · Lifetime access · All qualifications included</div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ SECTION */}
+      <section id="faq" style={s.section}>
+        <div style={s.container}>
+          <div style={{ textAlign:'center', marginBottom:32 }}>
+            <h2 style={s.sectionTitle}>Frequently Asked Questions</h2>
+            <p style={s.sectionSub}>Everything you need to know before buying.</p>
+          </div>
+          <div style={{ maxWidth:640, margin:'0 auto', display:'flex', flexDirection:'column', gap:12 }}>
+            {[
+              { q:'Pwede ba ito gamitin sa phone?', a:'Oo — Readwise by Skai ay mobile-first. Dinisenyo ito para sa mga nagaaral sa kanilang phone, kahit nasa commute, break time, o gabi bago matulog.' },
+              { q:'Kailangan ba ng internet?', a:'Kailangan ng internet para buksan ang app at i-load ang reviewers. Pero pwede mong i-print ang HTML reviewer para mag-aral offline.' },
+              { q:'Isang beses lang babayaran?', a:'Oo. Isang beses lang — walang monthly fee, walang subscription. Bayad mo ngayon, lifetime na access mo.' },
+              { q:'Kasama ba lahat ng NC II qualifications?', a:'Ang kasalukuyang available: Cookery, Housekeeping, Beauty Care, Shielded Metal Arc Welding, Food and Beverage Services, at Masonry. Patuloy kaming nag-a-upload ng bagong qualifications. Lahat ng darating — kasama na sa iyong ₱99.' },
+              { q:'Paano kung hindi pa available ang qualification ko?', a:'Mag-follow sa aming Facebook at YouTube para sa updates. Regular kaming naglalabas ng bagong qualifications. Ang iyong access ay valid habambuhay — kasama lahat ng magiging available.' },
+              { q:'Paano ako makakapag-access pagkatapos bumili?', a:'Pagkabayad mo sa PayMongo, matatanggap mo ang confirmation sa email mo. Buksan ang readwisebyskai.com, i-enter ang iyong email, at mag-aral na agad.' },
+              { q:'May Filipino version ba?', a:'Oo — ang bawat reviewer ay may English at Filipino toggle. I-tap lang ang FIL button para lumipat sa Filipino version.' },
+              { q:'Pwede ba itong i-print?', a:'Oo — may Print button sa loob ng bawat reviewer. I-print mo bilang PDF para mag-aral kahit walang internet.' },
+              { q:'Paano makipag-ugnayan sa inyo?', a:'Bisitahin kami sa readwisebyskai.com, i-message kami sa Facebook (facebook.com/readwisebyskai), o manood sa YouTube (youtube.com/@readwisebyskai). Palagi kaming nandito para tulungan kayo.' },
+            ].map(({ q, a }, i) => (
+              <FaqItem key={i} q={q} a={a} />
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* FINAL CTA */}
       <section style={{ ...s.section, textAlign:'center' }}>
         <div style={s.container}>
@@ -480,8 +596,8 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
         <div style={s.footerBrand}>Readwise by Skai</div>
         <div style={s.footerSub}>Board Exam & National Examination Operating System · Philippines</div>
         <div style={s.footerLinks}>
-          {['How it works','Courses','Pricing','Updates'].map(l => (
-            <a key={l} href={l === 'How it works' ? '#how' : l === 'Updates' ? '#updates' : `#${l.toLowerCase()}`} style={s.footerLink}>{l}</a>
+          {['How it works','Courses','Pricing','TESDA','FAQ','Updates'].map(l => (
+            <a key={l} href={l === 'How it works' ? '#how' : l === 'Updates' ? '#updates' : l === 'TESDA' ? '#tesda' : `#${l.toLowerCase()}`} style={s.footerLink}>{l}</a>
           ))}
           <a href="/privacy" style={s.footerLink}>Privacy Policy</a>
           <button style={{ ...s.footerLink, background:'none', border:'none', cursor:'pointer' }} onClick={onSignIn}>Sign In</button>

@@ -144,6 +144,17 @@ export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
   const [tab,     setTab]     = useState('reviewer')
   const [lang,    setLang]    = useState('en')
   const [loading, setLoading] = useState(true)
+  const [doneTopics, setDoneTopics] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('rbs_tesda_done') || '{}') } catch { return {} }
+  })
+
+  function toggleDone(subtopicId) {
+    setDoneTopics(prev => {
+      const next = { ...prev, [subtopicId]: !prev[subtopicId] }
+      localStorage.setItem('rbs_tesda_done', JSON.stringify(next))
+      return next
+    })
+  }
   const iframeRef = useRef(null)
 
   useEffect(() => { loadDetail() }, [subtopic?.id, qualification?.id])
@@ -209,6 +220,8 @@ export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
     catch { window.print() }
   }
 
+  const isDone = subtopic ? doneTopics[subtopic.id] : false
+
   const title = subtopic?.name || qualification?.name || 'Reviewer'
   const nc    = qualification?.nc || subtopic?.nc || 'NC II'
 
@@ -224,7 +237,16 @@ export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
             <div style={s.headerNc}>{nc} · TESDA</div>
           </div>
           {tab === 'reviewer' && hasAnyReviewer && (
-            <button onClick={handlePrint} style={s.printBtn} title="Print / Save as PDF">🖨️</button>
+            <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+              {subtopic && (
+                <button
+                  onClick={() => toggleDone(subtopic.id)}
+                  style={{ background: doneTopics[subtopic.id] ? 'rgba(16,185,129,0.15)' : 'var(--bg-elevated)', border: doneTopics[subtopic.id] ? '1px solid rgba(16,185,129,0.4)' : '1px solid var(--border)', color: doneTopics[subtopic.id] ? '#10B981' : 'var(--text-muted)', fontSize:11, fontWeight:700, padding:'6px 10px', borderRadius:8, cursor:'pointer', fontFamily:'inherit' }}>
+                  {doneTopics[subtopic.id] ? '✓ Done' : '○ Mark Done'}
+                </button>
+              )}
+              <button onClick={handlePrint} style={s.printBtn} title="Print / Save as PDF">🖨️</button>
+            </div>
           )}
         </div>
       </div>
