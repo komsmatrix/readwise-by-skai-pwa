@@ -71,9 +71,12 @@ export default async function handler(req, res) {
     }
 
     // Build description
+    const productName = isTesda ? 'TESDA NC Bundle' : 'Lifetime Access'
     const description = referralCode
-      ? `Readwise by Skai — Lifetime Access (Code: ${referralCode.toUpperCase()})`
-      : 'Board Exam Operating System. Spaced repetition, Readiness Score, Daily Coaching. LET exam — lifetime access.'
+      ? `Readwise by Skai — ${productName} (Code: ${referralCode.toUpperCase()})`
+      : isTesda
+        ? 'Full HTML reviewers for all TESDA NC II qualifications. Lifetime access.'
+        : 'Board Exam Operating System. Spaced repetition, Readiness Score, Daily Coaching. LET exam — lifetime access.'
 
     // Create PayMongo checkout session
     const response = await fetch('https://api.paymongo.com/v1/checkout_sessions', {
