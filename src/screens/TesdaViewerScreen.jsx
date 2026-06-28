@@ -86,6 +86,29 @@ function MediaCard({ url, label, index }) {
   )
 }
 
+const INJECTED_PROTECTION = `
+<script>
+  // Disable right-click
+  document.addEventListener('contextmenu', function(e) { e.preventDefault(); return false; });
+  // Disable common copy shortcuts
+  document.addEventListener('keydown', function(e) {
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'u' || e.key === 's' || e.key === 'p' || e.key === 'a')) {
+      e.preventDefault(); return false;
+    }
+  });
+  // Disable drag to select + drag image
+  document.addEventListener('dragstart', function(e) { e.preventDefault(); });
+</script>
+<style>
+  body, * {
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+    -webkit-touch-callout: none !important;
+  }
+</style>`
+
 const INJECTED_CSS = `
 <style id="rbs-responsive-fix">
   *, *::before, *::after { box-sizing: border-box; }
@@ -121,9 +144,9 @@ function injectResponsiveFix(html) {
   if (!html) return html
   if (html.includes('rbs-responsive-fix')) return html
   if (html.includes('</head>')) {
-    return html.replace('</head>', INJECTED_CSS + '\n</head>')
+    return html.replace('</head>', INJECTED_PROTECTION + '\n' + INJECTED_CSS + '\n</head>')
   }
-  return INJECTED_CSS + '\n' + html
+  return INJECTED_PROTECTION + '\n' + INJECTED_CSS + '\n' + html
 }
 
 function useHtmlBlobUrl(html) {
