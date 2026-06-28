@@ -67,7 +67,7 @@ export default function BuyScreen() {
       const res = await fetch('/api/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'referral', code, email }),
+        body: JSON.stringify({ type: 'referral', code, email, course: selectedCourse }),
       })
       const data = await res.json()
       if (data.valid) {
@@ -217,10 +217,9 @@ export default function BuyScreen() {
               value={email} onChange={e => setEmail(e.target.value)}
               autoComplete="email" />
           </div>
-          {selectedCourse !== 'TESDA' && (
           <div style={s.field}>
             <label style={s.label}>
-              Referral code <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional · saves ₱{REFERRAL_DISC})</span>
+              Referral code <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional · saves ₱{selectedCourse === 'TESDA' ? 10 : REFERRAL_DISC})</span>
             </label>
             <input style={s.input} type="text" placeholder="e.g. SKAI2025"
               value={referralCode}
@@ -232,7 +231,6 @@ export default function BuyScreen() {
               <div style={s.codeInvalid}>Invalid code</div>
             )}
           </div>
-          )}
 
           {errorMsg && <div style={s.error}>{errorMsg}</div>}
 

@@ -48,7 +48,7 @@ async function validateKey({ key }, res) {
 }
 
 // ── VALIDATE REFERRAL ─────────────────────────────────────────────────────────
-async function validateReferral({ code, email }, res) {
+async function validateReferral({ code, email, course }, res) {
   if (!code) return res.status(200).json({ valid: false })
 
   const { data, error } = await supabase
@@ -57,7 +57,7 @@ async function validateReferral({ code, email }, res) {
     .eq('referral_code', code.trim().toUpperCase())
     .single()
 
-  console.log('Referral lookup:', { code, data, error })
+  console.log('Referral lookup:', { code, course, data, error })
 
   if (error || !data || !data.is_active) return res.status(200).json({ valid: false })
 
@@ -66,10 +66,13 @@ async function validateReferral({ code, email }, res) {
     return res.status(200).json({ valid: false, reason: 'own_code' })
   }
 
+  // Discount: ₱10 for TESDA, ₱20 for all board exam courses
+  const discount = course === 'TESDA' ? 10 : 20
+
   return res.status(200).json({
     valid     : true,
     agentName : data.name,
-    discount  : 20,
+    discount,
     agent     : data,
   })
 }
