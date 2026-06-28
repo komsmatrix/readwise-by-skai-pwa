@@ -30,8 +30,8 @@ export default async function handler(req, res) {
     let finalPrice  = BASE_PRICE
     let discountAmt = 0
 
-    // Referral codes only apply to board exam courses, not TESDA
-    if (referralCode && !isTesda) {
+    // Referral codes apply to all courses — TESDA gets ₱10 discount, board exams get ₱20
+    if (referralCode) {
       const code       = referralCode.trim().toUpperCase()
       const emailClean = email.toLowerCase().trim()
 
@@ -45,8 +45,9 @@ export default async function handler(req, res) {
           return res.status(400).json({ error: 'You cannot use your own referral code.' })
         }
         agentId    = agent.id
-        finalPrice = INTRO_PRICE - AGENT_DISCOUNT
-        discountAmt = AGENT_DISCOUNT
+        const agentDisc = isTesda ? 1000 : AGENT_DISCOUNT  // ₱10 for TESDA, ₱20 for board
+        finalPrice  = BASE_PRICE - agentDisc
+        discountAmt = agentDisc
       } else {
         // Check customer referral code (₱10 discount)
         const { data: referrer } = await supabase
@@ -103,7 +104,7 @@ export default async function handler(req, res) {
                 : `Board Exam Operating System — ${course || 'LET'} exam. Spaced repetition, Readiness Score, Daily Coaching. Lifetime access.`,
               quantity   : 1,
             }],
-            payment_method_types: ['qrph', 'card', 'gcash', 'paymaya'],
+            payment_method_types: ['qrph', 'grab_pay', 'bpi', 'ubp'],
             metadata: {
               customer_name : name.trim(),
               customer_email: email.toLowerCase().trim(),
