@@ -299,9 +299,11 @@ export default async function handler(req, res) {
       const { data: agent } = await supabase
         .from('agents').select('total_referrals, total_commission').eq('id', agentId).single()
       if (agent) {
+        // Commission: ₱20 for TESDA referrals, ₱50 for board exam referrals
+        const commission = course === 'TESDA' ? 20 : AGENT_COMMISSION
         await supabase.from('agents').update({
           total_referrals : (agent.total_referrals  || 0) + 1,
-          total_commission: (agent.total_commission || 0) + AGENT_COMMISSION,
+          total_commission: (agent.total_commission || 0) + commission,
         }).eq('id', agentId)
       }
     }
