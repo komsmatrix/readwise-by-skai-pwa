@@ -124,15 +124,13 @@ async function handleWelcome({ name, email, referral_code, gcash_number }, res) 
   if (!name || !email || !referral_code) {
     return res.status(400).json({ error: 'Missing required fields: name, email, referral_code' })
   }
-  const firstName  = name.split(' ')[0]
-  const commission = 50
-  const discount   = 20
+  const firstName = name.split(' ')[0]
 
   await sendEmail({
-    from   : 'Readwise by Skai <skai@readwisebyskai.com>',
+    from   : 'Readwise by Skai <hello@readwisebyskai.com>',
     to     : email,
     subject: `Welcome to Readwise Agent Program — Your Code: ${referral_code}`,
-    html   : agentWelcomeHTML({ firstName, name, email, referral_code, gcash_number, commission, discount }),
+    html   : agentWelcomeHTML({ firstName, name, email, referral_code, gcash_number }),
   })
   return res.status(200).json({ success: true })
 }
@@ -264,65 +262,124 @@ async function handleFeedback({ name, email, message, type: feedbackType }, res)
 // EMAIL TEMPLATES
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function agentWelcomeHTML({ firstName, name, email, referral_code, gcash_number, commission, discount }) {
+function agentWelcomeHTML({ firstName, name, email, referral_code, gcash_number }) {
   return `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/></head>
 <body style="margin:0;padding:0;background:#0d0d0d;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-<div style="max-width:560px;margin:0 auto;padding:32px 16px;">
-<div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:16px;overflow:hidden;">
+<div style="max-width:580px;margin:0 auto;padding:32px 16px;">
+<div style="background:#161616;border:1px solid #2a2a2a;border-radius:16px;overflow:hidden;">
+
+  <!-- Header -->
   <div style="padding:28px 28px 0;">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:24px;">
-      <div style="width:36px;height:36px;background:rgba(201,169,110,0.15);border:1px solid rgba(201,169,110,0.3);border-radius:8px;font-size:18px;font-weight:800;color:#c9a96e;text-align:center;line-height:36px;">R</div>
+      <div style="width:40px;height:40px;background:rgba(201,169,110,0.15);border:1.5px solid rgba(201,169,110,0.35);border-radius:10px;font-size:20px;font-weight:900;color:#c9a96e;text-align:center;line-height:40px;">R</div>
       <div>
-        <div style="font-size:17px;font-weight:700;color:#fff;">Readwise by Skai</div>
-        <div style="font-size:10px;color:#c9a96e;letter-spacing:0.06em;text-transform:uppercase;">Agent Program</div>
+        <div style="font-size:17px;font-weight:800;color:#fff;">Readwise by Skai</div>
+        <div style="font-size:10px;color:#c9a96e;letter-spacing:0.08em;text-transform:uppercase;">Official Agent Program</div>
       </div>
     </div>
   </div>
-  <div style="padding:28px;">
-    <h1 style="font-size:24px;font-weight:700;color:#fff;margin:0 0 8px;">Welcome to the team, ${firstName}! 🎉</h1>
-    <p style="font-size:14px;color:#aaa;line-height:1.7;margin:0 0 16px;">You're now an official Readwise Agent. Here's everything you need to start earning.</p>
-    <div style="background:#0d0d0d;border:2px solid #c9a96e;border-radius:12px;padding:20px;text-align:center;margin:20px 0;">
-      <div style="font-size:11px;color:#c9a96e;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">Your Referral Code</div>
-      <div style="font-family:monospace;font-size:32px;font-weight:800;color:#c9a96e;letter-spacing:0.15em;">${referral_code}</div>
+
+  <!-- Body -->
+  <div style="padding:0 28px 28px;">
+    <h1 style="font-size:26px;font-weight:900;color:#fff;margin:0 0 10px;line-height:1.2;">Welcome to the team, ${firstName}! 🎉</h1>
+    <p style="font-size:14px;color:#9a9690;line-height:1.7;margin:0 0 24px;">Ikaw na ay opisyal na Readwise Agent. Kumita habang tinutulungan ang mga estudyante na makapasa.</p>
+
+    <!-- Referral Code Box -->
+    <div style="background:#0d0d0d;border:2px solid #c9a96e;border-radius:14px;padding:24px;text-align:center;margin-bottom:20px;">
+      <div style="font-size:11px;color:#c9a96e;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px;font-weight:700;">Your Referral Code</div>
+      <div style="font-family:monospace;font-size:36px;font-weight:900;color:#c9a96e;letter-spacing:0.15em;">${referral_code}</div>
+      <div style="font-size:12px;color:#6b6560;margin-top:8px;">readwisebyskai.com/buy?ref=${referral_code}</div>
     </div>
-    <div style="display:flex;gap:12px;margin:20px 0;">
-      <div style="flex:1;background:#0d0d0d;border:1px solid #2a2a2a;border-radius:10px;padding:14px;text-align:center;">
-        <div style="font-size:22px;font-weight:700;color:#c9a96e;">₱${commission}</div>
-        <div style="font-size:10px;color:#666;margin-top:4px;text-transform:uppercase;letter-spacing:0.05em;">Your Commission</div>
+
+    <!-- Earnings Grid -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:24px;">
+      <div style="background:#0d0d0d;border:1px solid rgba(201,169,110,0.25);border-radius:12px;padding:16px;text-align:center;">
+        <div style="font-size:26px;font-weight:900;color:#c9a96e;">&#8369;50</div>
+        <div style="font-size:10px;color:#6b6560;text-transform:uppercase;letter-spacing:.05em;margin-top:4px;">LET Commission</div>
       </div>
-      <div style="flex:1;background:#0d0d0d;border:1px solid #2a2a2a;border-radius:10px;padding:14px;text-align:center;">
-        <div style="font-size:22px;font-weight:700;color:#c9a96e;">₱${discount}</div>
-        <div style="font-size:10px;color:#666;margin-top:4px;text-transform:uppercase;letter-spacing:0.05em;">Student Discount</div>
+      <div style="background:#0d0d0d;border:1px solid rgba(201,169,110,0.25);border-radius:12px;padding:16px;text-align:center;">
+        <div style="font-size:26px;font-weight:900;color:#c9a96e;">&#8369;20</div>
+        <div style="font-size:10px;color:#6b6560;text-transform:uppercase;letter-spacing:.05em;margin-top:4px;">TESDA Commission</div>
       </div>
-      <div style="flex:1;background:#0d0d0d;border:1px solid #2a2a2a;border-radius:10px;padding:14px;text-align:center;">
-        <div style="font-size:14px;font-weight:700;color:#fff;line-height:1.2;">Every<br/>Friday</div>
-        <div style="font-size:10px;color:#666;margin-top:4px;text-transform:uppercase;letter-spacing:0.05em;">Payout Day</div>
-      </div>
-    </div>
-    <div style="height:1px;background:#2a2a2a;margin:20px 0;"></div>
-    <p style="color:#fff;font-weight:600;margin-bottom:12px;">How it works:</p>
-    <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px;">
-      <div style="display:flex;gap:12px;">
-        <div style="width:24px;height:24px;border-radius:50%;background:rgba(201,169,110,0.15);border:1px solid rgba(201,169,110,0.3);color:#c9a96e;font-size:12px;font-weight:700;text-align:center;line-height:24px;flex-shrink:0;">1</div>
-        <div style="font-size:13px;color:#aaa;line-height:1.6;">Share your code <strong style="color:#fff;">${referral_code}</strong> with students preparing for board exams.</div>
-      </div>
-      <div style="display:flex;gap:12px;">
-        <div style="width:24px;height:24px;border-radius:50%;background:rgba(201,169,110,0.15);border:1px solid rgba(201,169,110,0.3);color:#c9a96e;font-size:12px;font-weight:700;text-align:center;line-height:24px;flex-shrink:0;">2</div>
-        <div style="font-size:13px;color:#aaa;line-height:1.6;">Students get <strong style="color:#fff;">₱${discount} off</strong>, you earn <strong style="color:#fff;">₱${commission} commission</strong>.</div>
-      </div>
-      <div style="display:flex;gap:12px;">
-        <div style="width:24px;height:24px;border-radius:50%;background:rgba(201,169,110,0.15);border:1px solid rgba(201,169,110,0.3);color:#c9a96e;font-size:12px;font-weight:700;text-align:center;line-height:24px;flex-shrink:0;">3</div>
-        <div style="font-size:13px;color:#aaa;line-height:1.6;">Commissions paid every <strong style="color:#fff;">Friday via GCash</strong> to <strong style="color:#fff;">${gcash_number}</strong>.</div>
+      <div style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:16px;text-align:center;">
+        <div style="font-size:16px;font-weight:800;color:#fff;line-height:1.3;">Every<br/>Friday</div>
+        <div style="font-size:10px;color:#6b6560;text-transform:uppercase;letter-spacing:.05em;margin-top:4px;">Payout Day</div>
       </div>
     </div>
-    <a href="https://readwisebyskai.com/agent-guide" style="display:block;background:#c9a96e;color:#0d0d0d;text-decoration:none;padding:14px;border-radius:10px;font-size:15px;font-weight:700;text-align:center;margin:20px 0;">View Your Agent Guide →</a>
-    <p style="font-size:12px;text-align:center;color:#555;">Share this link: <strong style="color:#c9a96e;">readwisebyskai.com/buy?ref=${referral_code}</strong></p>
+
+    <!-- What you're selling -->
+    <div style="margin-bottom:20px;">
+      <div style="font-size:11px;font-weight:700;color:#c9a96e;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;">What You're Selling</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:14px;">
+          <div style="font-size:14px;font-weight:800;color:#f0ede6;margin-bottom:4px;">&#127891; LET Bundle</div>
+          <div style="font-size:20px;font-weight:900;color:#c9a96e;margin-bottom:6px;">&#8369;249</div>
+          <div style="font-size:11px;color:#10B981;font-weight:600;margin-bottom:4px;">You earn: &#8369;50 · Student saves: &#8369;20</div>
+          <div style="font-size:11px;color:#6b6560;line-height:1.5;">1,748+ questions · 14 topics · Spaced repetition · Lifetime access</div>
+        </div>
+        <div style="background:#0d0d0d;border:1px solid rgba(59,130,246,0.2);border-radius:12px;padding:14px;">
+          <div style="font-size:14px;font-weight:800;color:#f0ede6;margin-bottom:4px;">&#127941; TESDA Bundle</div>
+          <div style="font-size:20px;font-weight:900;color:#3b82f6;margin-bottom:6px;">&#8369;99</div>
+          <div style="font-size:11px;color:#10B981;font-weight:600;margin-bottom:4px;">You earn: &#8369;20 · Student saves: &#8369;10</div>
+          <div style="font-size:11px;color:#6b6560;line-height:1.5;">30 NC II qualifications · HTML reviewers · Videos · EN &amp; FIL · Lifetime access</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="height:1px;background:rgba(255,255,255,0.07);margin:20px 0;"></div>
+
+    <!-- How it works -->
+    <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:14px;">Paano mag-earn:</div>
+    <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:24px;">
+      <div style="display:flex;gap:12px;">
+        <div style="width:26px;height:26px;border-radius:50%;background:rgba(201,169,110,0.12);border:1px solid rgba(201,169,110,0.3);color:#c9a96e;font-size:12px;font-weight:700;text-align:center;line-height:26px;flex-shrink:0;">1</div>
+        <div style="font-size:13px;color:#9a9690;line-height:1.6;">I-share ang iyong code <strong style="color:#fff;">${referral_code}</strong> sa mga estudyante — sa Facebook, Messenger, group chats, o personal.</div>
+      </div>
+      <div style="display:flex;gap:12px;">
+        <div style="width:26px;height:26px;border-radius:50%;background:rgba(201,169,110,0.12);border:1px solid rgba(201,169,110,0.3);color:#c9a96e;font-size:12px;font-weight:700;text-align:center;line-height:26px;flex-shrink:0;">2</div>
+        <div style="font-size:13px;color:#9a9690;line-height:1.6;">Mag-checkout ang student gamit ang iyong code sa readwisebyskai.com — awtomatiko kang mak-credit.</div>
+      </div>
+      <div style="display:flex;gap:12px;">
+        <div style="width:26px;height:26px;border-radius:50%;background:rgba(201,169,110,0.12);border:1px solid rgba(201,169,110,0.3);color:#c9a96e;font-size:12px;font-weight:700;text-align:center;line-height:26px;flex-shrink:0;">3</div>
+        <div style="font-size:13px;color:#9a9690;line-height:1.6;">Matanggap ang payout mo tuwing Biyernes sa GCash: <strong style="color:#fff;">${gcash_number}</strong>.</div>
+      </div>
+    </div>
+
+    <!-- Sample messages -->
+    <div style="background:rgba(201,169,110,0.05);border:1px solid rgba(201,169,110,0.15);border-radius:12px;padding:16px 18px;margin-bottom:20px;">
+      <div style="font-size:11px;font-weight:700;color:#c9a96e;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;">Sample Message (TESDA)</div>
+      <div style="font-size:13px;color:#d1cdc7;line-height:1.7;font-style:italic;">
+        "Kumukuha ka ba ng TESDA NC II? May reviewer na pala — Readwise by Skai. &#8369;99 lang, lifetime access, kasama Cookery, Caregiving, Housekeeping at marami pa. Gamitin ang code ko para may discount: readwisebyskai.com/buy?ref=${referral_code}"
+      </div>
+    </div>
+
+    <div style="background:rgba(201,169,110,0.05);border:1px solid rgba(201,169,110,0.15);border-radius:12px;padding:16px 18px;margin-bottom:24px;">
+      <div style="font-size:11px;font-weight:700;color:#c9a96e;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;">Sample Message (LET)</div>
+      <div style="font-size:13px;color:#d1cdc7;line-height:1.7;font-style:italic;">
+        "Mag-eexam sa LET? Subukan mo ang Readwise by Skai — &#8369;249 lang, 1,748+ questions, lifetime access, may Readiness Score pa. Gamitin ang code ko: readwisebyskai.com/buy?ref=${referral_code}"
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <a href="https://readwisebyskai.com" style="display:block;background:#c9a96e;color:#0d0d0d;text-decoration:none;padding:15px;border-radius:12px;font-size:15px;font-weight:800;text-align:center;margin-bottom:16px;">
+      Visit Readwise by Skai &#8594;
+    </a>
+    <div style="text-align:center;font-size:12px;color:#6b6560;">
+      Questions? Reply to this email or message us on Facebook: facebook.com/readwisebyskai
+    </div>
   </div>
-  <div style="padding:20px 28px;border-top:1px solid #2a2a2a;">
-    <p style="font-size:11px;color:#444;margin:0;line-height:1.6;">Readwise by Skai · Agent Program<br/>Questions? Reply to this email.<br/>GCash payouts sent to: ${gcash_number}</p>
+
+  <!-- Footer -->
+  <div style="padding:18px 28px;border-top:1px solid #2a2a2a;">
+    <div style="font-size:11px;color:#444;line-height:1.7;">
+      Readwise by Skai · Agent Program<br/>
+      GCash payouts every Friday to: ${gcash_number}<br/>
+      readwisebyskai.com · hello@readwisebyskai.com
+    </div>
   </div>
+
 </div>
 </div>
 </body>
