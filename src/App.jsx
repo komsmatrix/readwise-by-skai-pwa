@@ -11,6 +11,7 @@ import OwnerDashboard    from './screens/OwnerDashboard.jsx'
 import BuyScreen         from './screens/BuyScreen.jsx'
 import LoadingScreen     from './screens/LoadingScreen.jsx'
 import LandingScreen     from './screens/LandingScreen.jsx'
+import TesdaLandingScreen from './screens/TesdaLandingScreen.jsx'
 import TrialScreen       from './screens/TrialScreen.jsx'
 import TrialExpiredScreen from './screens/TrialExpiredScreen.jsx'
 import TrialTimer        from './components/TrialTimer.jsx'
@@ -60,6 +61,7 @@ export default function App() {
     if (window.location.pathname === '/buy')     { setScreen('buy');     return }
     if (window.location.pathname === '/terms')   { setScreen('terms');   return }
     if (window.location.pathname === '/privacy') { setScreen('privacy'); return }
+    if (window.location.pathname === '/tesda')   { setScreen('tesda_landing'); return }
 
     const savedSession = localStorage.getItem('rbs_session')
     if (savedSession) {
@@ -200,6 +202,25 @@ export default function App() {
 
   if (screen === 'trial') {
     return <TrialScreen onTrialStart={handleTrialStart} onBack={() => setScreen('activation')} />
+  }
+
+  if (screen === 'tesda_landing' || screen === 'tesda_activation_form') {
+    if (screen === 'tesda_activation_form') {
+      return <ActivationScreen onActivated={handleActivated} onBack={() => setScreen('tesda_landing')} />
+    }
+    return (
+      <TesdaLandingScreen
+        onGetAccess={(course) => {
+          setSelectedCourse(course)
+          window.location.href = `/buy?course=${course}`
+        }}
+        onTryFree={(course) => {
+          setSelectedCourse(course)
+          setScreen('trial')
+        }}
+        onSignIn={() => setScreen('tesda_activation_form')}
+      />
+    )
   }
 
   if (screen === 'activation' || (!customer && !trialData)) {
