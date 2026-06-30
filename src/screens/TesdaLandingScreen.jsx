@@ -225,8 +225,9 @@ export default function TesdaLandingScreen({ onGetAccess, onTryFree, onSignIn })
         </div>
         <div style={s.examBadges}>
           {[
-            'Cookery NC II','Housekeeping NC II','Beauty Care NC II',
-            'Welding NC II','Food & Beverage NC II','Masonry NC II',
+            'Cookery NC II','Caregiving NC II','Housekeeping NC II','Beauty Care NC II',
+            'Welding NC II','Food & Beverage NC II','Masonry NC II','Machining NC II',
+            'Warehousing NC II','Automotive Servicing NC II',
           ].map((e) => (
             <span key={e} style={{ ...s.examBadge, background:'rgba(59,130,246,0.08)', color:'#3b82f6', border:'1px solid rgba(59,130,246,0.25)' }}>{e}</span>
           ))}
@@ -317,16 +318,20 @@ export default function TesdaLandingScreen({ onGetAccess, onTryFree, onSignIn })
       <section id="available" style={{ ...s.section, background:'#141414' }}>
         <div style={s.container}>
           <div style={{ ...s.sectionEyebrow, color:'#3b82f6' }}>Available Now</div>
-          <h2 style={s.sectionTitle}>{tesdaQuals.length || '6'} Qualifications Ready Today</h2>
+          <h2 style={s.sectionTitle}>{tesdaQuals.length || '10'} Qualifications Ready Today</h2>
           <p style={s.sectionSub}>Patuloy kaming nag-a-upload ng bagong qualifications. Lahat ng darating — kasama na sa iyong ₱99.</p>
           <div style={s.coursesGrid}>
             {(tesdaQuals.length > 0 ? tesdaQuals : [
               { name:'Cookery NC II', emoji:'🍳' },
+              { name:'Caregiving NC II', emoji:'🤝' },
               { name:'Housekeeping NC II', emoji:'🏨' },
               { name:'Beauty Care NC II', emoji:'💅' },
               { name:'Shielded Metal Arc Welding NC II', emoji:'🔧' },
               { name:'Food and Beverage Services NC II', emoji:'🍽️' },
               { name:'Masonry NC II', emoji:'🧱' },
+              { name:'Machining NC II', emoji:'⚙️' },
+              { name:'Warehousing NC II', emoji:'🏭' },
+              { name:'Automotive Servicing NC II', emoji:'🚘' },
             ]).map((q,i) => (
               <div key={i} style={{ ...s.courseCard, ...s.courseCardLive, borderColor:'rgba(59,130,246,0.3)' }}>
                 <div style={s.courseHeader}>
@@ -368,12 +373,10 @@ export default function TesdaLandingScreen({ onGetAccess, onTryFree, onSignIn })
               <div style={s.priceDivider}/>
               <div style={s.priceFeatures}>
                 {[
-                  '✅ Cookery NC II',
-                  '✅ Housekeeping NC II',
-                  '✅ Beauty Care NC II',
-                  '✅ Shielded Metal Arc Welding NC II',
-                  '✅ Food and Beverage Services NC II',
-                  '✅ Masonry NC II',
+                  '✅ 10 NC II qualifications available now',
+                  '✅ Cookery, Caregiving, Housekeeping',
+                  '✅ Beauty Care, Welding, Food & Beverage',
+                  '✅ Masonry, Machining, Warehousing, Automotive',
                   '🔜 More qualifications added regularly',
                   '📖 Full HTML reviewer per qualification',
                   '🎬 Video lessons embedded in the app',
