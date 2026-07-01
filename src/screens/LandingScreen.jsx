@@ -409,11 +409,15 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
               <div style={s.priceFeatures}>
                 {[
                   '✅ Cookery NC II',
+                  '✅ Caregiving NC II',
                   '✅ Housekeeping NC II',
                   '✅ Beauty Care NC II',
                   '✅ Shielded Metal Arc Welding NC II',
                   '✅ Food and Beverage Services NC II',
                   '✅ Masonry NC II',
+                  '✅ Machining NC II',
+                  '✅ Warehousing NC II',
+                  '✅ Automotive Servicing NC II',
                   '🔜 More qualifications added regularly',
                   '📖 Full HTML reviewer per qualification',
                   '🎬 Video lessons embedded in the app',
