@@ -295,7 +295,7 @@ export default function BuyScreen() {
             {status === 'loading' ? 'Setting up payment…' : `Get ${selectedCourse} Access · ₱${finalPrice}`}
           </button>
 
-          <p style={s.payNote}>Secure payment via PayMongo · QRPh · GrabPay</p>
+          <p style={s.payNote}>Secure payment via PayMongo · QRPh · GrabPay · Maya</p>
         </div>
 
         <p style={s.footer}>
