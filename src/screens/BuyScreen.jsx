@@ -301,6 +301,12 @@ export default function BuyScreen() {
         <p style={s.footer}>
           Already have an account? <a href="/" style={{ color: 'var(--accent)' }}>Sign in here →</a>
         </p>
+
+        <p style={{ fontSize:10, color:'var(--text-muted)', textAlign:'center', marginTop:16, lineHeight:1.7, opacity:0.6, padding:'0 8px' }}>
+          Readwise by Skai is an independent learning platform operated as a sole proprietorship.
+          We are not affiliated with, endorsed by, or connected to TESDA, PRC, or any government agency.
+          All review materials are independently created to help Filipino examinees prepare for their assessments.
+        </p>
       </div>
     </div>
   )

@@ -608,6 +608,9 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
           <button style={{ ...s.footerLink, background:'none', border:'none', cursor:'pointer' }} onClick={() => onGetAccess(selectedCourse)}>Buy Access</button>
         </div>
         <div style={s.footerCopy}>© 2026 Readwise by Skai · All rights reserved · <a href="/privacy" style={{ color:"var(--text-muted)", textDecoration:"underline" }}>Privacy Policy</a></div>
+        <div style={{ fontSize:10, color:'var(--text-muted)', opacity:0.5, marginTop:12, lineHeight:1.7, maxWidth:600, textAlign:'center', margin:'12px auto 0' }}>
+          Readwise by Skai is an independent learning platform operated as a sole proprietorship. We are not affiliated with, endorsed by, or connected to TESDA, PRC, or any government agency. All review materials are independently created to help Filipino examinees prepare for their assessments.
+        </div>
       </footer>
 
     </div>
