@@ -79,7 +79,7 @@ export default async function handler(req, res) {
         : 'Board Exam Operating System. Spaced repetition, Readiness Score, Daily Coaching. LET exam — lifetime access.'
 
     // Create PayMongo checkout session
-    const response = await fetch('https://api.paymongo.com/v1/checkout_sessions', {
+    const response = await fetch('https://api.paymongo.com/v2/checkout_sessions', {
       method: 'POST',
       headers: {
         'Authorization': `Basic ${Buffer.from(PAYMONGO_SECRET + ':').toString('base64')}`,
@@ -107,7 +107,7 @@ export default async function handler(req, res) {
                 : `Board Exam Operating System — ${course || 'LET'} exam. Spaced repetition, Readiness Score, Daily Coaching. Lifetime access.`,
               quantity   : 1,
             }],
-            payment_method_types: ['qrph', 'grab_pay', 'paymaya'],
+            payment_method_types: ['qrph', 'grab_pay', 'paymaya', 'shopeepay'],
             metadata: {
               customer_name : name.trim(),
               customer_email: email.toLowerCase().trim(),
