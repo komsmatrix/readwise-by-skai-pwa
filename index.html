@@ -33,6 +33,36 @@
     <link rel="icon" type="image/png" href="/icon-192.png" />
     <link rel="apple-touch-icon" href="/icon-192.png" />
     <link rel="manifest" href="/manifest.json" />
+
+    <!-- Dynamic meta tags per route -->
+    <script>
+      (function() {
+        var path = window.location.pathname;
+        if (path === '/tesda' || path === '/tesda/') {
+          // Update title
+          document.title = 'TESDA NC II Reviewer Hub — Readwise by Skai';
+          // Update description
+          var desc = document.querySelector('meta[name="description"]');
+          if (desc) desc.setAttribute('content', 'Ang Ultimate Hub para sa TESDA NC II Reviewer. Cookery, Caregiving, Housekeeping, Welding, Automotive at marami pa. Full HTML reviewers, video lessons, at infographics. ₱99 lang — lifetime access.');
+          // Update OG tags
+          var ogUrl = document.querySelector('meta[property="og:url"]');
+          if (ogUrl) ogUrl.setAttribute('content', 'https://readwisebyskai.com/tesda');
+          var ogTitle = document.querySelector('meta[property="og:title"]');
+          if (ogTitle) ogTitle.setAttribute('content', 'TESDA NC II Reviewer Hub — Readwise by Skai');
+          var ogDesc = document.querySelector('meta[property="og:description"]');
+          if (ogDesc) ogDesc.setAttribute('content', 'Ang Ultimate Hub para sa TESDA NC II Reviewer. 10+ qualifications — Cookery, Caregiving, Housekeeping, Welding, Automotive at marami pa. ₱99 lang. Lifetime access.');
+          var ogImage = document.querySelector('meta[property="og:image"]');
+          if (ogImage) ogImage.setAttribute('content', 'https://readwisebyskai.com/og-image-tesda.png');
+          // Update Twitter tags
+          var twTitle = document.querySelector('meta[name="twitter:title"]');
+          if (twTitle) twTitle.setAttribute('content', 'TESDA NC II Reviewer Hub — Readwise by Skai');
+          var twDesc = document.querySelector('meta[name="twitter:description"]');
+          if (twDesc) twDesc.setAttribute('content', 'Full HTML reviewers, video lessons, at infographics para sa 10+ TESDA NC II qualifications. ₱99 lang — lifetime access.');
+          var twImage = document.querySelector('meta[name="twitter:image"]');
+          if (twImage) twImage.setAttribute('content', 'https://readwisebyskai.com/og-image-tesda.png');
+        }
+      })();
+    </script>
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
