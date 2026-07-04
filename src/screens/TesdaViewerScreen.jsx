@@ -126,6 +126,11 @@ const INJECTED_CSS = `
     max-width: 100% !important;
     height: auto !important;
   }
+  /* Fix images with hardcoded width attributes breaking layout */
+  img[width] {
+    width: auto !important;
+    max-width: 100% !important;
+  }
   /* Tables: always scrollable horizontally */
   table {
     display: block !important;
