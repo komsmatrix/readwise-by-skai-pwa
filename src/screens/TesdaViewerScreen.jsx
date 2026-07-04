@@ -122,10 +122,9 @@ const INJECTED_CSS = `
     max-width: 100% !important;
     min-width: 0 !important;
   }
-  img, video, audio, iframe, embed, object {
+  img, video, audio, embed, object {
     max-width: 100% !important;
     height: auto !important;
-    display: block !important;
   }
   /* Tables: always scrollable horizontally */
   table {
