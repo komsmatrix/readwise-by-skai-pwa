@@ -245,7 +245,7 @@ export default function TesdaLandingScreen({ onGetAccess, onTryFree, onSignIn })
           <div style={{ width:'100%', maxWidth:360, position:'relative' }}>
             <div style={{ background:'rgba(59,130,246,0.08)', border:'1.5px solid rgba(59,130,246,0.25)', borderRadius:20, overflow:'hidden', aspectRatio:'9/16', position:'relative' }}>
               <iframe
-                src="https://www.youtube.com/embed/XbD6xFTPC5Y?rel=0&modestbranding=1&playsinline=1"
+                src="https://www.youtube.com/embed/CGpRTC8cltI?rel=0&modestbranding=1&playsinline=1"
                 title="Readwise by Skai — TESDA NC II Reviewer Demo"
                 style={{ width:'100%', height:'100%', border:'none', display:'block' }}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
