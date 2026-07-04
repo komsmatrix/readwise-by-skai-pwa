@@ -407,7 +407,7 @@ export default function TesdaLandingScreen({ onGetAccess, onTryFree, onSignIn })
                   '✅ Masonry NC II',
                   '✅ Shielded Metal Arc Welding NC II',
                   '✅ Warehousing NC II',
-                  '🔜 More qualifications being added,
+                  '🔜 More qualifications being added',
                   '📖 Full HTML reviewer per qualification',
                   '🎬 Video lessons embedded in the app',
                   '🌐 English and Filipino toggle',

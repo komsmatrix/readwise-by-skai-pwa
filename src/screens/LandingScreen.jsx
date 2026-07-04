@@ -415,7 +415,7 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
                   '✅ Food & Beverage, Barista, Masonry',
                   '✅ Bread & Pastry, Computer Systems',
                   '✅ Domestic Work, Warehousing',
-                  '🔜 More qualifications added regularly,
+                  '🔜 More qualifications added regularly',
                   '📖 Full HTML reviewer per qualification',
                   '🎬 Video lessons embedded in the app',
                   '🌐 English and Filipino toggle',
