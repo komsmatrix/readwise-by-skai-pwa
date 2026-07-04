@@ -198,13 +198,66 @@ const INJECTED_CSS = `
   }
 </style>`
 
+const INJECTED_GRID_FIX = `
+<style id="rbs-grid-fix">
+  /* Override any media query that collapses 2-col grids on mobile */
+  @media (max-width: 700px) {
+    .photo-grid-2,
+    .two-col,
+    .image-pair,
+    .img-duo,
+    .col-2,
+    .grid-2 {
+      display: grid !important;
+      grid-template-columns: 1fr 1fr !important;
+      gap: 8px !important;
+    }
+    .photo-grid-2 img,
+    .two-col img,
+    .image-pair img,
+    .img-duo img {
+      max-height: 160px !important;
+      width: 100% !important;
+      object-fit: cover !important;
+    }
+    .photo-grid-3,
+    .three-col,
+    .col-3,
+    .grid-3 {
+      display: grid !important;
+      grid-template-columns: 1fr 1fr !important;
+      gap: 8px !important;
+    }
+    .photo-grid-3 img {
+      max-height: 130px !important;
+      width: 100% !important;
+      object-fit: cover !important;
+    }
+  }
+</style>`
+
 function injectResponsiveFix(html) {
   if (!html) return html
-  if (html.includes('rbs-responsive-fix')) return html
-  if (html.includes('</head>')) {
-    return html.replace('</head>', INJECTED_PROTECTION + '\n' + INJECTED_CSS + '\n</head>')
+  if (html.includes('rbs-responsive-fix')) {
+    // Already injected head CSS — just append grid fix at end of body
+    if (html.includes('</body>')) {
+      return html.replace('</body>', INJECTED_GRID_FIX + '\n</body>')
+    }
+    return html + INJECTED_GRID_FIX
   }
-  return INJECTED_PROTECTION + '\n' + INJECTED_CSS + '\n' + html
+  // Fresh injection — add both to head and grid fix to body end
+  let result = html
+  if (result.includes('</head>')) {
+    result = result.replace('</head>', INJECTED_PROTECTION + '\n' + INJECTED_CSS + '\n</head>')
+  } else {
+    result = INJECTED_PROTECTION + '\n' + INJECTED_CSS + '\n' + result
+  }
+  if (result.includes('</body>')) {
+    result = result.replace('</body>', INJECTED_GRID_FIX + '\n</body>')
+  } else {
+    result = result + INJECTED_GRID_FIX
+  }
+  return result
 }
 
 function useHtmlBlobUrl(html) {
