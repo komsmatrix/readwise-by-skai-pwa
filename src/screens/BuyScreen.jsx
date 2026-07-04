@@ -303,9 +303,7 @@ export default function BuyScreen() {
         </p>
 
         <p style={{ fontSize:10, color:'var(--text-muted)', textAlign:'center', marginTop:16, lineHeight:1.7, opacity:0.6, padding:'0 8px' }}>
-          Readwise by Skai is an independent learning platform operated as a sole proprietorship.
-          We are not affiliated with, endorsed by, or connected to TESDA, PRC, or any government agency.
-          All review materials are independently created to help Filipino examinees prepare for their assessments.
+          Readwise by Skai is an independent learning platform operated as a sole proprietorship by a Filipino. We are not affiliated with, endorsed by, or connected to TESDA, PRC, or any government agency. All content available on this platform is compiled from publicly available information, reference materials, and educational resources. We do not publish, leak, or reproduce any actual examination questions, assessment criteria, or confidential materials from TESDA, PRC, or any official examining body. This platform is a study companion — not an exam cheat sheet. Our goal is to help students build a strong foundation of knowledge so they walk into their assessment feeling confident, prepared, and competent. We are not in competition with training centers, professors, assessors, or any educational institution — we are a complementary tool that supports students even when their trainer is not around. For training centers, professors, and assessors — this platform can serve as an additional resource for your students, covering all NC II qualifications in one place, always updated, available 24/7. For students — this is your study partner on the way to achieving your dream and building a better future.
         </p>
       </div>
     </div>
