@@ -235,33 +235,43 @@ export default function TesdaLandingScreen({ onGetAccess, onTryFree, onSignIn })
           ))}
         </div>
 
-        {/* Gauge demo */}
-        <div style={s.gaugeDemo}>
-          <div style={s.gaugeLabel}>Your readiness — tracked every day</div>
-          <div style={s.gaugeWrap}>
-            <div style={{ position:'relative', flexShrink: 0 }}>
-              <svg viewBox="0 0 160 90" width="200" height="112">
-                <path d={arcPath} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="10" strokeLinecap="round"/>
-                <path d={arcPath} fill="none" stroke={levelColor} strokeWidth="10" strokeLinecap="round"
-                  strokeDasharray={total} strokeDashoffset={offset}
-                  style={{ transition:'stroke-dashoffset 2s cubic-bezier(.4,0,.2,1), stroke .3s' }}/>
-              </svg>
-              <div style={s.gaugeCenterText}>
-                <span style={{ ...s.gaugePct, color: levelColor }}>{pct}%</span>
-                <span style={{ ...s.gaugeLevel, color: levelColor }}>{level}</span>
+        {/* App Demo Section */}
+        <div style={{ marginTop:64, display:'flex', flexDirection:'column', alignItems:'center', gap:32, width:'100%' }}>
+          <div style={{ fontSize:11, fontWeight:600, color:'#3b82f6', textTransform:'uppercase', letterSpacing:'.08em', textAlign:'center' }}>
+            🎬 See It In Action
+          </div>
+
+          {/* YouTube Short embed */}
+          <div style={{ width:'100%', maxWidth:360, position:'relative' }}>
+            <div style={{ background:'rgba(59,130,246,0.08)', border:'1.5px solid rgba(59,130,246,0.25)', borderRadius:20, overflow:'hidden', aspectRatio:'9/16', position:'relative' }}>
+              <iframe
+                src="https://www.youtube.com/embed/XbD6xFTPC5Y?rel=0&modestbranding=1&playsinline=1"
+                title="Readwise by Skai — TESDA NC II Reviewer Demo"
+                style={{ width:'100%', height:'100%', border:'none', display:'block' }}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+            <div style={{ textAlign:'center', marginTop:10, fontSize:12, color:'var(--text-muted)' }}>
+              Watch the full reviewer in action ↑
+            </div>
+          </div>
+
+          {/* Feature highlights below video */}
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(140px, 1fr))', gap:12, width:'100%', maxWidth:560 }}>
+            {[
+              { icon:'📖', label:'Full HTML Reviewer' },
+              { icon:'🎬', label:'Video Lessons' },
+              { icon:'🖼', label:'Infographics' },
+              { icon:'🌐', label:'EN & Filipino' },
+              { icon:'🖨', label:'Print Offline' },
+              { icon:'🔄', label:'Always Updated' },
+            ].map(({ icon, label }) => (
+              <div key={label} style={{ background:'var(--bg-surface)', border:'1px solid rgba(59,130,246,0.15)', borderRadius:12, padding:'14px 10px', textAlign:'center' }}>
+                <div style={{ fontSize:22, marginBottom:6 }}>{icon}</div>
+                <div style={{ fontSize:11, fontWeight:600, color:'var(--text-secondary)', lineHeight:1.4 }}>{label}</div>
               </div>
-            </div>
-            <div style={s.gaugeStats}>
-              {STAT_KEYS.map((k,i) => (
-                <div key={k} style={s.gaugeStatRow}>
-                  <div style={s.gaugeStatLabel}>{STAT_LABELS[i]}</div>
-                  <div style={s.gaugeStatBar}>
-                    <div style={{ ...s.gaugeStatFill, width:`${bars[k]}%`, background: STAT_COLORS[i], transition:'width 0.8s ease' }}/>
-                  </div>
-                  <div style={s.gaugeStatVal}>{bars[k]}%</div>
-                </div>
-              ))}
-            </div>
+            ))}
           </div>
         </div>
       </section>
