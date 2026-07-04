@@ -111,32 +111,60 @@ const INJECTED_PROTECTION = `
 
 const INJECTED_CSS = `
 <style id="rbs-responsive-fix">
-  *, *::before, *::after { box-sizing: border-box; }
-  html, body { overflow-x: hidden; max-width: 100%; }
-  img, video, audio, iframe, embed, object {
-    max-width: 100%; height: auto; display: block;
+  *, *::before, *::after { box-sizing: border-box !important; }
+  html, body {
+    overflow-x: hidden !important;
+    max-width: 100% !important;
+    width: 100% !important;
   }
+  /* Force all containers to never exceed viewport width */
+  body > *, div, section, article, main, header, footer, aside, nav {
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+  img, video, audio, iframe, embed, object {
+    max-width: 100% !important;
+    height: auto !important;
+    display: block !important;
+  }
+  /* Tables: always scrollable horizontally */
   table {
-    display: block;
-    width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    border-collapse: collapse;
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    border-collapse: collapse !important;
   }
   td, th {
-    white-space: normal;
-    min-width: 72px;
-    word-break: break-word;
+    white-space: normal !important;
+    min-width: 60px !important;
+    max-width: 300px !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+  }
+  /* Override any hardcoded fixed widths on common containers */
+  [style*="width"] {
+    max-width: 100% !important;
   }
   pre, code {
-    white-space: pre-wrap;
-    word-break: break-word;
-    overflow-x: auto;
+    white-space: pre-wrap !important;
+    word-break: break-word !important;
+    overflow-x: auto !important;
+    max-width: 100% !important;
+  }
+  /* Landscape mobile adjustments */
+  @media (max-width: 768px) {
+    body { font-size: 14px !important; }
+    h1   { font-size: 1.5em !important; }
+    h2   { font-size: 1.3em !important; }
+    h3   { font-size: 1.1em !important; }
+    td, th { font-size: 13px !important; }
   }
   @media (orientation: landscape) and (max-width: 900px) {
-    body { font-size: 13px; }
-    h1   { font-size: 1.4em; }
-    h2   { font-size: 1.2em; }
+    body { font-size: 13px !important; }
+    h1   { font-size: 1.3em !important; }
+    h2   { font-size: 1.1em !important; }
   }
 </style>`
 
