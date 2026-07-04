@@ -189,6 +189,13 @@ const INJECTED_CSS = `
     h1   { font-size: 1.3em !important; }
     h2   { font-size: 1.1em !important; }
   }
+  /* Keep photo grids in 2 columns on mobile */
+  @media (max-width: 640px) {
+    .photo-grid-2 { grid-template-columns: 1fr 1fr !important; }
+    .photo-grid-2 img { max-height: 160px !important; }
+    .photo-grid-3 { grid-template-columns: 1fr 1fr !important; }
+    .photo-grid-3 img { max-height: 130px !important; }
+  }
 </style>`
 
 function injectResponsiveFix(html) {
