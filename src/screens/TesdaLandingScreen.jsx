@@ -535,6 +535,83 @@ export default function TesdaLandingScreen({ onGetAccess, onTryFree, onSignIn })
         </div>
       </section>
 
+      {/* COMMUNITY SECTION */}
+      <section style={{ ...s.section, background:'#141414' }}>
+        <div style={s.container}>
+          <div style={{ textAlign:'center', marginBottom:32 }}>
+            <div style={{ ...s.sectionEyebrow, color:'#3b82f6' }}>🤝 Sumali sa Aming Komunidad</div>
+            <h2 style={s.sectionTitle}>Libre. Para sa Lahat. Araw-araw.</h2>
+            <p style={s.sectionSub}>Hindi ka mag-aaral nang mag-isa. Sumali sa aming Facebook community — libre, aktibo, at puno ng kapwa TESDA examinees.</p>
+          </div>
+
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(280px, 1fr))', gap:20 }}>
+
+            {/* Facebook Group */}
+            <div style={{ background:'rgba(59,130,246,0.06)', border:'1.5px solid rgba(59,130,246,0.25)', borderRadius:16, padding:'24px 22px', display:'flex', flexDirection:'column', gap:14 }}>
+              <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                <span style={{ fontSize:28 }}>👥</span>
+                <div>
+                  <div style={{ fontSize:15, fontWeight:800, color:'var(--text-primary)' }}>TESDA NC II Reviewer</div>
+                  <div style={{ fontSize:11, color:'#3b82f6', fontWeight:600, textTransform:'uppercase', letterSpacing:'.06em' }}>Facebook Group · Public</div>
+                </div>
+              </div>
+              <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                {[
+                  '📖 Daily free review tips at practice questions',
+                  '🎬 Video reviewer links araw-araw',
+                  '💬 I-request ang topic — gagawin namin',
+                  '🤝 Community ng kapwa TESDA examinees',
+                  '📢 Updates sa bagong qualifications at content',
+                ].map(b => (
+                  <div key={b} style={{ fontSize:13, color:'var(--text-secondary)', display:'flex', alignItems:'flex-start', gap:8, lineHeight:1.5 }}>
+                    {b}
+                  </div>
+                ))}
+              </div>
+              <a
+                href="https://web.facebook.com/groups/2224041571469837/"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, background:'#1877F2', color:'white', borderRadius:10, padding:'12px 20px', fontWeight:800, fontSize:14, textDecoration:'none', marginTop:4 }}>
+                👥 Sumali sa Group — Libre →
+              </a>
+            </div>
+
+            {/* Facebook Page */}
+            <div style={{ background:'rgba(59,130,246,0.06)', border:'1.5px solid rgba(59,130,246,0.25)', borderRadius:16, padding:'24px 22px', display:'flex', flexDirection:'column', gap:14 }}>
+              <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                <span style={{ fontSize:28 }}>📘</span>
+                <div>
+                  <div style={{ fontSize:15, fontWeight:800, color:'var(--text-primary)' }}>Readwise by Skai</div>
+                  <div style={{ fontSize:11, color:'#3b82f6', fontWeight:600, textTransform:'uppercase', letterSpacing:'.06em' }}>Facebook Page · Official</div>
+                </div>
+              </div>
+              <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                {[
+                  '🖼 Infographics at study tips tuwing umaga',
+                  '🎬 Video lectures at promos sa gabi',
+                  '📢 Official announcements at bagong features',
+                  '🏅 Qualification spotlights at career tips',
+                  '🔔 I-follow para hindi ka mapalampas ng updates',
+                ].map(b => (
+                  <div key={b} style={{ fontSize:13, color:'var(--text-secondary)', display:'flex', alignItems:'flex-start', gap:8, lineHeight:1.5 }}>
+                    {b}
+                  </div>
+                ))}
+              </div>
+              <a
+                href="https://web.facebook.com/readwisebyskai/"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, background:'#1877F2', color:'white', borderRadius:10, padding:'12px 20px', fontWeight:800, fontSize:14, textDecoration:'none', marginTop:4 }}>
+                📘 I-follow ang Page →
+              </a>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
       {/* FAQ SECTION */}
       <section id="faq" style={s.section}>
         <div style={s.container}>
