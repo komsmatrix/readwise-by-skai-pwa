@@ -309,7 +309,7 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
           <div style={s.coursesGrid}>
             {[
               { code:'LET',          full:'Licensure Examination for Teachers',    live:true,  price:249, regular:399, stats:['14 topics covered','1,554+ questions','23 structured lessons','Full mock board exam'] },
-              { code:'TESDA',        full:'NC Qualifications Bundle',              live:true,  price:99,  regular:199, stats:['10+ NC II qualifications','Full HTML reviewers','Video + infographics','Lifetime access to all NCs'] },
+              { code:'TESDA',        full:'NC Qualifications Bundle',              live:true,  price:99,  regular:199, stats:['16 NC II qualifications available','Full HTML reviewers','Video + infographics','Lifetime access to all NCs'] },
               { code:'NLE',          full:'Nursing Licensure Examination',         live:false, stats:['9 subject areas','Content in preparation'] },
               { code:'NAPOLCOM',     full:'NAPOLCOM Examination',                  live:false, stats:['Police Officer I & Promotion','Content in preparation'] },
               { code:'Civil Service',full:'Civil Service Examination',             live:false, stats:['Professional & Sub-professional','Content in preparation'] },
@@ -408,17 +408,14 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
               <div style={s.priceDivider}/>
               <div style={s.priceFeatures}>
                 {[
-                  '✅ Cookery NC II',
-                  '✅ Caregiving NC II',
-                  '✅ Housekeeping NC II',
-                  '✅ Beauty Care NC II',
-                  '✅ Shielded Metal Arc Welding NC II',
-                  '✅ Food and Beverage Services NC II',
-                  '✅ Masonry NC II',
-                  '✅ Machining NC II',
-                  '✅ Warehousing NC II',
-                  '✅ Automotive Servicing NC II',
-                  '🔜 More qualifications added regularly',
+                  '✅ 16 NC II qualifications available now',
+                  '✅ Cookery, Caregiving, Housekeeping',
+                  '✅ Beauty Care, Hairdressing, Driving',
+                  '✅ Welding, Machining, Automotive',
+                  '✅ Food & Beverage, Barista, Masonry',
+                  '✅ Bread & Pastry, Computer Systems',
+                  '✅ Domestic Work, Warehousing',
+                  '🔜 More qualifications added regularly,
                   '📖 Full HTML reviewer per qualification',
                   '🎬 Video lessons embedded in the app',
                   '🌐 English and Filipino toggle',
@@ -527,14 +524,14 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
             <div style={{ fontSize:13, fontWeight:700, color:'#3b82f6', marginBottom:12 }}>🎯 Who is this for?</div>
             <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(180px, 1fr))', gap:8 }}>
               {[
-                'Cookery NC II candidates',
-                'Housekeeping NC II candidates',
-                'Beauty Care NC II candidates',
-                'Welding NC II candidates',
-                'Food & Beverage NC II candidates',
-                'Masonry NC II candidates',
+                'Cookery, Caregiving, Housekeeping candidates',
+                'Beauty Care, Hairdressing candidates',
+                'Welding, Machining, Automotive candidates',
+                'Food & Beverage, Barista candidates',
+                'Driving, Domestic Work candidates',
+                'Bread & Pastry, Computer Systems candidates',
                 'OFW applicants needing TESDA cert',
-                'Anyone preparing for NC II assessment',
+                'Anyone preparing for any NC II assessment',
               ].map(w => (
                 <div key={w} style={{ fontSize:12, color:'var(--text-secondary)', display:'flex', alignItems:'center', gap:6 }}>
                   <span style={{ color:'#3b82f6', fontWeight:700 }}>→</span> {w}
@@ -565,7 +562,7 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
               { q:'Pwede ba ito gamitin sa phone?', a:'Oo — Readwise by Skai ay mobile-first. Dinisenyo ito para sa mga nagaaral sa kanilang phone, kahit nasa commute, break time, o gabi bago matulog.' },
               { q:'Kailangan ba ng internet?', a:'Kailangan ng internet para buksan ang app at i-load ang reviewers. Pero pwede mong i-print ang HTML reviewer para mag-aral offline.' },
               { q:'Isang beses lang babayaran?', a:'Oo. Isang beses lang — walang monthly fee, walang subscription. Bayad mo ngayon, lifetime na access mo.' },
-              { q:'Kasama ba lahat ng NC II qualifications?', a:'Ang kasalukuyang available: Cookery, Housekeeping, Beauty Care, Shielded Metal Arc Welding, Food and Beverage Services, at Masonry. Patuloy kaming nag-a-upload ng bagong qualifications. Lahat ng darating — kasama na sa iyong ₱99.' },
+              { q:'Kasama ba lahat ng NC II qualifications?', a:'Kasalukuyang may 16 NC II qualifications available — Cookery, Caregiving, Housekeeping, Beauty Care, Hairdressing, Driving, Welding, Machining, Automotive, Food & Beverage, Barista, Masonry, Bread & Pastry, Computer Systems, Domestic Work, at Warehousing. Patuloy kaming nag-a-upload ng bagong qualifications. Lahat ng darating — kasama na sa iyong ₱99.' },
               { q:'Paano kung hindi pa available ang qualification ko?', a:'Mag-follow sa aming Facebook at YouTube para sa updates. Regular kaming naglalabas ng bagong qualifications. Ang iyong access ay valid habambuhay — kasama lahat ng magiging available.' },
               { q:'Paano ako makakapag-access pagkatapos bumili?', a:'Pagkabayad mo sa PayMongo, matatanggap mo ang confirmation sa email mo. Buksan ang readwisebyskai.com, i-enter ang iyong email, at mag-aral na agad.' },
               { q:'May Filipino version ba?', a:'Oo — ang bawat reviewer ay may English at Filipino toggle. I-tap lang ang FIL button para lumipat sa Filipino version.' },

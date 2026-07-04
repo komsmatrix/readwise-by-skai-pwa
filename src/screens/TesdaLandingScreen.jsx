@@ -225,9 +225,11 @@ export default function TesdaLandingScreen({ onGetAccess, onTryFree, onSignIn })
         </div>
         <div style={s.examBadges}>
           {[
-            'Cookery NC II','Caregiving NC II','Housekeeping NC II','Beauty Care NC II',
-            'Shielded Metal Arc Welding NC II','Food & Beverage NC II','Masonry NC II',
-            'Machining NC II','Warehousing NC II','Automotive Servicing NC II',
+            'Automotive Servicing NC II','Barista NC II','Beauty Care NC II',
+            'Bread & Pastry Production NC II','Caregiving NC II','Computer Systems Servicing NC II',
+            'Cookery NC II','Domestic Work NC II','Driving NC II','Food and Beverage Services NC II',
+            'Hairdressing NC II','Housekeeping NC II','Machining NC II','Masonry NC II',
+            'Shielded Metal Arc Welding NC II','Warehousing NC II',
           ].map((e) => (
             <span key={e} style={{ ...s.examBadge, background:'rgba(59,130,246,0.08)', color:'#3b82f6', border:'1px solid rgba(59,130,246,0.25)' }}>{e}</span>
           ))}
@@ -318,20 +320,26 @@ export default function TesdaLandingScreen({ onGetAccess, onTryFree, onSignIn })
       <section id="available" style={{ ...s.section, background:'#141414' }}>
         <div style={s.container}>
           <div style={{ ...s.sectionEyebrow, color:'#3b82f6' }}>Available Now</div>
-          <h2 style={s.sectionTitle}>{tesdaQuals.length || '10'} Qualifications Ready Today</h2>
+          <h2 style={s.sectionTitle}>{tesdaQuals.length || '16'} Qualifications Ready Today</h2>
           <p style={s.sectionSub}>Patuloy kaming nag-a-upload ng bagong qualifications. Lahat ng darating — kasama na sa iyong ₱99.</p>
           <div style={s.coursesGrid}>
             {(tesdaQuals.length > 0 ? tesdaQuals : [
-              { name:'Cookery NC II',                    emoji:'🍳' },
-              { name:'Caregiving NC II',                 emoji:'🤝' },
-              { name:'Housekeeping NC II',               emoji:'🏨' },
-              { name:'Beauty Care NC II',                emoji:'💅' },
-              { name:'Shielded Metal Arc Welding NC II', emoji:'🔧' },
+              { name:'Automotive Servicing NC II', emoji:'🚘' },
+              { name:'Barista NC II', emoji:'☕' },
+              { name:'Beauty Care NC II', emoji:'💅' },
+              { name:'Bread & Pastry Production NC II', emoji:'🍞' },
+              { name:'Caregiving NC II', emoji:'🤝' },
+              { name:'Computer Systems Servicing NC II', emoji:'💻' },
+              { name:'Cookery NC II', emoji:'🍳' },
+              { name:'Domestic Work NC II', emoji:'🏠' },
+              { name:'Driving NC II', emoji:'🚗' },
               { name:'Food and Beverage Services NC II', emoji:'🍽️' },
-              { name:'Masonry NC II',                    emoji:'🧱' },
-              { name:'Machining NC II',                  emoji:'⚙️' },
-              { name:'Warehousing NC II',                emoji:'🏭' },
-              { name:'Automotive Servicing NC II',       emoji:'🚘' },
+              { name:'Hairdressing NC II', emoji:'💇' },
+              { name:'Housekeeping NC II', emoji:'🏨' },
+              { name:'Machining NC II', emoji:'⚙️' },
+              { name:'Masonry NC II', emoji:'🧱' },
+              { name:'Shielded Metal Arc Welding NC II', emoji:'🔧' },
+              { name:'Warehousing NC II', emoji:'🏭' },
             ]).map((q,i) => (
               <div key={i} style={{ ...s.courseCard, ...s.courseCardLive, borderColor:'rgba(59,130,246,0.3)' }}>
                 <div style={s.courseHeader}>
@@ -373,17 +381,23 @@ export default function TesdaLandingScreen({ onGetAccess, onTryFree, onSignIn })
               <div style={s.priceDivider}/>
               <div style={s.priceFeatures}>
                 {[
-                  '✅ Cookery NC II',
-                  '✅ Caregiving NC II',
-                  '✅ Housekeeping NC II',
-                  '✅ Beauty Care NC II',
-                  '✅ Shielded Metal Arc Welding NC II',
-                  '✅ Food and Beverage Services NC II',
-                  '✅ Masonry NC II',
-                  '✅ Machining NC II',
-                  '✅ Warehousing NC II',
                   '✅ Automotive Servicing NC II',
-                  '🔜 More qualifications added regularly',
+                  '✅ Barista NC II',
+                  '✅ Beauty Care NC II',
+                  '✅ Bread & Pastry Production NC II',
+                  '✅ Caregiving NC II',
+                  '✅ Computer Systems Servicing NC II',
+                  '✅ Cookery NC II',
+                  '✅ Domestic Work NC II',
+                  '✅ Driving NC II',
+                  '✅ Food and Beverage Services NC II',
+                  '✅ Hairdressing NC II',
+                  '✅ Housekeeping NC II',
+                  '✅ Machining NC II',
+                  '✅ Masonry NC II',
+                  '✅ Shielded Metal Arc Welding NC II',
+                  '✅ Warehousing NC II',
+                  '🔜 More qualifications being added,
                   '📖 Full HTML reviewer per qualification',
                   '🎬 Video lessons embedded in the app',
                   '🌐 English and Filipino toggle',
@@ -485,14 +499,14 @@ export default function TesdaLandingScreen({ onGetAccess, onTryFree, onSignIn })
             <div style={{ fontSize:13, fontWeight:700, color:'#3b82f6', marginBottom:12 }}>🎯 Who is this for?</div>
             <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(180px, 1fr))', gap:8 }}>
               {[
-                'Cookery NC II candidates',
-                'Housekeeping NC II candidates',
-                'Beauty Care NC II candidates',
-                'Welding NC II candidates',
-                'Food & Beverage NC II candidates',
-                'Masonry NC II candidates',
+                'Cookery, Caregiving, Housekeeping candidates',
+                'Beauty Care, Hairdressing candidates',
+                'Welding, Machining, Automotive candidates',
+                'Food & Beverage, Barista candidates',
+                'Driving, Domestic Work candidates',
+                'Bread & Pastry, Computer Systems candidates',
                 'OFW applicants needing TESDA cert',
-                'Anyone preparing for NC II assessment',
+                'Anyone preparing for any NC II assessment',
               ].map(w => (
                 <div key={w} style={{ fontSize:12, color:'var(--text-secondary)', display:'flex', alignItems:'center', gap:6 }}>
                   <span style={{ color:'#3b82f6', fontWeight:700 }}>→</span> {w}
