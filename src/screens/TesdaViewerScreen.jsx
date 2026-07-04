@@ -88,6 +88,28 @@ function MediaCard({ url, label, index }) {
 
 const INJECTED_PROTECTION = `
 <script>
+  // Auto-fit images to their containers after load
+  window.addEventListener('load', function() {
+    var imgs = document.querySelectorAll('img');
+    imgs.forEach(function(img) {
+      var parent = img.parentElement;
+      if (!parent) return;
+      // If image is wider than its container, constrain it
+      if (img.naturalWidth > parent.offsetWidth) {
+        img.style.maxWidth = '100%';
+        img.style.height = 'auto';
+        img.style.width = 'auto';
+      }
+      // Remove hardcoded width/height attributes that break layout
+      if (img.hasAttribute('width') && parseInt(img.getAttribute('width')) > parent.offsetWidth) {
+        img.removeAttribute('width');
+        img.removeAttribute('height');
+        img.style.maxWidth = '100%';
+        img.style.height = 'auto';
+      }
+    });
+  });
+
   // Disable right-click
   document.addEventListener('contextmenu', function(e) { e.preventDefault(); return false; });
   // Disable common copy shortcuts
@@ -122,15 +144,12 @@ const INJECTED_CSS = `
     max-width: 100% !important;
     min-width: 0 !important;
   }
-  img, video, audio, embed, object {
+  img {
     max-width: 100% !important;
     height: auto !important;
+    box-sizing: border-box !important;
   }
-  /* Fix images with hardcoded width attributes breaking layout */
-  img[width] {
-    width: auto !important;
-    max-width: 100% !important;
-  }
+  /* Inject a JS fix after load to constrain overflowing images */
   /* Tables: always scrollable horizontally */
   table {
     display: block !important;
