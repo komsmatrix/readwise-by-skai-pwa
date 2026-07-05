@@ -179,6 +179,15 @@ const INJECTED_CSS = `
     height: auto !important;
     box-sizing: border-box !important;
   }
+  /* Preserve intentional fixed-height photo frames (real-photo containers
+     that set an explicit height + object-fit in the reviewer's own CSS).
+     Must come AFTER the generic img rule above to win the cascade. */
+  .img-frame img,
+  .park-photo img {
+    height: 100% !important;
+    width: 100% !important;
+    object-fit: cover !important;
+  }
   /* Inject a JS fix after load to constrain overflowing images */
   /* Tables: always scrollable horizontally */
   table {
