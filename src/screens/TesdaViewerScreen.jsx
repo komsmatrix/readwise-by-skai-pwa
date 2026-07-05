@@ -87,7 +87,7 @@ function MediaCard({ url, label, index }) {
 }
 
 const INJECTED_PROTECTION = `
-<script>
+<script id="rbs-protection">
   // Force all scroll-reveal sections visible immediately (iframe viewport fix)
   // IntersectionObserver doesn't work reliably inside iframes on mobile
   document.addEventListener('DOMContentLoaded', function() {
@@ -113,11 +113,14 @@ const INJECTED_PROTECTION = `
   });
 
   // Auto-fit images to their containers after load
+  // Skip img-frame / park-photo — those containers intentionally control
+  // sizing via CSS (object-fit) and must not be touched by this script.
   window.addEventListener('load', function() {
     var imgs = document.querySelectorAll('img');
     imgs.forEach(function(img) {
       var parent = img.parentElement;
       if (!parent) return;
+      if (parent.classList.contains('img-frame') || parent.classList.contains('park-photo')) return;
       // If image is wider than its container, constrain it
       if (img.naturalWidth > parent.offsetWidth) {
         img.style.maxWidth = '100%';
@@ -145,7 +148,7 @@ const INJECTED_PROTECTION = `
   // Disable drag to select + drag image
   document.addEventListener('dragstart', function(e) { e.preventDefault(); });
 </script>
-<style>
+<style id="rbs-protection-style">
   body, * {
     -webkit-user-select: none !important;
     -moz-user-select: none !important;
@@ -315,15 +318,20 @@ const INJECTED_GRID_FIX = `
 
 function injectResponsiveFix(html) {
   if (!html) return html
-  if (html.includes('rbs-responsive-fix')) {
-    // Already injected head CSS — just append grid fix at end of body
-    if (html.includes('</body>')) {
-      return html.replace('</body>', INJECTED_GRID_FIX + '\n</body>')
-    }
-    return html + INJECTED_GRID_FIX
-  }
-  // Fresh injection — add both to head and grid fix to body end
+  // Always strip any previously-injected blocks first. This protects against
+  // stale baked-in copies — e.g. if html_content was ever saved after being
+  // rendered once (view-source re-upload, or any round-trip through an
+  // already-injected version), the DB content could permanently contain an
+  // old frozen copy of this CSS/JS with the same marker IDs. Trusting a
+  // substring check to skip re-injection would then lock the page into that
+  // stale version forever, regardless of future code fixes. Stripping by ID
+  // and always re-injecting the current constants makes this idempotent.
   let result = html
+    .replace(/<script id=["']rbs-protection["']>[\s\S]*?<\/script>/g, '')
+    .replace(/<style id=["']rbs-protection-style["']>[\s\S]*?<\/style>/g, '')
+    .replace(/<style id=["']rbs-responsive-fix["']>[\s\S]*?<\/style>/g, '')
+    .replace(/<style id=["']rbs-grid-fix["']>[\s\S]*?<\/style>/g, '')
+
   if (result.includes('</head>')) {
     result = result.replace('</head>', INJECTED_PROTECTION + '\n' + INJECTED_CSS + '\n</head>')
   } else {
