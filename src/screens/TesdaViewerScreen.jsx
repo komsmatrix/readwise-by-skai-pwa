@@ -206,14 +206,16 @@ const INJECTED_CSS = `
 
 const INJECTED_GRID_FIX = `
 <style id="rbs-grid-fix">
-  /* Override any media query that collapses 2-col grids on mobile */
+  /* Fix auto-fit grids with large minmax values that prevent 2 columns on mobile */
   @media (max-width: 700px) {
+    /* Common grid classes across all qualifications */
     .photo-grid-2,
     .two-col,
     .image-pair,
     .img-duo,
     .col-2,
-    .grid-2 {
+    .grid-2,
+    .photo-2col {
       display: grid !important;
       grid-template-columns: 1fr 1fr !important;
       gap: 8px !important;
@@ -221,7 +223,8 @@ const INJECTED_GRID_FIX = `
     .photo-grid-2 img,
     .two-col img,
     .image-pair img,
-    .img-duo img {
+    .img-duo img,
+    .photo-2col img {
       max-height: 160px !important;
       width: 100% !important;
       object-fit: cover !important;
@@ -238,6 +241,20 @@ const INJECTED_GRID_FIX = `
       max-height: 130px !important;
       width: 100% !important;
       object-fit: cover !important;
+    }
+    /* Beauty Care specific grid classes with large minmax values */
+    .checkgrid {
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) !important;
+    }
+    .formgrid,
+    .opgrid {
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important;
+    }
+    .finalgrid {
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) !important;
+    }
+    .photo-2col {
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) !important;
     }
   }
 </style>`
