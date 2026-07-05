@@ -186,7 +186,7 @@ const INJECTED_CSS = `
   .park-photo img {
     height: 100% !important;
     width: 100% !important;
-    object-fit: cover !important;
+    object-fit: contain !important;
   }
   /* Inject a JS fix after load to constrain overflowing images */
   /* Tables: always scrollable horizontally */
