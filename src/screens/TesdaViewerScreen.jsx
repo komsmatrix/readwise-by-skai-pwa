@@ -88,6 +88,30 @@ function MediaCard({ url, label, index }) {
 
 const INJECTED_PROTECTION = `
 <script>
+  // Force all scroll-reveal sections visible immediately (iframe viewport fix)
+  // IntersectionObserver doesn't work reliably inside iframes on mobile
+  document.addEventListener('DOMContentLoaded', function() {
+    // Add in-view to all sections immediately
+    document.querySelectorAll('section, [class*="reveal"], [class*="fade"], [class*="slide"]').forEach(function(el) {
+      el.classList.add('in-view', 'visible', 'show', 'active-reveal');
+      el.style.opacity = '1';
+      el.style.transform = 'none';
+      el.style.visibility = 'visible';
+    });
+    // Also force body to have js-anim class so CSS transitions work
+    document.body.classList.add('js-anim');
+  });
+
+  // Also run on load as backup
+  window.addEventListener('load', function() {
+    document.querySelectorAll('section, [class*="reveal"], [class*="fade"], [class*="slide"]').forEach(function(el) {
+      el.classList.add('in-view', 'visible', 'show', 'active-reveal');
+      el.style.opacity = '1';
+      el.style.transform = 'none';
+      el.style.visibility = 'visible';
+    });
+  });
+
   // Auto-fit images to their containers after load
   window.addEventListener('load', function() {
     var imgs = document.querySelectorAll('img');
@@ -195,6 +219,27 @@ const INJECTED_CSS = `
     h1   { font-size: 1.3em !important; }
     h2   { font-size: 1.1em !important; }
   }
+  /* Force scroll-reveal sections visible inside iframe on mobile */
+  section,
+  [class*="reveal"],
+  [class*="fade-in"],
+  [class*="slide-in"] {
+    opacity: 1 !important;
+    transform: none !important;
+    visibility: visible !important;
+    transition: none !important;
+  }
+  /* Specifically for js-anim pattern used in Barista and similar files */
+  .js-anim section {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  section:not(.in-view) {
+    opacity: 1 !important;
+    transform: none !important;
+    visibility: visible !important;
+  }
+
   /* Keep photo grids in 2 columns on mobile */
   @media (max-width: 640px) {
     .photo-grid-2 { grid-template-columns: 1fr 1fr !important; }
