@@ -139,10 +139,16 @@ const INJECTED_CSS = `
     max-width: 100% !important;
     width: 100% !important;
   }
-  /* Force all containers to never exceed viewport width */
-  body > *, div, section, article, main, header, footer, aside, nav {
+  /* Force ALL elements to never exceed viewport */
+  * {
     max-width: 100% !important;
     min-width: 0 !important;
+  }
+  /* But allow grids and flex to work normally */
+  div, section, article, main, header, footer, aside, nav, figure, picture {
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow-x: hidden !important;
   }
   img {
     max-width: 100% !important;
