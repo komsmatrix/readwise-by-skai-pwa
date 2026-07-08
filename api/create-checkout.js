@@ -10,9 +10,8 @@ const PAYMONGO_SECRET  = process.env.PAYMONGO_SECRET_KEY
 const APP_URL          = process.env.VITE_APP_URL || 'https://readwisebyskai.com'
 const REGULAR_PRICE       = 39900  // ₱399 in centavos
 const INTRO_PRICE         = 24900  // ₱249 in centavos
-const AGENT_DISCOUNT      = 2000   // ₱20 in centavos
+const AGENT_DISCOUNT      = 1000   // ₱10 in centavos — flat, all courses, agent-type codes only
 const CUSTOMER_DISCOUNT   = 1000   // ₱10 in centavos
-const AGENT_COMMISSION    = 5000   // ₱50 in centavos
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
@@ -35,19 +34,25 @@ export default async function handler(req, res) {
       const code       = referralCode.trim().toUpperCase()
       const emailClean = email.toLowerCase().trim()
 
-      // Check agent code first (₱20 discount)
+      // Check agent code first (agent = ₱10 discount to customer, agency = no discount)
       const { data: agent } = await supabase
-        .from('agents').select('id, name, email, is_active').eq('referral_code', code).single()
+        .from('agents').select('id, name, email, is_active, code_type').eq('referral_code', code).single()
 
       if (agent && agent.is_active) {
         // FRAUD PROTECTION: agent cannot use their own code
         if (agent.email && agent.email.toLowerCase().trim() === emailClean) {
           return res.status(400).json({ error: 'You cannot use your own referral code.' })
         }
-        agentId    = agent.id
-        const agentDisc = isTesda ? 1000 : AGENT_DISCOUNT  // ₱10 for TESDA, ₱20 for board
-        finalPrice  = BASE_PRICE - agentDisc
-        discountAmt = agentDisc
+        agentId = agent.id
+        if (agent.code_type === 'agency') {
+          // Agency QR code: commission only, no discount passed to the customer
+          finalPrice  = BASE_PRICE
+          discountAmt = 0
+        } else {
+          // Personal agent code: flat ₱10 discount, any course
+          finalPrice  = BASE_PRICE - AGENT_DISCOUNT
+          discountAmt = AGENT_DISCOUNT
+        }
       } else {
         // Check customer referral code (₱10 discount)
         const { data: referrer } = await supabase

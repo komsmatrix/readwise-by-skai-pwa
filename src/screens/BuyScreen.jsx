@@ -88,7 +88,7 @@ export default function BuyScreen() {
       if (data.valid) {
         setCodeStatus('valid')
         setAgentName(data.agentName || '')
-        setDiscountAmt(data.discount || REFERRAL_DISC)
+        setDiscountAmt(data.discount ?? REFERRAL_DISC)
       } else {
         setCodeStatus('invalid')
       }
@@ -273,13 +273,17 @@ export default function BuyScreen() {
           </div>
           <div style={s.field}>
             <label style={s.label}>
-              Referral code <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional · saves ₱{selectedCourse === 'TESDA' ? 10 : REFERRAL_DISC})</span>
+              Referral code <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span>
             </label>
-            <input style={s.input} type="text" placeholder="e.g. SKAI2025"
+            <input style={{ ...s.input, ...(initRef ? { opacity: 0.75, cursor: 'not-allowed' } : {}) }}
+              type="text" placeholder="e.g. SKAI2025"
               value={referralCode}
-              onChange={e => { setReferralCode(e.target.value.toUpperCase()); checkReferralCode(e.target.value) }} />
+              readOnly={!!initRef}
+              onChange={e => { if (initRef) return; setReferralCode(e.target.value.toUpperCase()); checkReferralCode(e.target.value) }} />
             {codeStatus === 'valid' && (
-              <div style={s.codeValid}>✓ ₱{discountAmt} off{agentName ? ` via ${agentName}` : ''}</div>
+              <div style={s.codeValid}>
+                {discountAmt > 0 ? `✓ ₱${discountAmt} off` : '✓ Code applied'}{agentName ? ` via ${agentName}` : ''}
+              </div>
             )}
             {codeStatus === 'invalid' && (
               <div style={s.codeInvalid}>Invalid code</div>

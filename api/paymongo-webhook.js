@@ -8,7 +8,7 @@ const supabase = createClient(
 
 const RESEND_API_KEY   = process.env.RESEND_API_KEY
 const APP_URL          = process.env.VITE_APP_URL || 'https://readwisebyskai.com'
-const AGENT_COMMISSION = 50
+const AGENT_COMMISSION = 20  // ₱20 flat commission — agent and agency codes, any course
 
 function generateKey() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
@@ -299,11 +299,10 @@ export default async function handler(req, res) {
       const { data: agent } = await supabase
         .from('agents').select('total_referrals, total_commission').eq('id', agentId).single()
       if (agent) {
-        // Commission: ₱20 for TESDA referrals, ₱50 for board exam referrals
-        const commission = course === 'TESDA' ? 20 : AGENT_COMMISSION
+        // Commission: flat ₱20 for every referral, agent or agency code, any course
         await supabase.from('agents').update({
           total_referrals : (agent.total_referrals  || 0) + 1,
-          total_commission: (agent.total_commission || 0) + commission,
+          total_commission: (agent.total_commission || 0) + AGENT_COMMISSION,
         }).eq('id', agentId)
       }
     }

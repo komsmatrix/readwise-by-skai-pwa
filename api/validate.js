@@ -53,7 +53,7 @@ async function validateReferral({ code, email, course }, res) {
 
   const { data, error } = await supabase
     .from('agents')
-    .select('id, name, referral_code, is_active')
+    .select('id, name, email, referral_code, is_active, code_type')
     .eq('referral_code', code.trim().toUpperCase())
     .single()
 
@@ -66,8 +66,8 @@ async function validateReferral({ code, email, course }, res) {
     return res.status(200).json({ valid: false, reason: 'own_code' })
   }
 
-  // Discount: ₱10 for TESDA, ₱20 for all board exam courses
-  const discount = course === 'TESDA' ? 10 : 20
+  // Discount: agent codes ₱10 flat, agency QR codes ₱0 (commission-only), any course
+  const discount = data.code_type === 'agency' ? 0 : 10
 
   return res.status(200).json({
     valid     : true,
