@@ -120,7 +120,7 @@ module.exports = async function handler(req, res) {
 }
 
 // ── WELCOME ───────────────────────────────────────────────────────────────────
-async function handleWelcome({ name, email, referral_code, gcash_number }, res) {
+async function handleWelcome({ name, email, referral_code, gcash_number, code_type, pin }, res) {
   if (!name || !email || !referral_code) {
     return res.status(400).json({ error: 'Missing required fields: name, email, referral_code' })
   }
@@ -130,7 +130,7 @@ async function handleWelcome({ name, email, referral_code, gcash_number }, res) 
     from   : 'Readwise by Skai <hello@readwisebyskai.com>',
     to     : email,
     subject: `Welcome to Readwise Agent Program — Your Code: ${referral_code}`,
-    html   : agentWelcomeHTML({ firstName, name, email, referral_code, gcash_number }),
+    html   : agentWelcomeHTML({ firstName, name, email, referral_code, gcash_number, code_type, pin }),
   })
   return res.status(200).json({ success: true })
 }
@@ -167,7 +167,7 @@ async function handleBlast({ subject, message, body, resource_url, resource_labe
   // Legacy: agent blast
   const { data: agents, error } = await supabase
     .from('agents')
-    .select('name, email, referral_code, total_referrals')
+    .select('name, email, referral_code, total_referrals, total_commission')
     .eq('is_active', true)
 
   if (error || !agents?.length) {
@@ -262,7 +262,18 @@ async function handleFeedback({ name, email, message, type: feedbackType }, res)
 // EMAIL TEMPLATES
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function agentWelcomeHTML({ firstName, name, email, referral_code, gcash_number }) {
+function agentWelcomeHTML({ firstName, name, email, referral_code, gcash_number, code_type, pin }) {
+  const isAgency = code_type === 'agency'
+  const codeLabel = isAgency ? 'Your Agency QR Code' : 'Your Referral Code'
+  const sellLET   = isAgency ? 'You earn: &#8369;20 · Student pays full price' : 'You earn: &#8369;20 · Student saves: &#8369;10'
+  const sellTESDA = isAgency ? 'You earn: &#8369;20 · Student pays full price' : 'You earn: &#8369;20 · Student saves: &#8369;10'
+  const sampleTesdaMsg = isAgency
+    ? `"Kumukuha ka ba ng TESDA NC II? May reviewer na pala — Readwise by Skai. &#8369;99 lang, lifetime access, kasama Cookery, Caregiving, Housekeeping at marami pa. I-scan lang ang QR code namin: readwisebyskai.com/buy?course=TESDA&amp;ref=${referral_code}"`
+    : `"Kumukuha ka ba ng TESDA NC II? May reviewer na pala — Readwise by Skai. &#8369;99 lang, lifetime access, kasama Cookery, Caregiving, Housekeeping at marami pa. Gamitin ang code ko para may discount: readwisebyskai.com/buy?course=TESDA&amp;ref=${referral_code}"`
+  const sampleLetMsg = isAgency
+    ? `"Mag-eexam sa LET? Subukan mo ang Readwise by Skai — &#8369;249 lang, 1,748+ questions, lifetime access, may Readiness Score pa. I-scan ang QR code namin: readwisebyskai.com/buy?ref=${referral_code}"`
+    : `"Mag-eexam sa LET? Subukan mo ang Readwise by Skai — &#8369;249 lang, 1,748+ questions, lifetime access, may Readiness Score pa. Gamitin ang code ko: readwisebyskai.com/buy?ref=${referral_code}"`
+
   return `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/></head>
@@ -287,21 +298,23 @@ function agentWelcomeHTML({ firstName, name, email, referral_code, gcash_number 
     <p style="font-size:14px;color:#9a9690;line-height:1.7;margin:0 0 24px;">Ikaw na ay opisyal na Readwise Agent. Kumita habang tinutulungan ang mga estudyante na makapasa.</p>
 
     <!-- Referral Code Box -->
-    <div style="background:#0d0d0d;border:2px solid #c9a96e;border-radius:14px;padding:24px;text-align:center;margin-bottom:20px;">
-      <div style="font-size:11px;color:#c9a96e;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px;font-weight:700;">Your Referral Code</div>
+    <div style="background:#0d0d0d;border:2px solid #c9a96e;border-radius:14px;padding:24px;text-align:center;margin-bottom:16px;">
+      <div style="font-size:11px;color:#c9a96e;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px;font-weight:700;">${codeLabel}</div>
       <div style="font-family:monospace;font-size:36px;font-weight:900;color:#c9a96e;letter-spacing:0.15em;">${referral_code}</div>
       <div style="font-size:12px;color:#6b6560;margin-top:8px;">readwisebyskai.com/buy?ref=${referral_code}</div>
     </div>
 
+    ${pin ? `<div style="background:#0d0d0d;border:1px solid rgba(201,169,110,0.3);border-radius:14px;padding:18px;text-align:center;margin-bottom:20px;">
+      <div style="font-size:11px;color:#c9a96e;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px;font-weight:700;">Your Portal PIN</div>
+      <div style="font-family:monospace;font-size:26px;font-weight:900;color:#fff;letter-spacing:0.2em;">${pin}</div>
+      <div style="font-size:11px;color:#6b6560;margin-top:8px;">Log in with your code + this PIN at readwisebyskai.com/agent to check your earnings anytime.</div>
+    </div>` : ''}
+
     <!-- Earnings Grid -->
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:24px;">
-      <div style="background:#0d0d0d;border:1px solid rgba(201,169,110,0.25);border-radius:12px;padding:16px;text-align:center;">
-        <div style="font-size:26px;font-weight:900;color:#c9a96e;">&#8369;50</div>
-        <div style="font-size:10px;color:#6b6560;text-transform:uppercase;letter-spacing:.05em;margin-top:4px;">LET Commission</div>
-      </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px;">
       <div style="background:#0d0d0d;border:1px solid rgba(201,169,110,0.25);border-radius:12px;padding:16px;text-align:center;">
         <div style="font-size:26px;font-weight:900;color:#c9a96e;">&#8369;20</div>
-        <div style="font-size:10px;color:#6b6560;text-transform:uppercase;letter-spacing:.05em;margin-top:4px;">TESDA Commission</div>
+        <div style="font-size:10px;color:#6b6560;text-transform:uppercase;letter-spacing:.05em;margin-top:4px;">Per Referral · Any Course</div>
       </div>
       <div style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:16px;text-align:center;">
         <div style="font-size:16px;font-weight:800;color:#fff;line-height:1.3;">Every<br/>Friday</div>
@@ -316,13 +329,13 @@ function agentWelcomeHTML({ firstName, name, email, referral_code, gcash_number 
         <div style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:14px;">
           <div style="font-size:14px;font-weight:800;color:#f0ede6;margin-bottom:4px;">&#127891; LET Bundle</div>
           <div style="font-size:20px;font-weight:900;color:#c9a96e;margin-bottom:6px;">&#8369;249</div>
-          <div style="font-size:11px;color:#10B981;font-weight:600;margin-bottom:4px;">You earn: &#8369;50 · Student saves: &#8369;20</div>
+          <div style="font-size:11px;color:#10B981;font-weight:600;margin-bottom:4px;">${sellLET}</div>
           <div style="font-size:11px;color:#6b6560;line-height:1.5;">1,748+ questions · 14 topics · Spaced repetition · Lifetime access</div>
         </div>
         <div style="background:#0d0d0d;border:1px solid rgba(59,130,246,0.2);border-radius:12px;padding:14px;">
           <div style="font-size:14px;font-weight:800;color:#f0ede6;margin-bottom:4px;">&#127941; TESDA Bundle</div>
           <div style="font-size:20px;font-weight:900;color:#3b82f6;margin-bottom:6px;">&#8369;99</div>
-          <div style="font-size:11px;color:#10B981;font-weight:600;margin-bottom:4px;">You earn: &#8369;20 · Student saves: &#8369;10</div>
+          <div style="font-size:11px;color:#10B981;font-weight:600;margin-bottom:4px;">${sellTESDA}</div>
           <div style="font-size:11px;color:#6b6560;line-height:1.5;">30 NC II qualifications · HTML reviewers · Videos · EN &amp; FIL · Lifetime access</div>
         </div>
       </div>
@@ -351,14 +364,14 @@ function agentWelcomeHTML({ firstName, name, email, referral_code, gcash_number 
     <div style="background:rgba(201,169,110,0.05);border:1px solid rgba(201,169,110,0.15);border-radius:12px;padding:16px 18px;margin-bottom:20px;">
       <div style="font-size:11px;font-weight:700;color:#c9a96e;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;">Sample Message (TESDA)</div>
       <div style="font-size:13px;color:#d1cdc7;line-height:1.7;font-style:italic;">
-        "Kumukuha ka ba ng TESDA NC II? May reviewer na pala — Readwise by Skai. &#8369;99 lang, lifetime access, kasama Cookery, Caregiving, Housekeeping at marami pa. Gamitin ang code ko para may discount: readwisebyskai.com/buy?ref=${referral_code}"
+        ${sampleTesdaMsg}
       </div>
     </div>
 
     <div style="background:rgba(201,169,110,0.05);border:1px solid rgba(201,169,110,0.15);border-radius:12px;padding:16px 18px;margin-bottom:24px;">
       <div style="font-size:11px;font-weight:700;color:#c9a96e;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;">Sample Message (LET)</div>
       <div style="font-size:13px;color:#d1cdc7;line-height:1.7;font-style:italic;">
-        "Mag-eexam sa LET? Subukan mo ang Readwise by Skai — &#8369;249 lang, 1,748+ questions, lifetime access, may Readiness Score pa. Gamitin ang code ko: readwisebyskai.com/buy?ref=${referral_code}"
+        ${sampleLetMsg}
       </div>
     </div>
 
@@ -442,7 +455,7 @@ function blastHTML({ firstName, agent, message, resource_url, resource_label }) 
       <div style="font-size:10px;color:#c9a96e;text-transform:uppercase;letter-spacing:0.07em;font-weight:700;margin-bottom:8px;">Your Stats</div>
       <div style="display:flex;gap:16px;">
         <div><div style="font-size:20px;font-weight:800;color:#c9a96e;">${agent.total_referrals}</div><div style="font-size:10px;color:#666;">Total Referrals</div></div>
-        <div><div style="font-size:20px;font-weight:800;color:#10B981;">₱${agent.total_referrals * 50}</div><div style="font-size:10px;color:#666;">Total Earned</div></div>
+        <div><div style="font-size:20px;font-weight:800;color:#10B981;">₱${agent.total_commission || 0}</div><div style="font-size:10px;color:#666;">Total Earned</div></div>
         <div><div style="font-size:14px;font-weight:700;color:#fff;font-family:monospace;">${agent.referral_code}</div><div style="font-size:10px;color:#666;">Your Code</div></div>
       </div>
     </div>

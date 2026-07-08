@@ -1544,10 +1544,10 @@ function AgentsTab() {
     if (!blast.subject.trim() || !blast.message.trim()) return
     setBlasting(true)
     setBlastMsg("")
-    const res = await fetch("/api/send-agent-blast", {
+    const res = await fetch("/api/send-email", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(blast),
+      body: JSON.stringify({ type: 'blast', ...blast }),
     })
     const data = await res.json()
     if (data.success) {
@@ -1583,10 +1583,11 @@ function AgentsTab() {
 
     if (!error && data) {
       // Send welcome email
-      await fetch('/api/send-agent-welcome', {
+      await fetch('/api/send-email', {
         method:'POST',
         headers:{'Content-Type':'application/json'},
         body: JSON.stringify({
+          type: 'welcome',
           name: form.name,
           email: form.email,
           referral_code: code,
