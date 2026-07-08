@@ -478,7 +478,7 @@ function payoutHTML({ firstName, amount, referral_count, gcash_ref, screenshot_u
     ? `${new Date(period_start).toLocaleDateString('en-PH', { month:'long', day:'numeric' })} – ${new Date(period_end).toLocaleDateString('en-PH', { month:'long', day:'numeric', year:'numeric' })}`
     : 'This week'
   const nextTarget   = referral_count + 5
-  const nextEarnings = nextTarget * 50
+  const nextEarnings = nextTarget * 20
   const studentRows  = students.length > 0
     ? students.map(s => `<tr><td style="padding:8px 12px;font-size:13px;color:#ccc;border-bottom:1px solid #2a2a2a;">${s.name}</td><td style="padding:8px 12px;font-size:12px;color:#666;border-bottom:1px solid #2a2a2a;text-align:right;">${new Date(s.created_at).toLocaleDateString('en-PH', { month:'short', day:'numeric', year:'numeric' })}</td></tr>`).join('')
     : `<tr><td colspan="2" style="padding:12px;font-size:12px;color:#666;text-align:center;">Student details not available.</td></tr>`
@@ -504,12 +504,12 @@ function payoutHTML({ firstName, amount, referral_count, gcash_ref, screenshot_u
     <div style="background:#0d0d0d;border:2px solid #10B981;border-radius:12px;padding:20px;text-align:center;margin-bottom:20px;">
       <div style="font-size:11px;color:#10B981;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">Amount Sent via GCash</div>
       <div style="font-size:48px;font-weight:800;color:#10B981;line-height:1;">₱${amount}</div>
-      <div style="font-size:12px;color:#666;margin-top:6px;">${referral_count} referral${referral_count !== 1 ? 's' : ''} × ₱50 commission</div>
+      <div style="font-size:12px;color:#666;margin-top:6px;">${referral_count} referral${referral_count !== 1 ? 's' : ''} × ₱20 commission</div>
     </div>
     <table style="width:100%;border-collapse:collapse;background:#0d0d0d;border:1px solid #2a2a2a;border-radius:10px;overflow:hidden;margin-bottom:20px;">
       <tr><td style="padding:10px 14px;font-size:12px;color:#666;border-bottom:1px solid #1a1a1a;">Period</td><td style="padding:10px 14px;font-size:12px;color:#fff;font-weight:600;border-bottom:1px solid #1a1a1a;text-align:right;">${periodStr}</td></tr>
       <tr><td style="padding:10px 14px;font-size:12px;color:#666;border-bottom:1px solid #1a1a1a;">Students Referred</td><td style="padding:10px 14px;font-size:12px;color:#fff;font-weight:600;border-bottom:1px solid #1a1a1a;text-align:right;">${referral_count}</td></tr>
-      <tr><td style="padding:10px 14px;font-size:12px;color:#666;${gcash_ref ? 'border-bottom:1px solid #1a1a1a;' : ''}">Commission Rate</td><td style="padding:10px 14px;font-size:12px;color:#fff;font-weight:600;${gcash_ref ? 'border-bottom:1px solid #1a1a1a;' : ''}text-align:right;">₱50 per referral</td></tr>
+      <tr><td style="padding:10px 14px;font-size:12px;color:#666;${gcash_ref ? 'border-bottom:1px solid #1a1a1a;' : ''}">Commission Rate</td><td style="padding:10px 14px;font-size:12px;color:#fff;font-weight:600;${gcash_ref ? 'border-bottom:1px solid #1a1a1a;' : ''}text-align:right;">₱20 per referral</td></tr>
       ${gcash_ref ? `<tr><td style="padding:10px 14px;font-size:12px;color:#666;">GCash Reference</td><td style="padding:10px 14px;font-size:12px;color:#c9a96e;font-weight:700;text-align:right;font-family:monospace;">${gcash_ref}</td></tr>` : ''}
     </table>
     ${screenshotBlock}

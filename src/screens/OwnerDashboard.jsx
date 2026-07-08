@@ -1627,7 +1627,7 @@ function AgentsTab() {
     }
 
     const referralCount = agent._unpaidReferrals ?? (agent.total_referrals || 0)
-    const amount = referralCount * 50
+    const amount = referralCount * 20
 
     // Insert payout record
     await supabase.from('agent_payouts').insert([{
@@ -1791,8 +1791,8 @@ function AgentsTab() {
         <div style={ag.modalOverlay}>
           <div style={ag.modal}>
             <div style={s.sectionLabel}>Pay {payoutModal.name}</div>
-            <div style={ag.modalAmount}>₱{payoutModal.total_referrals * 50}</div>
-            <div style={ag.modalSub}>{payoutModal.total_referrals} referrals × ₱50</div>
+            <div style={ag.modalAmount}>₱{(payoutModal._unpaidReferrals ?? payoutModal.total_referrals) * 20}</div>
+            <div style={ag.modalSub}>{payoutModal._unpaidReferrals ?? payoutModal.total_referrals} referrals × ₱20</div>
 
             <div style={s.field}>
               <label style={s.label}>Period Start</label>
