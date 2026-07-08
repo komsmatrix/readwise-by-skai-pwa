@@ -1487,7 +1487,7 @@ function AgentsTab() {
   const [agents,    setAgents]    = useState([])
   const [loading,   setLoading]   = useState(true)
   const [showForm,  setShowForm]  = useState(false)
-  const [form,      setForm]      = useState({ name:'', email:'', gcash_number:'' })
+  const [form,      setForm]      = useState({ name:'', email:'', gcash_number:'', code_type:'agent' })
   const [saving,    setSaving]    = useState(false)
   const [savedMsg,  setSavedMsg]  = useState('')
   const [payoutModal, setPayoutModal] = useState(null) // agent object
@@ -1536,6 +1536,10 @@ function AgentsTab() {
     return `${base}${rand}`
   }
 
+  function generatePin() {
+    return String(Math.floor(1000 + Math.random() * 9000))
+  }
+
   async function sendBlast() {
     if (!blast.subject.trim() || !blast.message.trim()) return
     setBlasting(true)
@@ -1567,11 +1571,14 @@ function AgentsTab() {
     setSaving(true)
     setSavedMsg('')
     const code = generateCode(form.name)
+    const pin  = generatePin()
     const { data, error } = await supabase.from('agents').insert([{
       name: form.name.trim(),
       email: form.email.trim().toLowerCase(),
       gcash_number: form.gcash_number.trim(),
       referral_code: code,
+      code_type: form.code_type,
+      pin,
     }]).select().single()
 
     if (!error && data) {
@@ -1584,10 +1591,12 @@ function AgentsTab() {
           email: form.email,
           referral_code: code,
           gcash_number: form.gcash_number,
+          code_type: form.code_type,
+          pin,
         }),
       })
-      setSavedMsg(`Agent enrolled! Code: ${code} — Welcome email sent.`)
-      setForm({ name:'', email:'', gcash_number:'' })
+      setSavedMsg(`Agent enrolled! Code: ${code} · PIN: ${pin} — Welcome email sent.`)
+      setForm({ name:'', email:'', gcash_number:'', code_type:'agent' })
       setShowForm(false)
       loadAgents()
     }
@@ -1684,6 +1693,21 @@ function AgentsTab() {
       ) : (
         <div style={s.formCard}>
           <div style={s.sectionLabel}>New Agent</div>
+          <div style={s.field}>
+            <label style={s.label}>Code Type</label>
+            <div style={{ display:'flex', gap:8 }}>
+              <button type="button"
+                style={{ ...s.ghostBtn, ...(form.code_type === 'agent' ? { background:'var(--accent)', color:'#0d0d0d', borderColor:'var(--accent)' } : {}) }}
+                onClick={() => setForm(p => ({ ...p, code_type: 'agent' }))}>
+                Agent · ₱10 off customer
+              </button>
+              <button type="button"
+                style={{ ...s.ghostBtn, ...(form.code_type === 'agency' ? { background:'var(--accent)', color:'#0d0d0d', borderColor:'var(--accent)' } : {}) }}
+                onClick={() => setForm(p => ({ ...p, code_type: 'agency' }))}>
+                Agency QR · No discount
+              </button>
+            </div>
+          </div>
           {[
             { label:'Full Name',     key:'name',         type:'text',  ph:'Maria Santos' },
             { label:'Email',         key:'email',        type:'email', ph:'maria@email.com' },
@@ -1709,7 +1733,7 @@ function AgentsTab() {
       ) : agents.map(agent => {
         const unpaidReferrals = agent.total_referrals -
           (agent.agent_payouts?.filter(p => p.paid).reduce((sum, p) => sum + p.referral_count, 0) || 0)
-        const owedAmount = Math.max(0, unpaidReferrals) * 50
+        const owedAmount = Math.max(0, unpaidReferrals) * 20
 
         return (
           <div key={agent.id} style={ag.agentCard}>
@@ -1719,7 +1743,19 @@ function AgentsTab() {
                 <div style={ag.agentName}>{agent.name}</div>
                 <div style={ag.agentMeta}>{agent.email} · GCash: {agent.gcash_number}</div>
               </div>
-              <div style={ag.codeBox}>{agent.referral_code}</div>
+              <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4 }}>
+                <div style={ag.codeBox}>{agent.referral_code}</div>
+                <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+                  <span style={{
+                    fontSize:11, padding:'2px 8px', borderRadius:6, fontWeight:600,
+                    background: agent.code_type === 'agency' ? 'rgba(139,92,246,0.15)' : 'rgba(16,185,129,0.15)',
+                    color: agent.code_type === 'agency' ? '#8B5CF6' : '#10B981',
+                  }}>
+                    {agent.code_type === 'agency' ? 'AGENCY · no discount' : 'AGENT · ₱10 off'}
+                  </span>
+                  {agent.pin && <span style={{ fontSize:11, color:'var(--text-muted)' }}>PIN: {agent.pin}</span>}
+                </div>
+              </div>
               <button style={ag.deleteAgentBtn} onClick={() => deleteAgent(agent.id)} title="Delete agent">✕</button>
             </div>
 
@@ -1821,7 +1857,7 @@ function SalesTab() {
 
   const totalRevenue   = sales.reduce((sum, s) => sum + (s.amount_paid || 249), 0)
   const withAgent      = sales.filter(s => s.agent_code).length
-  const commissions    = withAgent * 50
+  const commissions    = withAgent * 20
   const discounts      = sales.reduce((sum, s) => sum + (s.agent_code ? (249 - (s.amount_paid || 249)) : 0), 0)
   const netRevenue     = totalRevenue - commissions
 
