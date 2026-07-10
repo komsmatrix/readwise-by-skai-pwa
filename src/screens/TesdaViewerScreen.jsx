@@ -191,6 +191,36 @@ const INJECTED_CSS = `
     width: 100% !important;
     object-fit: contain !important;
   }
+
+  /* ── PRINT ── Every qualification's HTML is independently generated with
+     its own color variables and sidebar naming, so this deliberately uses
+     generic structural selectors + forced black text instead of trying to
+     override each file's specific CSS custom properties (which we can't
+     know in advance and would silently no-op on files that name things
+     differently). This is what fixes the "cut off / broken" print preview:
+     the root cause is fixed-position sidebars (position:fixed + 100vh),
+     which render unpredictably across printed pages. */
+  @media print {
+    #sidebar, .sidebar, [id*="sidebar" i], [class*="sidebar" i] {
+      display: none !important;
+    }
+    #main, .main, main {
+      margin-left: 0 !important;
+      width: 100% !important;
+    }
+    body, body * {
+      color: #000 !important;
+    }
+    img {
+      max-width: 100% !important;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+    .section, section, [class*="card" i] {
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+  }
   /* Inject a JS fix after load to constrain overflowing images */
   /* Tables: always scrollable horizontally */
   table {
@@ -376,7 +406,33 @@ export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
   }
   const iframeRef = useRef(null)
 
-  useEffect(() => { loadDetail() }, [subtopic?.id, qualification?.id])
+  useEffect(() => { loadDetail(); logQualificationView() }, [subtopic?.id, qualification?.id])
+
+  function logQualificationView() {
+    // Fire-and-forget analytics — must never block the viewer or surface
+    // an error to the student if it fails (e.g. offline, table not yet
+    // migrated). Logs against qualification props directly rather than
+    // inside loadDetail(), so a view is recorded even if the detail fetch
+    // itself fails.
+    if (!qualification?.id && !subtopic?.id) return
+    try {
+      fetch(`${supabaseUrl}/rest/v1/qualification_views`, {
+        method: 'POST',
+        headers: {
+          'apikey': supabaseAnon,
+          'Authorization': `Bearer ${supabaseAnon}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal',
+        },
+        body: JSON.stringify({
+          qualification_id  : qualification?.id || subtopic?.id,
+          qualification_name: qualification?.name || subtopic?.name || null,
+          subtopic_id       : subtopic?.id || null,
+          subtopic_name     : subtopic?.name || null,
+        }),
+      }).catch(() => {})
+    } catch {}
+  }
 
   async function loadDetail() {
     setLoading(true)
