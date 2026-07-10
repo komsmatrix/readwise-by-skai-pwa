@@ -2142,8 +2142,21 @@ function TesdaTab() {
   const [saving,     setSaving]     = useState(false)
   const [loading,    setLoading]    = useState(true)
   const [uploading,  setUploading]  = useState(false)
+  const [viewCounts, setViewCounts] = useState({})
 
-  useEffect(() => { loadQuals() }, [])
+  useEffect(() => { loadQuals(); loadViewCounts() }, [])
+
+  async function loadViewCounts() {
+    // Client-side aggregation — fine at current scale (a few thousand rows
+    // at most). If this ever needs to scale further, switch to a Postgres
+    // view/RPC that does the GROUP BY server-side instead.
+    const { data } = await supabase.from('qualification_views').select('qualification_id')
+    const counts = {}
+    ;(data || []).forEach(row => {
+      counts[row.qualification_id] = (counts[row.qualification_id] || 0) + 1
+    })
+    setViewCounts(counts)
+  }
 
   async function loadQuals() {
     setLoading(true)
@@ -2521,7 +2534,7 @@ function TesdaTab() {
         <div style={{ fontSize:13, color:'var(--text-muted)' }}>Loading…</div>
       ) : (
         <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:10 }}>
-          {quals.map(q => (
+          {[...quals].sort((a, b) => (viewCounts[b.id] || 0) - (viewCounts[a.id] || 0)).map(q => (
             <div key={q.id} style={{ background:'var(--bg-surface)', border:'1px solid var(--border)', borderRadius:12, padding:'14px 16px', display:'flex', alignItems:'center', justifyContent:'space-between', cursor:'pointer', transition:'all .15s' }}
               onClick={() => selectQual(q)}>
               <div style={{ display:'flex', alignItems:'center', gap:10 }}>
@@ -2530,6 +2543,7 @@ function TesdaTab() {
                   <div style={{ fontSize:13, fontWeight:700, color:'var(--text-primary)', lineHeight:1.3 }}>{q.name}</div>
                   <div style={{ fontSize:11, color: (q.subtopic_count || 0) > 0 ? '#10B981' : 'var(--text-muted)', marginTop:2 }}>
                     {(q.subtopic_count || 0) > 0 ? `${q.subtopic_count} topics` : 'No topics yet'}
+                    {viewCounts[q.id] ? ` · 👁 ${viewCounts[q.id]} views` : ''}
                   </div>
                 </div>
               </div>
