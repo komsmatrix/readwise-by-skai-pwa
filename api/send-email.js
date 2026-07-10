@@ -273,6 +273,8 @@ function agentWelcomeHTML({ firstName, name, email, referral_code, gcash_number,
   const sampleLetMsg = isAgency
     ? `"Mag-eexam sa LET? Subukan mo ang Readwise by Skai — &#8369;249 lang, 1,748+ questions, lifetime access, may Readiness Score pa. I-scan ang QR code namin: readwisebyskai.com/buy?ref=${referral_code}"`
     : `"Mag-eexam sa LET? Subukan mo ang Readwise by Skai — &#8369;249 lang, 1,748+ questions, lifetime access, may Readiness Score pa. Gamitin ang code ko: readwisebyskai.com/buy?ref=${referral_code}"`
+  const referralUrl = `https://readwisebyskai.com/buy?ref=${referral_code}`
+  const qrImageUrl  = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=8&data=${encodeURIComponent(referralUrl)}`
 
   return `<!DOCTYPE html>
 <html>
@@ -301,7 +303,9 @@ function agentWelcomeHTML({ firstName, name, email, referral_code, gcash_number,
     <div style="background:#0d0d0d;border:2px solid #c9a96e;border-radius:14px;padding:24px;text-align:center;margin-bottom:16px;">
       <div style="font-size:11px;color:#c9a96e;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px;font-weight:700;">${codeLabel}</div>
       <div style="font-family:monospace;font-size:36px;font-weight:900;color:#c9a96e;letter-spacing:0.15em;">${referral_code}</div>
-      <div style="font-size:12px;color:#6b6560;margin-top:8px;">readwisebyskai.com/buy?ref=${referral_code}</div>
+      <div style="font-size:12px;color:#6b6560;margin-top:8px;margin-bottom:16px;">readwisebyskai.com/buy?ref=${referral_code}</div>
+      <img src="${qrImageUrl}" width="150" height="150" alt="Scan to visit your referral link" style="display:block;margin:0 auto;border-radius:8px;background:#fff;padding:8px;" />
+      <div style="font-size:10px;color:#6b6560;margin-top:10px;">Scan with any phone camera — no app needed</div>
     </div>
 
     ${pin ? `<div style="background:#0d0d0d;border:1px solid rgba(201,169,110,0.3);border-radius:14px;padding:18px;text-align:center;margin-bottom:20px;">
