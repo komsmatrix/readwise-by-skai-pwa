@@ -1,0 +1,54 @@
+name: Supabase Daily Backup
+
+on:
+  schedule:
+    # 18:00 UTC = 2:00 AM Philippine time (UTC+8) — runs once daily
+    - cron: '0 18 * * *'
+  workflow_dispatch: {}   # lets you trigger a manual backup anytime from the Actions tab
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Dump database
+        env:
+          DATABASE_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: pg_dump "$DATABASE_URL" --no-owner --no-privileges -f backup.sql
+
+      - name: Compress backup
+        run: gzip backup.sql
+
+      - name: Set backup filename
+        id: filename
+        run: echo "name=readwise-backup-$(date +%Y-%m-%d).sql.gz" >> "$GITHUB_OUTPUT"
+
+      - name: Install AWS CLI (R2 is S3-compatible)
+        run: pip install --quiet awscli
+
+      - name: Upload to Cloudflare R2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        run: |
+          aws s3 cp backup.sql.gz \
+            "s3://${{ secrets.R2_BUCKET_NAME }}/db-backups/${{ steps.filename.outputs.name }}" \
+            --endpoint-url "https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com"
+
+      - name: Delete backups older than 30 days
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        run: |
+          CUTOFF=$(date -d '30 days ago' +%Y-%m-%d)
+          ENDPOINT="https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com"
+          aws s3 ls "s3://${{ secrets.R2_BUCKET_NAME }}/db-backups/" --endpoint-url "$ENDPOINT" \
+            | awk '{print $4}' | grep -oP 'readwise-backup-\K\d{4}-\d{2}-\d{2}(?=\.sql\.gz)' \
+            | while read -r file_date; do
+                if [[ "$file_date" < "$CUTOFF" ]]; then
+                  aws s3 rm "s3://${{ secrets.R2_BUCKET_NAME }}/db-backups/readwise-backup-${file_date}.sql.gz" \
+                    --endpoint-url "$ENDPOINT"
+                fi
+              done
