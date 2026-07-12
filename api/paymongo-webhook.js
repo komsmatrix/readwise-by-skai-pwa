@@ -198,33 +198,22 @@ function welcomeEmail({ firstName, name, email, key, appUrl, course }) {
 </html>`
 }
 
-// Vercel auto-parses JSON bodies by default, but signature verification
-// needs the exact raw bytes PayMongo sent — any parsing beforehand changes
-// the bytes and breaks the HMAC check. So we disable auto-parsing here and
-// read + verify the raw body ourselves before touching it as JSON.
-export const config = {
-  api: { bodyParser: false },
-}
-
-function readRawBody(req) {
-  return new Promise((resolve, reject) => {
-    let data = ''
-    req.on('data', chunk => { data += chunk })
-    req.on('end', () => resolve(data))
-    req.on('error', reject)
-  })
-}
-
-export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
-
-  const rawBody = await readRawBody(req)
+// Vercel's current, confirmed-working pattern for raw-body access on
+// Serverless Functions (per Vercel's own Nov 2025 KB guide) uses the Web
+// Standard Request/Response API — a named POST export, not the classic
+// (req, res) Node handler. request.text() returns the exact raw bytes
+// PayMongo sent with zero body-parser config needed, which is what
+// signature verification requires. The previous (req, res) + config.api.
+// bodyParser approach was tested live and confirmed NOT to work in this
+// project's actual Vite/Vercel setup — this replaces it entirely.
+export async function POST(request) {
+  const rawBody = await request.text()
 
   let verifiedEvent
   try {
     verifiedEvent = paymongo.webhooks.constructEvent({
       payload         : rawBody,
-      signatureHeader : req.headers['paymongo-signature'],
+      signatureHeader : request.headers.get('paymongo-signature'),
       webhookSecretKey: process.env.PAYMONGO_WEBHOOK_SECRET,
     })
   } catch (err) {
@@ -232,7 +221,7 @@ export default async function handler(req, res) {
     // PayMongo. Reject before any processing, and don't leak details about
     // why in the response.
     console.error('Webhook signature verification failed:', err.message)
-    return res.status(401).json({ error: 'Invalid signature' })
+    return Response.json({ error: 'Invalid signature' }, { status: 401 })
   }
 
   try {
@@ -242,7 +231,7 @@ export default async function handler(req, res) {
     const type  = event?.type
 
     if (type !== 'checkout_session.payment.paid') {
-      return res.status(200).json({ received: true })
+      return Response.json({ received: true }, { status: 200 })
     }
 
     const session      = event?.data?.attributes
@@ -258,7 +247,7 @@ export default async function handler(req, res) {
 
     console.log('Payment data:', { name, email, agentId, referralCode, amountPaid, course })
 
-    if (!email) return res.status(400).json({ error: 'No email in payment data' })
+    if (!email) return Response.json({ error: 'No email in payment data' }, { status: 400 })
 
     // Fetch existing customer FIRST before any logic that references it
     const { data: existingCustomer } = await supabase
@@ -307,7 +296,7 @@ export default async function handler(req, res) {
           </div>`,
         }),
       })
-      return res.status(200).json({ success: true, note: 'already_has_course' })
+      return Response.json({ success: true, note: 'already_has_course' }, { status: 200 })
     }
 
     if (existingCustomer) {
@@ -365,10 +354,10 @@ export default async function handler(req, res) {
     })
 
     console.log('Email sent:', emailRes.status)
-    return res.status(200).json({ success: true })
+    return Response.json({ success: true }, { status: 200 })
 
   } catch (err) {
     console.error('Webhook error:', err)
-    return res.status(500).json({ error: err.message })
+    return Response.json({ error: err.message }, { status: 500 })
   }
 }
