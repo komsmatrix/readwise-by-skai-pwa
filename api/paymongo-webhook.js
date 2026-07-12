@@ -1,8 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
 import crypto from 'crypto'
-import Paymongo from 'paymongo-node'
-
-const paymongo = Paymongo(process.env.PAYMONGO_SECRET_KEY)
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -198,40 +195,17 @@ function welcomeEmail({ firstName, name, email, key, appUrl, course }) {
 </html>`
 }
 
-// Vercel's current, confirmed-working pattern for raw-body access on
-// Serverless Functions (per Vercel's own Nov 2025 KB guide) uses the Web
-// Standard Request/Response API — a named POST export, not the classic
-// (req, res) Node handler. request.text() returns the exact raw bytes
-// PayMongo sent with zero body-parser config needed, which is what
-// signature verification requires. The previous (req, res) + config.api.
-// bodyParser approach was tested live and confirmed NOT to work in this
-// project's actual Vite/Vercel setup — this replaces it entirely.
-export async function POST(request) {
-  const rawBody = await request.text()
-
-  let verifiedEvent
-  try {
-    verifiedEvent = paymongo.webhooks.constructEvent({
-      payload         : rawBody,
-      signatureHeader : request.headers.get('paymongo-signature'),
-      webhookSecretKey: process.env.PAYMONGO_WEBHOOK_SECRET,
-    })
-  } catch (err) {
-    // Signature didn't match — this request did not genuinely come from
-    // PayMongo. Reject before any processing, and don't leak details about
-    // why in the response.
-    console.error('Webhook signature verification failed:', err.message)
-    return Response.json({ error: 'Invalid signature' }, { status: 401 })
-  }
+export default async function handler(req, res) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
   try {
-    console.log('Webhook received:', JSON.stringify(verifiedEvent).slice(0, 200))
+    console.log('Webhook received:', JSON.stringify(req.body).slice(0, 200))
 
-    const event = verifiedEvent?.data?.attributes
+    const event = req.body?.data?.attributes
     const type  = event?.type
 
     if (type !== 'checkout_session.payment.paid') {
-      return Response.json({ received: true }, { status: 200 })
+      return res.status(200).json({ received: true })
     }
 
     const session      = event?.data?.attributes
@@ -247,7 +221,7 @@ export async function POST(request) {
 
     console.log('Payment data:', { name, email, agentId, referralCode, amountPaid, course })
 
-    if (!email) return Response.json({ error: 'No email in payment data' }, { status: 400 })
+    if (!email) return res.status(400).json({ error: 'No email in payment data' })
 
     // Fetch existing customer FIRST before any logic that references it
     const { data: existingCustomer } = await supabase
@@ -296,7 +270,7 @@ export async function POST(request) {
           </div>`,
         }),
       })
-      return Response.json({ success: true, note: 'already_has_course' }, { status: 200 })
+      return res.status(200).json({ success: true, note: 'already_has_course' })
     }
 
     if (existingCustomer) {
@@ -354,10 +328,10 @@ export async function POST(request) {
     })
 
     console.log('Email sent:', emailRes.status)
-    return Response.json({ success: true }, { status: 200 })
+    return res.status(200).json({ success: true })
 
   } catch (err) {
     console.error('Webhook error:', err)
-    return Response.json({ error: err.message }, { status: 500 })
+    return res.status(500).json({ error: err.message })
   }
 }
