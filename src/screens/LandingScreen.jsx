@@ -66,7 +66,7 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
   const [studentCount, setStudentCount] = useState(null)
   const [navOpen, setNavOpen] = useState(false)
   const isMobile = useIsMobile()
-  const [selectedCourse, setSelectedCourse] = useState('LET')
+  const [selectedCourse, setSelectedCourse] = useState('TESDA')
 
   const LEVELS = [
     { min: 0,  max: 30,  label: 'Started',      color: '#6b6560' },
@@ -191,32 +191,32 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
         <div style={s.heroGlow}/>
         <div style={s.eyebrow}>
           <span style={s.eyebrowDot}/>
-          National Exam Operating System · Philippines
+          TESDA NC II Reviewer Hub · Philippines
         </div>
         <h1 style={s.heroTitle}>
           Know what to study.<br/>
-          <em style={{ fontStyle:'italic', color:'var(--accent)' }}>Pass your national exam.</em>
+          <em style={{ fontStyle:'italic', color:'var(--accent)' }}>Pass your TESDA assessment.</em>
         </h1>
         <p style={s.heroSub}>
-          Readwise remembers what you forget, finds the gaps you can't see yourself, and tells you exactly what to do — every day until exam day.
+          Complete reviewers for TESDA NC II qualifications — plus LET exam prep, with more national exams on the way. Readwise tells you exactly what to study, every day, until assessment day.
         </p>
         <div style={s.heroActions}>
           <button style={s.btnPrimary} onClick={() => {
             document.getElementById('pricing')?.scrollIntoView({ behavior:'smooth' })
           }}>See Pricing →</button>
-          <button style={s.btnGhost} onClick={() => onTryFree(selectedCourse)}>Try Free for 1 Hour →</button>
+          <button style={s.btnGhost} onClick={() => onTryFree('LET')}>Try LET Free for 1 Hour →</button>
         </div>
         <div style={s.examBadges}>
+          {/* TESDA — lead badge, primary focus */}
+          <span style={{ ...s.examBadge, background:'rgba(59,130,246,0.12)', color:'#3b82f6', border:'1px solid rgba(59,130,246,0.3)', fontWeight:700 }}>
+            TESDA NC
+          </span>
+          {/* Separator */}
+          <span style={{ fontSize:11, color:'var(--text-muted)', padding:'0 2px', alignSelf:'center' }}>·</span>
           {/* Board exams */}
           {['LET','NLE','NAPOLCOM','Civil Service','Criminology'].map((e,i) => (
             <span key={e} style={{ ...s.examBadge, ...(i===0 ? s.examBadgeActive : {}) }}>{e}</span>
           ))}
-          {/* Separator */}
-          <span style={{ fontSize:11, color:'var(--text-muted)', padding:'0 2px', alignSelf:'center' }}>·</span>
-          {/* TESDA — different color */}
-          <span style={{ ...s.examBadge, background:'rgba(59,130,246,0.12)', color:'#3b82f6', border:'1px solid rgba(59,130,246,0.3)', fontWeight:600 }}>
-            TESDA NC
-          </span>
         </div>
 
         {/* Gauge demo */}
@@ -246,242 +246,6 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
                 </div>
               ))}
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* WHY STUDENTS FAIL */}
-      <section style={{ ...s.section, background:'#141414' }}>
-        <div style={s.container}>
-          <div style={s.sectionEyebrow}>The real problem</div>
-          <h2 style={s.sectionTitle}>5 reasons students fail national exams</h2>
-          <p style={s.sectionSub}>Readwise is built to prevent all five.</p>
-          <div style={s.failGrid}>
-            {[
-              { n:'01', t:'No consistent study habit',    d:'They study hard for a week, disappear for two, and never build real momentum.',                           fix:'Streak system + recovery flow' },
-              { n:'02', t:'Missing high-weight topics',   d:'They study what\'s comfortable, not what carries the most exam weight.',                                  fix:'Board Blueprint weighting' },
-              { n:'03', t:'Forgetting what they studied', d:'Without review, 70% of what you learn disappears within a week.',                                         fix:'Spaced repetition + forgetting signal' },
-              { n:'04', t:'Can\'t see their weak areas',  d:'They feel productive studying, but don\'t know which topics are dragging them down.',                     fix:'Topic Health + Coach Insights' },
-              { n:'05', t:'Never simulated the real exam',d:'The actual board exam feels different — pressure, timing, format — when you\'ve never practiced it.',     fix:'Full mock board simulation' },
-            ].map(f => (
-              <div key={f.n} style={s.failCard}>
-                <div style={s.failNum}>{f.n}</div>
-                <div style={s.failTitle}>{f.t}</div>
-                <div style={s.failDesc}>{f.d}</div>
-                <div style={s.failFix}>→ {f.fix}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* HOW IT WORKS */}
-      <section id="how" style={s.section}>
-        <div style={s.container}>
-          <div style={s.sectionEyebrow}>How it works</div>
-          <h2 style={s.sectionTitle}>Built around how you actually learn</h2>
-          <p style={s.sectionSub}>Not a content dump. Not a quiz app. A system that coaches you from enrollment to exam day.</p>
-          <div style={s.stepsGrid}>
-            {[
-              { icon:'📋', t:'Day 1: Your plan is ready',              d:'Tell us your exam and date. Readwise builds your personalized study schedule before you take your first step.' },
-              { icon:'🧠', t:'Daily: Readwise decides what to study',  d:'You never ask "what should I study today?" — Readwise already knows, and tells you why it matters.' },
-              { icon:'🔄', t:'Always: It remembers what you forget',   d:'Spaced repetition resurfaces cards at exactly the right moment — before you forget them, not after.' },
-              { icon:'📊', t:'Every week: See your readiness score',   d:'One number that answers "will I pass?" — weighted by actual board exam topic importance.' },
-              { icon:'⚡', t:'When you fall behind: Recovery mode',    d:'Miss a week? Readwise adjusts your plan without overwhelming you. No shame. Just the next step.' },
-              { icon:'🎯', t:'Final 30 days: Simulation mode',         d:'Full mock board exams, timed, in the exact format of the real test — so nothing surprises you on exam day.' },
-            ].map(step => (
-              <div key={step.t} style={s.stepCard}>
-                <div style={s.stepIcon}>{step.icon}</div>
-                <div style={s.stepTitle}>{step.t}</div>
-                <div style={s.stepDesc}>{step.d}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* COURSES */}
-      <section id="courses" style={{ ...s.section, background:'#141414' }}>
-        <div style={s.container}>
-          <div style={s.sectionEyebrow}>Courses</div>
-          <h2 style={s.sectionTitle}>Built for Philippine National Examinations</h2>
-          <p style={s.sectionSub}>Board exams, licensure exams, and TESDA qualifications — all in one platform.</p>
-          <div style={s.coursesGrid}>
-            {[
-              { code:'LET',          full:'Licensure Examination for Teachers',    live:true,  price:249, regular:399, stats:['14 topics covered','1,554+ questions','23 structured lessons','Full mock board exam'] },
-              { code:'TESDA',        full:'NC Qualifications Bundle',              live:true,  price:99,  regular:199, stats:['16 NC II qualifications available','Full HTML reviewers','Video + infographics','Lifetime access to all NCs'] },
-              { code:'NLE',          full:'Nursing Licensure Examination',         live:false, stats:['9 subject areas','Content in preparation'] },
-              { code:'NAPOLCOM',     full:'NAPOLCOM Examination',                  live:false, stats:['Police Officer I & Promotion','Content in preparation'] },
-              { code:'Civil Service',full:'Civil Service Examination',             live:false, stats:['Professional & Sub-professional','Content in preparation'] },
-              { code:'Criminology',  full:'Criminologist Licensure Examination',   live:false, stats:['Content in preparation'] },
-            ].map(c => {
-              const isSelected = selectedCourse === c.code
-              return (
-                <div key={c.code}
-                  onClick={() => c.live && setSelectedCourse(c.code)}
-                  style={{
-                    ...s.courseCard,
-                    ...(c.live ? s.courseCardLive : {}),
-                    ...(isSelected ? s.courseCardSelected : {}),
-                    cursor: c.live ? 'pointer' : 'default',
-                    opacity: c.live ? 1 : 0.5,
-                  }}>
-                  <div style={s.courseHeader}>
-                    <div style={s.courseCode}>{c.code}</div>
-                    <span style={{ ...s.courseStatus, ...(c.live ? s.courseStatusLive : s.courseStatusSoon) }}>
-                      {c.live ? 'Live Now' : 'Coming Soon'}
-                    </span>
-                  </div>
-                  <div style={s.courseFull}>{c.full}</div>
-                  {c.live && (
-                    <div style={{ fontSize:14, fontWeight:700, color:'var(--accent)', margin:'6px 0 8px' }}>
-                      ₱{c.price} <span style={{ fontSize:11, color:'var(--text-muted)', textDecoration:'line-through', fontWeight:400 }}>₱{c.regular}</span>
-                    </div>
-                  )}
-                  <div style={s.courseStats}>
-                    {c.stats.map(st => <div key={st} style={s.courseStat}>{st}</div>)}
-                  </div>
-                  {c.live && (
-                    <div style={{ marginTop:14 }}>
-                      {isSelected ? (
-                        <div style={s.courseSelectedBadge}>✓ Selected</div>
-                      ) : (
-                        <div style={s.courseSelectHint}>Click to select</div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* PRICING */}
-      <section id="pricing" style={s.section}>
-        <div style={{ ...s.container, textAlign:'center' }}>
-          <div style={s.sectionEyebrow}>Pricing</div>
-          <h2 style={s.sectionTitle}>One course. One price. Yours forever.</h2>
-          <p style={{ fontSize:14, color:'var(--text-secondary)', marginBottom:8, lineHeight:1.6 }}>
-            All prices below are <strong style={{ color:'var(--accent)' }}>introductory prices</strong> — locked in for life when you purchase today.
-            Regular prices will increase as more content is added.
-          </p>
-
-          {/* Live course cards */}
-          <div style={{ display:'flex', gap:16, justifyContent:'center', flexWrap:'wrap', marginBottom:24 }}>
-
-            {/* LET */}
-            <div style={{ ...s.pricingCard, flex:'1 1 280px', maxWidth:340, textAlign:'left' }}>
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4 }}>
-                <div style={{ fontSize:11, fontWeight:700, color:'var(--accent)', textTransform:'uppercase', letterSpacing:'.08em' }}>LET — Introductory Price</div>
-                <span style={{ fontSize:10, padding:'2px 8px', background:'rgba(201,168,76,0.12)', color:'var(--accent)', borderRadius:20, fontWeight:600, border:'1px solid rgba(201,168,76,0.25)' }}>Live Now</span>
-              </div>
-              <div style={s.priceAmount}><span style={s.priceSup}>₱</span>249</div>
-              <div style={s.priceOld}>Regular price: ₱399</div>
-              <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:16 }}>One-time · Lifetime access</div>
-              <div style={s.priceDivider}/>
-              <div style={s.priceFeatures}>
-                {[
-                  '1,554+ board exam questions',
-                  '14 topics · 23 structured lessons',
-                  'Readiness Score updated daily',
-                  'Spaced repetition engine',
-                  'Mock board exam simulation',
-                  'Coach Insights and daily recommendations',
-                ].map(f => (
-                  <div key={f} style={s.priceFeature}><span style={{ color:'var(--accent)', fontWeight:700 }}>✓</span> {f}</div>
-                ))}
-              </div>
-              <button style={s.priceCta} onClick={() => onGetAccess('LET')}>Get Access to LET · ₱249</button>
-              <div style={s.priceSub}>GCash · Maya · Card · PayMongo</div>
-            </div>
-
-            {/* TESDA */}
-            <div style={{ ...s.pricingCard, flex:'1 1 280px', maxWidth:340, textAlign:'left', borderColor:'rgba(59,130,246,0.35)' }}>
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4 }}>
-                <div style={{ fontSize:11, fontWeight:700, color:'#3b82f6', textTransform:'uppercase', letterSpacing:'.08em' }}>TESDA — Introductory Price</div>
-                <span style={{ fontSize:10, padding:'2px 8px', background:'rgba(59,130,246,0.12)', color:'#3b82f6', borderRadius:20, fontWeight:600, border:'1px solid rgba(59,130,246,0.25)' }}>Live Now</span>
-              </div>
-              <div style={{ ...s.priceAmount, color:'#3b82f6' }}><span style={{ ...s.priceSup, color:'#3b82f6' }}>₱</span>99</div>
-              <div style={s.priceOld}>Regular price: ₱199</div>
-              <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:16 }}>One-time · All NC qualifications included</div>
-              <div style={s.priceDivider}/>
-              <div style={s.priceFeatures}>
-                {[
-                  '✅ 16 NC II qualifications available now',
-                  '✅ Cookery, Caregiving, Housekeeping',
-                  '✅ Beauty Care, Hairdressing, Driving',
-                  '✅ Welding, Machining, Automotive',
-                  '✅ Food & Beverage, Barista, Masonry',
-                  '✅ Bread & Pastry, Computer Systems',
-                  '✅ Domestic Work, Warehousing',
-                  '🔜 More qualifications added regularly',
-                  '📖 Full HTML reviewer per qualification',
-                  '🎬 Video lessons embedded in the app',
-                  '🌐 English and Filipino toggle',
-                  '🖨 Print for offline study',
-                  '♾ Lifetime access — pay once, study forever',
-                ].map(f => (
-                  <div key={f} style={s.priceFeature}><span style={{ color:'#3b82f6', fontWeight:700 }}></span> {f}</div>
-                ))}
-              </div>
-              <button style={{ ...s.priceCta, background:'#3b82f6' }} onClick={() => onGetAccess('TESDA')}>Get TESDA Bundle · ₱99</button>
-              <div style={s.priceSub}>QRPh · GrabPay · PayMongo</div>
-            </div>
-
-          </div>
-
-          {/* Coming soon courses mini row */}
-          <div style={{ fontSize:12, color:'var(--text-muted)', marginBottom:20 }}>
-            Coming soon:
-            {['NLE','NAPOLCOM','Civil Service','Criminology'].map(c => (
-              <span key={c} style={{ marginLeft:10, padding:'2px 10px', background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:20, color:'var(--text-muted)', fontSize:11 }}>{c}</span>
-            ))}
-          </div>
-
-          {/* Intro price notice */}
-          <div style={{ background:'rgba(201,168,76,0.06)', border:'1px solid rgba(201,168,76,0.15)', borderRadius:12, padding:'14px 20px', fontSize:13, color:'var(--text-secondary)', lineHeight:1.7, marginBottom:24, maxWidth:560, margin:'0 auto 24px' }}>
-            ⚡ <strong style={{ color:'var(--accent)' }}>Introductory pricing ends</strong> when we hit our first 100 students.
-            Everyone who buys now keeps their price forever — even after we raise it.
-          </div>
-
-          {/* Trial banner */}
-          <div style={s.trialBanner}>
-            <div>
-              <h3 style={{ fontSize:20, fontWeight:700, color:'var(--text-primary)', marginBottom:6 }}>Not ready to buy? Try it free.</h3>
-              <p style={{ fontSize:14, color:'var(--text-secondary)' }}>Register your email and get 1 hour of full access — no card required.</p>
-            </div>
-            <button style={s.btnTrial} onClick={() => onTryFree(selectedCourse)}>Start Free Trial →</button>
-          </div>
-        </div>
-      </section>
-
-      {/* UPDATES */}
-      <section id="updates" style={{ ...s.section, background:'#141414' }}>
-        <div style={s.container}>
-          <div style={s.sectionEyebrow}>Platform Updates</div>
-          <h2 style={s.sectionTitle}>What's new</h2>
-          <div style={s.updatesList}>
-            {(liveUpdates.length > 0 ? liveUpdates : [
-              { id:'f1', tag:'lesson',       is_pinned:false, title:'Lessons tab launched',             body:'Structured lessons now live — read, learn, mark complete. Child Development first.',    created_at:'2026-06-12' },
-              { id:'f2', tag:'feature',      is_pinned:false, title:'1,200+ LET questions added',       body:'All 12 LET topics now have board-weighted questions with full rationales.',              created_at:'2026-06-11' },
-              { id:'f3', tag:'feature',      is_pinned:false, title:'Readiness Score system live',      body:'Coverage, Mastery, Consistency, Mock Exam — all four components now calculating.',       created_at:'2026-06-10' },
-              { id:'f4', tag:'feature',      is_pinned:false, title:'Spaced repetition engine launched',body:'SM-2 algorithm with forgetting signal. Cards resurface exactly when you need them.',     created_at:'2026-06-05' },
-            ]).map(u => (
-              <div key={u.id} style={{ ...s.updateRow, ...(u.is_pinned ? { background:'rgba(201,169,110,0.07)', borderRadius:8, padding:'8px 10px', margin:'-4px -10px' } : {}) }}>
-                <div style={s.updateDate}>
-                  {u.is_pinned ? '📌' : (TAG_ICONS[u.tag] || '📢')}
-                </div>
-                <div style={s.updateDot}/>
-                <div>
-                  <div style={s.updateTitle}>{u.title}</div>
-                  <div style={s.updateDesc}>{u.body}</div>
-                  <div style={{ fontSize:10, color:'var(--text-muted)', marginTop:3, opacity:.6 }}>
-                    {new Date(u.created_at).toLocaleDateString('en-PH', { month:'short', day:'numeric' })}
-                  </div>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       </section>
@@ -550,6 +314,242 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
         </div>
       </section>
 
+      {/* WHY STUDENTS FAIL */}
+      <section style={{ ...s.section, background:'#141414' }}>
+        <div style={s.container}>
+          <div style={s.sectionEyebrow}>The real problem</div>
+          <h2 style={s.sectionTitle}>5 reasons students fail national exams</h2>
+          <p style={s.sectionSub}>Readwise is built to prevent all five.</p>
+          <div style={s.failGrid}>
+            {[
+              { n:'01', t:'No consistent study habit',    d:'They study hard for a week, disappear for two, and never build real momentum.',                           fix:'Streak system + recovery flow' },
+              { n:'02', t:'Missing high-weight topics',   d:'They study what\'s comfortable, not what carries the most exam weight.',                                  fix:'Board Blueprint weighting' },
+              { n:'03', t:'Forgetting what they studied', d:'Without review, 70% of what you learn disappears within a week.',                                         fix:'Spaced repetition + forgetting signal' },
+              { n:'04', t:'Can\'t see their weak areas',  d:'They feel productive studying, but don\'t know which topics are dragging them down.',                     fix:'Topic Health + Coach Insights' },
+              { n:'05', t:'Never simulated the real exam',d:'The actual board exam feels different — pressure, timing, format — when you\'ve never practiced it.',     fix:'Full mock board simulation' },
+            ].map(f => (
+              <div key={f.n} style={s.failCard}>
+                <div style={s.failNum}>{f.n}</div>
+                <div style={s.failTitle}>{f.t}</div>
+                <div style={s.failDesc}>{f.d}</div>
+                <div style={s.failFix}>→ {f.fix}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* HOW IT WORKS */}
+      <section id="how" style={s.section}>
+        <div style={s.container}>
+          <div style={s.sectionEyebrow}>How it works</div>
+          <h2 style={s.sectionTitle}>Built around how you actually learn</h2>
+          <p style={s.sectionSub}>Not a content dump. Not a quiz app. A system that coaches you from enrollment to exam day.</p>
+          <div style={s.stepsGrid}>
+            {[
+              { icon:'📋', t:'Day 1: Your plan is ready',              d:'Tell us your exam and date. Readwise builds your personalized study schedule before you take your first step.' },
+              { icon:'🧠', t:'Daily: Readwise decides what to study',  d:'You never ask "what should I study today?" — Readwise already knows, and tells you why it matters.' },
+              { icon:'🔄', t:'Always: It remembers what you forget',   d:'Spaced repetition resurfaces cards at exactly the right moment — before you forget them, not after.' },
+              { icon:'📊', t:'Every week: See your readiness score',   d:'One number that answers "will I pass?" — weighted by actual board exam topic importance.' },
+              { icon:'⚡', t:'When you fall behind: Recovery mode',    d:'Miss a week? Readwise adjusts your plan without overwhelming you. No shame. Just the next step.' },
+              { icon:'🎯', t:'Final 30 days: Simulation mode',         d:'Full mock board exams, timed, in the exact format of the real test — so nothing surprises you on exam day.' },
+            ].map(step => (
+              <div key={step.t} style={s.stepCard}>
+                <div style={s.stepIcon}>{step.icon}</div>
+                <div style={s.stepTitle}>{step.t}</div>
+                <div style={s.stepDesc}>{step.d}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* COURSES */}
+      <section id="courses" style={{ ...s.section, background:'#141414' }}>
+        <div style={s.container}>
+          <div style={s.sectionEyebrow}>Courses</div>
+          <h2 style={s.sectionTitle}>Currently focused on TESDA NC II</h2>
+          <p style={s.sectionSub}>TESDA qualifications and LET are live now. More national exams — including PRC board exams — are on the way as we gather more resources.</p>
+          <div style={s.coursesGrid}>
+            {[
+              { code:'TESDA',        full:'NC Qualifications Bundle',              live:true,  price:99,  regular:199, stats:['16 NC II qualifications available','Full HTML reviewers','Video + infographics','Lifetime access to all NCs'] },
+              { code:'LET',          full:'Licensure Examination for Teachers',    live:true,  price:249, regular:399, stats:['14 topics covered','1,554+ questions','23 structured lessons','Full mock board exam'] },
+              { code:'NLE',          full:'Nursing Licensure Examination',         live:false, stats:['9 subject areas','Content in preparation'] },
+              { code:'NAPOLCOM',     full:'NAPOLCOM Examination',                  live:false, stats:['Police Officer I & Promotion','Content in preparation'] },
+              { code:'Civil Service',full:'Civil Service Examination',             live:false, stats:['Professional & Sub-professional','Content in preparation'] },
+              { code:'Criminology',  full:'Criminologist Licensure Examination',   live:false, stats:['Content in preparation'] },
+            ].map(c => {
+              const isSelected = selectedCourse === c.code
+              return (
+                <div key={c.code}
+                  onClick={() => c.live && setSelectedCourse(c.code)}
+                  style={{
+                    ...s.courseCard,
+                    ...(c.live ? s.courseCardLive : {}),
+                    ...(isSelected ? s.courseCardSelected : {}),
+                    cursor: c.live ? 'pointer' : 'default',
+                    opacity: c.live ? 1 : 0.5,
+                  }}>
+                  <div style={s.courseHeader}>
+                    <div style={s.courseCode}>{c.code}</div>
+                    <span style={{ ...s.courseStatus, ...(c.live ? s.courseStatusLive : s.courseStatusSoon) }}>
+                      {c.live ? 'Live Now' : 'Coming Soon'}
+                    </span>
+                  </div>
+                  <div style={s.courseFull}>{c.full}</div>
+                  {c.live && (
+                    <div style={{ fontSize:14, fontWeight:700, color:'var(--accent)', margin:'6px 0 8px' }}>
+                      ₱{c.price} <span style={{ fontSize:11, color:'var(--text-muted)', textDecoration:'line-through', fontWeight:400 }}>₱{c.regular}</span>
+                    </div>
+                  )}
+                  <div style={s.courseStats}>
+                    {c.stats.map(st => <div key={st} style={s.courseStat}>{st}</div>)}
+                  </div>
+                  {c.live && (
+                    <div style={{ marginTop:14 }}>
+                      {isSelected ? (
+                        <div style={s.courseSelectedBadge}>✓ Selected</div>
+                      ) : (
+                        <div style={s.courseSelectHint}>Click to select</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* PRICING */}
+      <section id="pricing" style={s.section}>
+        <div style={{ ...s.container, textAlign:'center' }}>
+          <div style={s.sectionEyebrow}>Pricing</div>
+          <h2 style={s.sectionTitle}>One course. One price. Yours forever.</h2>
+          <p style={{ fontSize:14, color:'var(--text-secondary)', marginBottom:8, lineHeight:1.6 }}>
+            All prices below are <strong style={{ color:'var(--accent)' }}>introductory prices</strong> — locked in for life when you purchase today.
+            Regular prices will increase as more content is added.
+          </p>
+
+          {/* Live course cards */}
+          <div style={{ display:'flex', gap:16, justifyContent:'center', flexWrap:'wrap', marginBottom:24 }}>
+
+            {/* TESDA */}
+            <div style={{ ...s.pricingCard, flex:'1 1 280px', maxWidth:340, textAlign:'left', borderColor:'rgba(59,130,246,0.35)' }}>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4 }}>
+                <div style={{ fontSize:11, fontWeight:700, color:'#3b82f6', textTransform:'uppercase', letterSpacing:'.08em' }}>TESDA — Introductory Price</div>
+                <span style={{ fontSize:10, padding:'2px 8px', background:'rgba(59,130,246,0.12)', color:'#3b82f6', borderRadius:20, fontWeight:600, border:'1px solid rgba(59,130,246,0.25)' }}>Live Now</span>
+              </div>
+              <div style={{ ...s.priceAmount, color:'#3b82f6' }}><span style={{ ...s.priceSup, color:'#3b82f6' }}>₱</span>99</div>
+              <div style={s.priceOld}>Regular price: ₱199</div>
+              <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:16 }}>One-time · All NC qualifications included</div>
+              <div style={s.priceDivider}/>
+              <div style={s.priceFeatures}>
+                {[
+                  '✅ 16 NC II qualifications available now',
+                  '✅ Cookery, Caregiving, Housekeeping',
+                  '✅ Beauty Care, Hairdressing, Driving',
+                  '✅ Welding, Machining, Automotive',
+                  '✅ Food & Beverage, Barista, Masonry',
+                  '✅ Bread & Pastry, Computer Systems',
+                  '✅ Domestic Work, Warehousing',
+                  '🔜 More qualifications added regularly',
+                  '📖 Full HTML reviewer per qualification',
+                  '🎬 Video lessons embedded in the app',
+                  '🌐 English and Filipino toggle',
+                  '🖨 Print for offline study',
+                  '♾ Lifetime access — pay once, study forever',
+                ].map(f => (
+                  <div key={f} style={s.priceFeature}><span style={{ color:'#3b82f6', fontWeight:700 }}></span> {f}</div>
+                ))}
+              </div>
+              <button style={{ ...s.priceCta, background:'#3b82f6' }} onClick={() => onGetAccess('TESDA')}>Get TESDA Bundle · ₱99</button>
+              <div style={s.priceSub}>QRPh · GrabPay · PayMongo</div>
+            </div>
+
+            {/* LET */}
+            <div style={{ ...s.pricingCard, flex:'1 1 280px', maxWidth:340, textAlign:'left' }}>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4 }}>
+                <div style={{ fontSize:11, fontWeight:700, color:'var(--accent)', textTransform:'uppercase', letterSpacing:'.08em' }}>LET — Introductory Price</div>
+                <span style={{ fontSize:10, padding:'2px 8px', background:'rgba(201,168,76,0.12)', color:'var(--accent)', borderRadius:20, fontWeight:600, border:'1px solid rgba(201,168,76,0.25)' }}>Live Now</span>
+              </div>
+              <div style={s.priceAmount}><span style={s.priceSup}>₱</span>249</div>
+              <div style={s.priceOld}>Regular price: ₱399</div>
+              <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:16 }}>One-time · Lifetime access</div>
+              <div style={s.priceDivider}/>
+              <div style={s.priceFeatures}>
+                {[
+                  '1,554+ board exam questions',
+                  '14 topics · 23 structured lessons',
+                  'Readiness Score updated daily',
+                  'Spaced repetition engine',
+                  'Mock board exam simulation',
+                  'Coach Insights and daily recommendations',
+                ].map(f => (
+                  <div key={f} style={s.priceFeature}><span style={{ color:'var(--accent)', fontWeight:700 }}>✓</span> {f}</div>
+                ))}
+              </div>
+              <button style={s.priceCta} onClick={() => onGetAccess('LET')}>Get Access to LET · ₱249</button>
+              <div style={s.priceSub}>GCash · Maya · Card · PayMongo</div>
+            </div>
+
+          </div>
+
+          {/* Coming soon courses mini row */}
+          <div style={{ fontSize:12, color:'var(--text-muted)', marginBottom:20 }}>
+            Coming soon — including future PRC board exams:
+            {['NLE','NAPOLCOM','Civil Service','Criminology'].map(c => (
+              <span key={c} style={{ marginLeft:10, padding:'2px 10px', background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:20, color:'var(--text-muted)', fontSize:11 }}>{c}</span>
+            ))}
+          </div>
+
+          {/* Intro price notice */}
+          <div style={{ background:'rgba(201,168,76,0.06)', border:'1px solid rgba(201,168,76,0.15)', borderRadius:12, padding:'14px 20px', fontSize:13, color:'var(--text-secondary)', lineHeight:1.7, marginBottom:24, maxWidth:560, margin:'0 auto 24px' }}>
+            ⚡ <strong style={{ color:'var(--accent)' }}>Introductory pricing ends</strong> when we hit our first 100 students.
+            Everyone who buys now keeps their price forever — even after we raise it.
+          </div>
+
+          {/* Trial banner */}
+          <div style={s.trialBanner}>
+            <div>
+              <h3 style={{ fontSize:20, fontWeight:700, color:'var(--text-primary)', marginBottom:6 }}>Not ready to buy LET? Try it free.</h3>
+              <p style={{ fontSize:14, color:'var(--text-secondary)' }}>Register your email and get 1 hour of full LET access — no card required. (TESDA is already just ₱99 one-time, so no trial needed there.)</p>
+            </div>
+            <button style={s.btnTrial} onClick={() => onTryFree('LET')}>Try LET Free →</button>
+          </div>
+        </div>
+      </section>
+
+      {/* UPDATES */}
+      <section id="updates" style={{ ...s.section, background:'#141414' }}>
+        <div style={s.container}>
+          <div style={s.sectionEyebrow}>Platform Updates</div>
+          <h2 style={s.sectionTitle}>What's new</h2>
+          <div style={s.updatesList}>
+            {(liveUpdates.length > 0 ? liveUpdates : [
+              { id:'f1', tag:'lesson',       is_pinned:false, title:'Lessons tab launched',             body:'Structured lessons now live — read, learn, mark complete. Child Development first.',    created_at:'2026-06-12' },
+              { id:'f2', tag:'feature',      is_pinned:false, title:'1,200+ LET questions added',       body:'All 12 LET topics now have board-weighted questions with full rationales.',              created_at:'2026-06-11' },
+              { id:'f3', tag:'feature',      is_pinned:false, title:'Readiness Score system live',      body:'Coverage, Mastery, Consistency, Mock Exam — all four components now calculating.',       created_at:'2026-06-10' },
+              { id:'f4', tag:'feature',      is_pinned:false, title:'Spaced repetition engine launched',body:'SM-2 algorithm with forgetting signal. Cards resurface exactly when you need them.',     created_at:'2026-06-05' },
+            ]).map(u => (
+              <div key={u.id} style={{ ...s.updateRow, ...(u.is_pinned ? { background:'rgba(201,169,110,0.07)', borderRadius:8, padding:'8px 10px', margin:'-4px -10px' } : {}) }}>
+                <div style={s.updateDate}>
+                  {u.is_pinned ? '📌' : (TAG_ICONS[u.tag] || '📢')}
+                </div>
+                <div style={s.updateDot}/>
+                <div>
+                  <div style={s.updateTitle}>{u.title}</div>
+                  <div style={s.updateDesc}>{u.body}</div>
+                  <div style={{ fontSize:10, color:'var(--text-muted)', marginTop:3, opacity:.6 }}>
+                    {new Date(u.created_at).toLocaleDateString('en-PH', { month:'short', day:'numeric' })}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* FAQ SECTION */}
       <section id="faq" style={s.section}>
         <div style={s.container}>
@@ -562,12 +562,14 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
               { q:'Pwede ba ito gamitin sa phone?', a:'Oo — Readwise by Skai ay mobile-first. Dinisenyo ito para sa mga nagaaral sa kanilang phone, kahit nasa commute, break time, o gabi bago matulog.' },
               { q:'Kailangan ba ng internet?', a:'Kailangan ng internet para buksan ang app at i-load ang reviewers. Pero pwede mong i-print ang HTML reviewer para mag-aral offline.' },
               { q:'Isang beses lang babayaran?', a:'Oo. Isang beses lang — walang monthly fee, walang subscription. Bayad mo ngayon, lifetime na access mo.' },
+              { q:'Bakit TESDA ang pinaka-focus ngayon, hindi ba ito para sa board exam din?', a:'Live na ang parehong TESDA NC II at LET ngayon. Pero ang kasalukuyang pangunahing focus namin ay ang pagkumpleto ng lahat ng TESDA NC II qualifications, dahil dito nagsimula ang Readwise by Skai. Plano rin naming idagdag ang ibang PRC board exams sa hinaharap habang patuloy kaming nangangalap ng resources para gawing mas mahusay ang app para sa lahat ng estudyante.' },
               { q:'Kasama ba lahat ng NC II qualifications?', a:'Kasalukuyang may 16 NC II qualifications available — Cookery, Caregiving, Housekeeping, Beauty Care, Hairdressing, Driving, Welding, Machining, Automotive, Food & Beverage, Barista, Masonry, Bread & Pastry, Computer Systems, Domestic Work, at Warehousing. Patuloy kaming nag-a-upload ng bagong qualifications. Lahat ng darating — kasama na sa iyong ₱99.' },
-              { q:'Paano kung hindi pa available ang qualification ko?', a:'Mag-follow sa aming Facebook at YouTube para sa updates. Regular kaming naglalabas ng bagong qualifications. Ang iyong access ay valid habambuhay — kasama lahat ng magiging available.' },
+              { q:'Paano kung hindi pa available ang qualification o topic na kailangan ko?', a:'I-message lang kami sa TikTok (@readwisebyskai) o mag-email sa readwisebyskai@gmail.com para humiling ng specific na qualification o topic. Hindi namin magagarantiya na agad itong maisasagawa, pero titignan at susuriin namin ang bawat kahilingan. Ang iyong access ay valid habambuhay — kasama lahat ng magiging available sa hinaharap.' },
+              { q:'Available ba ang free trial sa lahat ng course?', a:'Sa ngayon, ang 1-hour free trial ay para sa LET lang. Ang TESDA naman ay ₱99 lang one-time, mas mura na kaysa sa maraming reviewer materials, kaya hindi na kailangan ng trial dito.' },
               { q:'Paano ako makakapag-access pagkatapos bumili?', a:'Pagkabayad mo sa PayMongo, matatanggap mo ang confirmation sa email mo. Buksan ang readwisebyskai.com, i-enter ang iyong email, at mag-aral na agad.' },
               { q:'May Filipino version ba?', a:'Oo — ang bawat reviewer ay may English at Filipino toggle. I-tap lang ang FIL button para lumipat sa Filipino version.' },
               { q:'Pwede ba itong i-print?', a:'Oo — may Print button sa loob ng bawat reviewer. I-print mo bilang PDF para mag-aral kahit walang internet.' },
-              { q:'Paano makipag-ugnayan sa inyo?', a:'Bisitahin kami sa readwisebyskai.com, i-message kami sa Facebook (facebook.com/readwisebyskai), o manood sa YouTube (youtube.com/@readwisebyskai). Palagi kaming nandito para tulungan kayo.' },
+              { q:'Paano makipag-ugnayan sa inyo — may error, concern, o request?', a:'I-message kami sa TikTok (@readwisebyskai) o mag-email sa readwisebyskai@gmail.com. Pwede rin bisitahin ang Facebook (facebook.com/readwisebyskai) o YouTube (youtube.com/@readwisebyskai). Hindi po ito immediate response, pero titignan at babasahin namin ang bawat mensahe — palagi kaming nandito para tulungan kayo.' },
             ].map(({ q, a }, i) => (
               <FaqItem key={i} q={q} a={a} />
             ))}
@@ -587,7 +589,22 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
           </p>
           <div style={{ display:'flex', gap:12, justifyContent:'center', flexWrap:'wrap' }}>
             <button style={s.btnPrimary} onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior:'smooth' })}>See Pricing →</button>
-            <button style={s.btnGhost}   onClick={() => onTryFree(selectedCourse)}>Try Free First →</button>
+            <button style={s.btnGhost}   onClick={() => onTryFree('LET')}>Try LET Free First →</button>
+          </div>
+        </div>
+      </section>
+
+      {/* THANK YOU */}
+      <section style={{ ...s.section, paddingTop:0, textAlign:'center' }}>
+        <div style={{ ...s.container, maxWidth:600 }}>
+          <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border)', borderRadius:16, padding:'32px 28px' }}>
+            <div style={{ fontSize:28, marginBottom:12 }}>🙏</div>
+            <h3 style={{ fontFamily:'Georgia, serif', fontSize:20, fontWeight:400, color:'var(--text-primary)', marginBottom:10 }}>
+              Salamat sa lahat ng suporta niyo!
+            </h3>
+            <p style={{ fontSize:14, color:'var(--text-secondary)', lineHeight:1.7 }}>
+              Thank you to every student, every share, and every message — we genuinely appreciate it. Readwise by Skai started with TESDA NC II, and we're working hard every day to complete more qualifications and make this platform better for you. Have a request, found an error, or just want to say hi? Message us on TikTok <strong style={{ color:'var(--text-primary)' }}>@readwisebyskai</strong> or email <strong style={{ color:'var(--text-primary)' }}>readwisebyskai@gmail.com</strong> — we read everything.
+            </p>
           </div>
         </div>
       </section>
@@ -595,7 +612,7 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
       {/* FOOTER */}
       <footer style={s.footer}>
         <div style={s.footerBrand}>Readwise by Skai</div>
-        <div style={s.footerSub}>Board Exam & National Examination Operating System · Philippines</div>
+        <div style={s.footerSub}>TESDA NC II Reviewer & National Examination Operating System · Philippines</div>
         <div style={s.footerLinks}>
           {['How it works','Courses','Pricing','TESDA','FAQ','Updates'].map(l => (
             <a key={l} href={l === 'How it works' ? '#how' : l === 'Updates' ? '#updates' : l === 'TESDA' ? '#tesda' : `#${l.toLowerCase()}`} style={s.footerLink}>{l}</a>
