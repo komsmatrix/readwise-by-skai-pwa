@@ -1,5 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
 import crypto from 'crypto'
+import Paymongo from 'paymongo-node'
+
+const paymongo = Paymongo(process.env.PAYMONGO_SECRET_KEY)
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -195,13 +198,47 @@ function welcomeEmail({ firstName, name, email, key, appUrl, course }) {
 </html>`
 }
 
+// Vercel auto-parses JSON bodies by default, but signature verification
+// needs the exact raw bytes PayMongo sent — any parsing beforehand changes
+// the bytes and breaks the HMAC check. So we disable auto-parsing here and
+// read + verify the raw body ourselves before touching it as JSON.
+export const config = {
+  api: { bodyParser: false },
+}
+
+function readRawBody(req) {
+  return new Promise((resolve, reject) => {
+    let data = ''
+    req.on('data', chunk => { data += chunk })
+    req.on('end', () => resolve(data))
+    req.on('error', reject)
+  })
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
-  try {
-    console.log('Webhook received:', JSON.stringify(req.body).slice(0, 200))
+  const rawBody = await readRawBody(req)
 
-    const event = req.body?.data?.attributes
+  let verifiedEvent
+  try {
+    verifiedEvent = paymongo.webhooks.constructEvent({
+      payload         : rawBody,
+      signatureHeader : req.headers['paymongo-signature'],
+      webhookSecretKey: process.env.PAYMONGO_WEBHOOK_SECRET,
+    })
+  } catch (err) {
+    // Signature didn't match — this request did not genuinely come from
+    // PayMongo. Reject before any processing, and don't leak details about
+    // why in the response.
+    console.error('Webhook signature verification failed:', err.message)
+    return res.status(401).json({ error: 'Invalid signature' })
+  }
+
+  try {
+    console.log('Webhook received:', JSON.stringify(verifiedEvent).slice(0, 200))
+
+    const event = verifiedEvent?.data?.attributes
     const type  = event?.type
 
     if (type !== 'checkout_session.payment.paid') {
