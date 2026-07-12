@@ -10,6 +10,7 @@ import LessonScreen      from './screens/LessonScreen.jsx'
 import OwnerDashboard    from './screens/OwnerDashboard.jsx'
 import BuyScreen         from './screens/BuyScreen.jsx'
 import AgentPortalScreen from './screens/AgentPortalScreen.jsx'
+import LinksScreen       from './screens/LinksScreen.jsx'
 import LoadingScreen     from './screens/LoadingScreen.jsx'
 import LandingScreen     from './screens/LandingScreen.jsx'
 import TesdaLandingScreen from './screens/TesdaLandingScreen.jsx'
@@ -61,6 +62,7 @@ export default function App() {
     }
     if (window.location.pathname === '/buy')     { setScreen('buy');     return }
     if (window.location.pathname === '/agent')   { setScreen('agent');   return }
+    if (window.location.pathname === '/links')   { setScreen('links');   return }
     if (window.location.pathname === '/terms')   { setScreen('terms');   return }
     if (window.location.pathname === '/privacy') { setScreen('privacy'); return }
     if (window.location.pathname === '/tesda')   { setScreen('tesda_landing'); return }
@@ -195,6 +197,7 @@ export default function App() {
   }
   if (screen === 'buy')     return <BuyScreen />
   if (screen === 'agent')   return <AgentPortalScreen />
+  if (screen === 'links')   return <LinksScreen />
   if (screen === 'terms')   return <TermsScreen />
   if (screen === 'privacy') return <PrivacyScreen />
   if (screen === 'loading') return <LoadingScreen />
