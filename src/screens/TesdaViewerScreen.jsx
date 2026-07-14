@@ -472,12 +472,9 @@ export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
     .map(n => detail?.[`media_url_${n}`])
     .filter(Boolean)
 
-  const videoUrls = [
-    detail?.video_url_1,
-    detail?.video_url_2,
-    detail?.video_url_3,
-    detail?.video_url_4,
-  ].filter(Boolean)
+  const videoUrls = [1,2,3,4,5,6]
+    .map(n => detail?.[`video_url_${n}`])
+    .filter(Boolean)
 
   const hasVideos      = videoUrls.length > 0
   const hasInfographic = detail?.infographic_url

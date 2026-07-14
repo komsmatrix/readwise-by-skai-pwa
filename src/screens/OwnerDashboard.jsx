@@ -2195,6 +2195,8 @@ function TesdaTab() {
       video_url_2     : editing.video_url_2      || null,
       video_url_3     : editing.video_url_3      || null,
       video_url_4     : editing.video_url_4      || null,
+      video_url_5     : editing.video_url_5      || null,
+      video_url_6     : editing.video_url_6      || null,
       infographic_url  : editing.infographic_url   || null,
       infographic_url_2: editing.infographic_url_2 || null,
       infographic_url_3: editing.infographic_url_3 || null,
@@ -2409,6 +2411,20 @@ function TesdaTab() {
         </div>
 
         <div style={s.field}>
+          <label style={s.label}>YouTube Video Reviewer 5</label>
+          <input style={s.input} value={editing.video_url_5 || ''}
+            placeholder="https://youtu.be/..."
+            onChange={e => setEditing(p => ({ ...p, video_url_5: e.target.value }))} />
+        </div>
+
+        <div style={s.field}>
+          <label style={s.label}>YouTube Video Reviewer 6</label>
+          <input style={s.input} value={editing.video_url_6 || ''}
+            placeholder="https://youtu.be/..."
+            onChange={e => setEditing(p => ({ ...p, video_url_6: e.target.value }))} />
+        </div>
+
+        <div style={s.field}>
           <label style={s.label}>Infographic URL 1</label>
           <input style={s.input} value={editing.infographic_url || ''}
             placeholder="https://..."
@@ -2489,6 +2505,8 @@ function TesdaTab() {
                   {st.video_url_2     && <span style={{ fontSize:10, padding:'2px 7px', background:'var(--bg-elevated)', color:'var(--text-muted)', borderRadius:20, border:'1px solid var(--border)' }}>📹 Video 2</span>}
                   {st.video_url_3     && <span style={{ fontSize:10, padding:'2px 7px', background:'var(--bg-elevated)', color:'var(--text-muted)', borderRadius:20, border:'1px solid var(--border)' }}>📹 Video 3</span>}
                   {st.video_url_4     && <span style={{ fontSize:10, padding:'2px 7px', background:'var(--bg-elevated)', color:'var(--text-muted)', borderRadius:20, border:'1px solid var(--border)' }}>📹 Video 4</span>}
+                  {st.video_url_5     && <span style={{ fontSize:10, padding:'2px 7px', background:'var(--bg-elevated)', color:'var(--text-muted)', borderRadius:20, border:'1px solid var(--border)' }}>📹 Video 5</span>}
+                  {st.video_url_6     && <span style={{ fontSize:10, padding:'2px 7px', background:'var(--bg-elevated)', color:'var(--text-muted)', borderRadius:20, border:'1px solid var(--border)' }}>📹 Video 6</span>}
                   {st.infographic_url   && <span style={{ fontSize:10, padding:'2px 7px', background:'var(--bg-elevated)', color:'var(--text-muted)', borderRadius:20, border:'1px solid var(--border)' }}>🖼 Infographic 1</span>}
                   {st.infographic_url_2 && <span style={{ fontSize:10, padding:'2px 7px', background:'var(--bg-elevated)', color:'var(--text-muted)', borderRadius:20, border:'1px solid var(--border)' }}>🖼 Infographic 2</span>}
                   {st.infographic_url_3 && <span style={{ fontSize:10, padding:'2px 7px', background:'var(--bg-elevated)', color:'var(--text-muted)', borderRadius:20, border:'1px solid var(--border)' }}>🖼 Infographic 3</span>}
