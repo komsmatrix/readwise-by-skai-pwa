@@ -4,7 +4,6 @@ const supabaseUrl  = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnon = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 const BANNER_URL = 'https://tizegwvlksgqtvlkiwvb.supabase.co/storage/v1/object/public/lesson-images/Banner%20above%20the%20lecture.png'
-const OUTRO_URL  = 'https://tizegwvlksgqtvlkiwvb.supabase.co/storage/v1/object/public/lesson-images/outro%20after%20the%20lecture.JPG'
 const YT_CHANNEL = 'https://www.youtube.com/@readwisebyskai'
 
 function getYouTubeVideoId(url) {
@@ -568,12 +567,6 @@ export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
                   title={title}
                   sandbox="allow-scripts allow-popups allow-forms allow-modals allow-popups-to-escape-sandbox allow-same-origin"
                 />
-                {/* Outro — full width on mobile, 50% centered on desktop */}
-                <a href={YT_CHANNEL} target="_blank" rel="noopener noreferrer"
-                  style={{ display:'flex', justifyContent:'center', flexShrink:0, background:'var(--bg-base)' }}>
-                  <img src={OUTRO_URL} alt="Like, Subscribe and Turn on the Bell"
-                    style={{ width: window.innerWidth < 768 ? '100%' : '50%', height:'auto', display:'block', cursor:'pointer' }} />
-                </a>
               </>
             ) : (
               <div style={s.center}>
@@ -640,13 +633,6 @@ export default function TesdaViewerScreen({ qualification, subtopic, onBack }) {
               <div style={s.center}><div style={s.muted}>No resources added yet.</div></div>
             )}
 
-            {/* Outro banner */}
-            <a href={YT_CHANNEL} target="_blank" rel="noopener noreferrer"
-              style={{ display:'block', marginTop:20, borderRadius:10, overflow:'hidden' }}>
-              <img src={OUTRO_URL} alt="Like Subscribe"
-                style={{ width:'100%', display:'block' }}
-                onError={e => e.target.style.display='none'} />
-            </a>
             <div style={{ height:24 }} />
           </div>
         )}
