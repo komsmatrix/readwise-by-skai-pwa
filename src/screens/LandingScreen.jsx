@@ -191,14 +191,14 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
         <div style={s.heroGlow}/>
         <div style={s.eyebrow}>
           <span style={s.eyebrowDot}/>
-          TESDA NC II Reviewer Hub · Philippines
+          TESDA & National Exam Reviewer · Built From Actual Assessment Patterns
         </div>
         <h1 style={s.heroTitle}>
-          Know what to study.<br/>
-          <em style={{ fontStyle:'italic', color:'var(--accent)' }}>Pass your TESDA assessment.</em>
+          You trained. You have<br/>the experience.<br/>
+          <em style={{ fontStyle:'italic', color:'var(--accent)' }}>But are you confident enough?</em>
         </h1>
         <p style={s.heroSub}>
-          Complete reviewers for TESDA NC II qualifications — plus LET exam prep, with more national exams on the way. Readwise tells you exactly what to study, every day, until assessment day.
+          Readwise doesn't just review the theory — it drills you with the actual oral questions, demonstration scenarios, and assessment-day checklists. TESDA NC II and LET, all in one app. Train mo na, dagdagan mo pa ng kumpiyansa.
         </p>
         <div style={s.heroActions}>
           <button style={s.btnPrimary} onClick={() => {
@@ -311,6 +311,32 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
             </button>
             <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:8 }}>One-time · Lifetime access · All qualifications included</div>
           </div>
+        </div>
+      </section>
+
+      {/* CONFIDENCE / DIFFERENTIATOR */}
+      <section style={s.section}>
+        <div style={s.container}>
+          <div style={s.sectionEyebrow}>Hindi lang basahin. Sanayin.</div>
+          <h2 style={s.sectionTitle}>Base sa aktwal na mangyayari sa assessment day mo</h2>
+          <p style={s.sectionSub}>Karamihan ng reviewer, puro teorya lang. Ang Readwise, dinisenyo base sa totoong assessment experience.</p>
+          <div style={s.stepsGrid}>
+            {[
+              { icon:'🗣', t:'Oral Questioning Drills',      d:'Ang mismong klaseng tanong na itatanong sa \'yo ng assessor, hindi generic na trivia.' },
+              { icon:'✅', t:'Assessment Day Checklist',      d:'PPE, requirements, at ang mga hindi mo dapat kalimutan bago pa man mag-umpisa.' },
+              { icon:'🎯', t:'Demonstration Scenarios',       d:'Practice ang mga sitwasyong ipapakita mo mismo sa harap ng assessor.' },
+              { icon:'⚠️', t:'Common Reasons for Failure',    d:'Alamin bago pa mangyari sa \'yo — para hindi mo na uulitin ang pagkakamali ng iba.' },
+            ].map(step => (
+              <div key={step.t} style={s.stepCard}>
+                <div style={s.stepIcon}>{step.icon}</div>
+                <div style={s.stepTitle}>{step.t}</div>
+                <div style={s.stepDesc}>{step.d}</div>
+              </div>
+            ))}
+          </div>
+          <p style={{ textAlign:'center', fontSize:14, color:'var(--text-secondary)', lineHeight:1.8, marginTop:32, maxWidth:640, marginLeft:'auto', marginRight:'auto' }}>
+            Kasi ang training mo, sapat na para malaman mo ang gagawin. Ang Readwise, ang gagawa sa 'yong sigurado kang magagawa mo — <strong style={{ color:'var(--accent)' }}>nang tama, sa unang subok.</strong>
+          </p>
         </div>
       </section>
 
@@ -584,8 +610,11 @@ export default function LandingScreen({ onGetAccess, onTryFree, onSignIn }) {
             Your next national exam<br/>
             <em style={{ fontStyle:'italic', color:'var(--accent)' }}>doesn't have to be your last attempt.</em>
           </h2>
-          <p style={{ ...s.sectionSub, margin:'0 auto 36px' }}>
+          <p style={{ ...s.sectionSub, margin:'0 auto 20px' }}>
             Join students who are studying smarter — not longer — with a system that actually knows what they need.
+          </p>
+          <p style={{ fontSize:15, color:'var(--accent)', fontWeight:600, marginBottom:36 }}>
+            Sama-sama nating abutin ang magandang kinabukasan. 💛
           </p>
           <div style={{ display:'flex', gap:12, justifyContent:'center', flexWrap:'wrap' }}>
             <button style={s.btnPrimary} onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior:'smooth' })}>See Pricing →</button>

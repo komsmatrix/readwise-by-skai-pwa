@@ -206,18 +206,18 @@ export default function TesdaLandingScreen({ onGetAccess, onTryFree, onSignIn })
         <div style={s.heroGlow}/>
         <div style={{ ...s.eyebrow, background:'rgba(59,130,246,0.1)', borderColor:'rgba(59,130,246,0.3)', color:'#3b82f6' }}>
           <span style={{ ...s.eyebrowDot, background:'#3b82f6' }}/>
-          TESDA NC II Reviewer · Philippines
+          TESDA NC II Reviewer · Built From Actual Assessment Patterns
         </div>
         <h1 style={s.heroTitle}>
-          The Ultimate TESDA NC II<br/>
-          <em style={{ fontStyle:'italic', color:'#3b82f6' }}>Reviewer Hub.</em>
+          You trained. You have<br/>the experience.<br/>
+          <em style={{ fontStyle:'italic', color:'#3b82f6' }}>But are you confident enough?</em>
         </h1>
         <p style={s.heroSub}>
-          Full HTML reviewers, video lessons, and infographics for every TESDA NC II qualification — in one app, on your phone, in English or Filipino. ₱99 lang. Lifetime access.
+          Readwise doesn't just review the theory — it drills you with the actual oral questions, demonstration scenarios, and assessment-day checklists TESDA assessors use. Train mo na, dagdagan mo pa ng kumpiyansa. ₱99 lang. Lifetime access.
         </p>
         <div style={s.heroActions}>
           <button style={{ ...s.btnPrimary, background:'#3b82f6' }} onClick={() => onGetAccess('TESDA')}>
-            Get TESDA Bundle · ₱99 →
+            Get Confident · ₱99 →
           </button>
           <button style={s.btnGhost} onClick={() => {
             document.getElementById('available')?.scrollIntoView({ behavior:'smooth' })
@@ -298,6 +298,32 @@ export default function TesdaLandingScreen({ onGetAccess, onTryFree, onSignIn })
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* CONFIDENCE / DIFFERENTIATOR */}
+      <section style={s.section}>
+        <div style={s.container}>
+          <div style={{ ...s.sectionEyebrow, color:'#3b82f6' }}>Hindi lang basahin. Sanayin.</div>
+          <h2 style={s.sectionTitle}>Base sa aktwal na mangyayari sa assessment day mo</h2>
+          <p style={s.sectionSub}>Karamihan ng reviewer, puro teorya lang. Ang Readwise, dinisenyo base sa totoong assessment experience.</p>
+          <div style={s.stepsGrid}>
+            {[
+              { icon:'🗣', t:'Oral Questioning Drills',      d:'Ang mismong klaseng tanong na itatanong sa \'yo ng assessor, hindi generic na trivia.' },
+              { icon:'✅', t:'Assessment Day Checklist',      d:'PPE, requirements, at ang mga hindi mo dapat kalimutan bago pa man mag-umpisa.' },
+              { icon:'🎯', t:'Demonstration Scenarios',       d:'Practice ang mga sitwasyong ipapakita mo mismo sa harap ng assessor.' },
+              { icon:'⚠️', t:'Common Reasons for Failure',    d:'Alamin bago pa mangyari sa \'yo — para hindi mo na uulitin ang pagkakamali ng iba.' },
+            ].map(step => (
+              <div key={step.t} style={s.stepCard}>
+                <div style={{ ...s.stepIcon, background:'rgba(59,130,246,0.1)', borderColor:'rgba(59,130,246,0.25)' }}>{step.icon}</div>
+                <div style={s.stepTitle}>{step.t}</div>
+                <div style={s.stepDesc}>{step.d}</div>
+              </div>
+            ))}
+          </div>
+          <p style={{ textAlign:'center', fontSize:14, color:'var(--text-secondary)', lineHeight:1.8, marginTop:32, maxWidth:640, marginLeft:'auto', marginRight:'auto' }}>
+            Kasi ang training mo, sapat na para malaman mo ang gagawin. Ang Readwise, ang gagawa sa 'yong sigurado kang magagawa mo — <strong style={{ color:'#3b82f6' }}>nang tama, sa unang subok.</strong>
+          </p>
         </div>
       </section>
 
@@ -644,8 +670,11 @@ export default function TesdaLandingScreen({ onGetAccess, onTryFree, onSignIn })
             Hindi mo na kailangan mag-isa.<br/>
             <em style={{ fontStyle:'italic', color:'#3b82f6' }}>Handa ka na para sa TESDA assessment mo.</em>
           </h2>
-          <p style={{ ...s.sectionSub, margin:'0 auto 36px' }}>
+          <p style={{ ...s.sectionSub, margin:'0 auto 20px' }}>
             Sumali sa mga estudyante na nag-aaral nang mas matalino — ₱99 lang, lifetime access, lahat ng qualifications.
+          </p>
+          <p style={{ fontSize:15, color:'#3b82f6', fontWeight:600, marginBottom:36 }}>
+            Sama-sama nating abutin ang magandang kinabukasan. 💛
           </p>
           <div style={{ display:'flex', gap:12, justifyContent:'center', flexWrap:'wrap' }}>
             <button style={{ ...s.btnPrimary, background:'#3b82f6' }} onClick={() => onGetAccess('TESDA')}>Get TESDA Bundle · ₱99 →</button>
