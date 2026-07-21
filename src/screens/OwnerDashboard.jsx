@@ -1630,18 +1630,23 @@ function AgentsTab() {
     const amount = referralCount * 20
 
     // Insert payout record
-    await supabase.from('agent_payouts').insert([{
+    const { error: payoutError } = await supabase.from('agent_payouts').insert([{
       agent_id:       agent.id,
       amount,
-      referral_count: referralCount,
+      sales_count:    referralCount,
       period_start:   payout.period_start,
       period_end:     payout.period_end,
-      paid:           true,
       paid_at:        new Date().toISOString(),
       gcash_ref:      payout.gcash_ref,
       screenshot_url: screenshotUrl,
-      email_sent:     true,
     }])
+
+    if (payoutError) {
+      console.error('Payout insert failed:', payoutError)
+      setPaying(false)
+      alert('Failed to save payout record: ' + payoutError.message)
+      return
+    }
 
     // Send payout email
     await fetch('/api/send-email', {
@@ -1733,7 +1738,7 @@ function AgentsTab() {
         <div style={s.empty}>No agents yet.</div>
       ) : agents.map(agent => {
         const unpaidReferrals = agent.total_referrals -
-          (agent.agent_payouts?.filter(p => p.paid).reduce((sum, p) => sum + p.referral_count, 0) || 0)
+          (agent.agent_payouts?.reduce((sum, p) => sum + (p.sales_count || 0), 0) || 0)
         const owedAmount = Math.max(0, unpaidReferrals) * 20
 
         return (
